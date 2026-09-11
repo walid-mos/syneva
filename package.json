@@ -9,7 +9,8 @@
     "review",
     "coding-agent",
     "ai",
-    "cli"
+    "cli",
+    "pi-package"
   ],
   "homepage": "https://github.com/ymansurozer/galley#readme",
   "repository": {
@@ -26,8 +27,22 @@
   "engines": {
     "node": ">=22"
   },
+  "pi": {
+    "extensions": [
+      "extensions"
+    ],
+    "skills": [
+      "skills/galley"
+    ],
+    "prompts": [
+      "prompts"
+    ]
+  },
   "bin": {
     "galley": "./dist/cli.js"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
   },
   "files": [
     "dist"
@@ -39,16 +54,18 @@
     "dev": "node scripts/build-ui.mjs --watch & tsx src/cli.ts",
     "build": "tsc && tsc -p tsconfig.ui.json && node scripts/build-ui.mjs && cp src/ui/index.html dist/index.html",
     "start": "node dist/cli.js",
-    "check": "tsc --noEmit && tsc -p tsconfig.ui.json",
-    "lint": "oxlint src scripts && oxfmt --check src scripts",
-    "lint:fix": "oxlint src scripts --fix && oxfmt src scripts",
+    "check": "tsc --noEmit && tsc -p tsconfig.ui.json && tsc -p tsconfig.extensions.json",
+    "lint": "oxlint src scripts extensions && oxfmt --check src scripts extensions",
+    "lint:fix": "oxlint src scripts extensions --fix && oxfmt src scripts extensions",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "smoke": "node scripts/smoke.mjs",
     "perf-smoke": "node scripts/perf-smoke.mjs",
     "prepack": "pnpm build",
-    "release": "pnpm lint && pnpm check && pnpm test && pnpm build && pnpm smoke && changelogen --release --push"
+    "release": "pnpm lint && pnpm check && pnpm test && pnpm build && pnpm smoke && changelogen --release --push",
+    "postinstall": "pnpm build"
   },
   "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.85.1",
     "@types/alpinejs": "^3.13.11",
     "@types/alpinejs__persist": "^3.13.4",
     "@types/markdown-it": "^14.1.2",
