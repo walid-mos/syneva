@@ -4,9 +4,9 @@
 
 # Galley
 
-**An integrated review environment (IRE) for code you didn't write by hand.**
+**An integrated review environment (IRE) for code you didn't write by hand.** Fork of [ymansurozer/galley](https://github.com/ymansurozer/galley), packaged as a pi package.
 
-[![CI](https://github.com/ymansurozer/galley/actions/workflows/ci.yml/badge.svg)](https://github.com/ymansurozer/galley/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/galley-diff.svg)](https://www.npmjs.com/package/galley-diff) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 <img src="assets/screenshot.png" alt="Galley — a guided review: pending changes with accept/reject, a question waiting on the agent, and a change request" width="80%" />
 
@@ -24,22 +24,16 @@ I'm not saying this is *the* review surface. I built it in a week and I'm still 
 
 ## Getting started
 
-1. **Install the CLI** (needs **Node 22+** and **git**):
+1. **Install as a pi package** (ships the CLI, a `/galley` status command, `/review` and `/plan` prompt templates, and a galley skill):
 
    ```bash
-   npm install -g galley-diff        # global, for any repo
-   # or: npm install -D galley-diff   # per-project
+   pi install git:github.com/walid-mos/galley@<ref>   # pinned git install
+   # or point settings at a local checkout: pi install /absolute/path/to/galley
    ```
 
-2. **Teach your agent to drive it.** Install the skill for on-demand use:
+   Outside pi, the plain CLI still works: `npm install -g galley-diff` (needs **Node 22+** and **git**).
 
-   ```bash
-   npx skills add ymansurozer/galley
-   ```
-
-   Or paste the [snippet](./skills/galley/agents-snippet.md) into your agent's `AGENTS.md` / `CLAUDE.md` to always review via Galley.
-
-3. **Start a review:**
+2. **Start a review:**
 
    ```bash
    galley                       # review the working-tree diff
