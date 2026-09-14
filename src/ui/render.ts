@@ -1,12 +1,13 @@
 import { currentFileOrNull } from './changes'
 import { restoreComposerFocus } from './composer'
-import { loadCurrentContents, peekContents } from './contents'
+import { cur, loadCurrentContents, peekContents } from './contents'
 import { cursorReset } from './cursor'
 import { hasGuide, renderOverview } from './guide'
 import { isMarkdownPath, renderMarkdownFile } from './mdfile'
 import { isOversizedPlaceholder, renderOversizedCard } from './oversized'
 import { updateProgress } from './progress'
 import { diffKey, renderDiffInstance } from './render/diff-instance'
+import { isExpandCapped, newLines } from './render/expand-cap'
 import { clearOverviewRuler } from './render/overview-ruler'
 import {
 	fileMovedPure,
@@ -22,11 +23,15 @@ import type { ReviewState } from './types'
 
 type ReviewFile = ReviewState['files'][number]
 
-// The current render's view flags, read from the store (see DiffView).
+// The current render's view flags, read from the store (see DiffView). The expand-unchanged
+// preference is respected only under the whole-file paint cap: past EXPAND_LINES_MAX the diff
+// renders hunks-only and the header notes the cap (file-header.ts), so a 10k-line file can't
+// storm the tab with tens of thousands of DOM cells - every render pass rebuilds synchronously.
 function currentView(): DiffView {
+	const wantsExpand = S.settings.unchangedLines === 'expand'
 	return {
 		isPreviewing: !!S.preview,
-		isExpandedUnchanged: S.settings.unchangedLines === 'expand',
+		isExpandedUnchanged: wantsExpand && !isExpandCapped(cur.newContents),
 	}
 }
 
@@ -36,15 +41,6 @@ function currentView(): DiffView {
 
 // A diff that would block longer than ~this many lines of tokenization shows the indicator.
 const RENDER_INDICATOR_MIN_LINES = 400
-const NEWLINE_CODE = 10
-
-// Count newlines with a loop rather than s.match(/\n/g): match allocates a full array of every
-// newline over what can be a multi-MB file, on every file switch - the count is all we need.
-function lineCount(s: string): number {
-	let n = 1
-	for (let i = 0; i < s.length; i++) if (s.charCodeAt(i) === NEWLINE_CODE) n++
-	return n
-}
 
 // Run render() but first paint a "Rendering…" indicator when the current file is big enough to
 // block on tokenization - used by file switches and Reset (both can re-tokenize). The double rAF
@@ -60,7 +56,7 @@ export function deferRender(isForcedIfBig = false): void {
 	const warm = file ? peekContents(file) : null
 	const isBig =
 		!!warm &&
-		Math.max(lineCount(warm.oldContents), lineCount(warm.newContents)) >
+		Math.max(newLines(warm.oldContents), newLines(warm.newContents)) >
 			RENDER_INDICATOR_MIN_LINES
 	// A cached diff key means the coming render re-mounts an existing instance: no tokenizing.
 	const reusesCache =

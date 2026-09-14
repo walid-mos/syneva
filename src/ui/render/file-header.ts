@@ -8,6 +8,7 @@ import {
 	fileObjections,
 } from '../changes'
 import { buildCommentThread } from '../comment-thread'
+import { cur } from '../contents'
 import { approveCurrentFile, resetReview } from '../decisions'
 import { currentGuideEntry } from '../guide'
 import { renderMarkdown } from '../markdown'
@@ -19,6 +20,8 @@ import {
 } from '../skim'
 import { S } from '../store'
 import { unanchoredThreads } from '../unanchored'
+
+import { isExpandCapped, EXPAND_LINES_MAX, newLines } from './expand-cap'
 
 import type { ChangeTypes, FileDiffMetadata } from '@pierre/diffs'
 
@@ -211,6 +214,18 @@ function headerRow(file: FileDiffMetadata): HTMLElement {
 	counts.className = 'ghdr-counts'
 	counts.innerHTML = `<span class="a">+${added}</span><span class="d">-${deleted}</span>`
 	row.appendChild(counts)
+	// The expand view cap (see currentView in render.ts): the setting promises every row, the
+	// paint delivers hunks only past the line budget - surface the compromise where it hurts.
+	if (
+		S.settings.unchangedLines === 'expand' &&
+		isExpandCapped(cur.newContents)
+	) {
+		const capped = document.createElement('span')
+		capped.className = 'ghdr-moved'
+		capped.title = `Expand view is capped at ${EXPAND_LINES_MAX.toLocaleString()} lines - this file has ${newLines(cur.newContents).toLocaleString()}`
+		capped.textContent = 'expand capped'
+		row.appendChild(capped)
+	}
 	const actions = headerActions()
 	actions.className = 'ghdr-actions'
 	row.appendChild(actions)
