@@ -19,6 +19,34 @@ export default defineConfig({
 	],
 	overrides: [
 		{
+			// The bench fixtures encode file counts and per-file sizes by design (an 8k-line
+			// giant, a 2.4MB oversized file) and the browser bench reports with console.log
+			// like perf-smoke does. The shared preset's readability rules (magic numbers,
+			// function length, await depth) fight the fixture specs' shape, not a reviewable
+			// logic path - drop them for the two bench scripts only.
+			files: ['scripts/bench-fixtures.mjs', 'scripts/browser-bench.mjs'],
+			rules: {
+				'eslint/no-magic-numbers': 'off',
+				'eslint/no-console': 'off',
+				'eslint/max-lines': 'off',
+				'eslint/max-lines-per-function': 'off',
+				'eslint/max-depth': 'off',
+				'eslint/no-unused-vars': 'off',
+				'nextnode/no-nullish-ternary-return': 'off',
+				// The bench instruments (a page-side __bench projector, fetch/Worker hooks,
+				// measured-and-sequenced key presses) are inherently serialized and
+				// underscore-named on purpose: the page API surface they reach into is
+				// galley's own store singleton. Sequenced awaits (cold-open pipeline,
+				// latency probes, churn loops) measure sequences - parallelizing them would
+				// change the thing being measured.
+				'eslint/no-underscore-dangle': 'off',
+				'eslint/no-await-in-loop': 'off',
+				'unicorn/consistent-function-scoping': 'off',
+				'eslint/prefer-destructuring': 'off',
+				'unicorn/prefer-array-find': 'off',
+			},
+		},
+		{
 			// The pi extension entry point default-exports its register function by
 			// design: pi's loader contract, the same class of exception as framework
 			// pages in the shared preset.
