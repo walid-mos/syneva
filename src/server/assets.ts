@@ -30,6 +30,15 @@ export async function uiBundlePath(): Promise<string> {
 	)
 }
 
+// The @pierre/diffs worker script, bundled next to ui.js by scripts/build-ui.mjs. Loaded via the
+// pool's workerFactory (the tokenization/highlight engine - see src/ui/render/worker-pool.ts).
+export async function workerBundlePath(): Promise<string> {
+	return firstExisting(
+		path.join(COMPILED_ROOT, 'worker.js'),
+		path.join(process.cwd(), 'dist', 'worker.js'),
+	)
+}
+
 export async function indexHtmlPath(): Promise<string> {
 	return firstExisting(
 		path.join(COMPILED_ROOT, 'index.html'),

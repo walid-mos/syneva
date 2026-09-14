@@ -21,6 +21,7 @@ import { $, D, S } from '../store'
 
 import { createDiffHeader, headerActions } from './file-header'
 import { renderOverviewRuler } from './overview-ruler'
+import { diffWorkerPool, syncPoolRenderOptions } from './worker-pool'
 
 import type { FileDiffMetadata, FileDiffOptions } from '@pierre/diffs'
 import type { AnnotationMeta, ReviewState } from '../types'
@@ -183,7 +184,11 @@ function acquireEntry(key: string, view: DiffView): DiffEntry {
 	wrapper.className = 'diff-wrap'
 	const entry: DiffEntry = {
 		wrapper,
-		inst: new FileDiff(diffOptions(view)),
+		// The pool - the second @pierre constructor argument - moves Shiki tokenization/highlight
+		// off the main thread into Workers; a first render returns before rows exist and @pierre
+		// re-renders itself when the pool's tokens arrive (its onHighlightSuccess hook). The main
+		// instance options still own the chrome, settings, and DOM announcements.
+		inst: new FileDiff(diffOptions(view), diffWorkerPool()),
 	}
 	D.diffCache.set(key, entry)
 	return entry
@@ -232,6 +237,8 @@ function afterRender(key: string, view: DiffView): void {
 }
 
 export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
+	// The pool requires current token settings (the worker bakes them into the returned tokens).
+	syncPoolRenderOptions()
 	const metadata = buildDiffMetadata(file, view)
 	D.fileDiff = metadata
 	const key = diffKey(file, view)

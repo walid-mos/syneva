@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs'
 
-import { indexHtmlPath, uiBundlePath } from '../assets.js'
+import { indexHtmlPath, uiBundlePath, workerBundlePath } from '../assets.js'
 import { HTTP_NO_CONTENT, HTTP_NOT_MODIFIED, HTTP_OK } from '../http.js'
 
 import type { RouteRequest } from '../router.js'
@@ -11,10 +11,13 @@ export async function serveIndex({ res }: RouteRequest): Promise<void> {
 	res.end(await fs.readFile(file, 'utf8'))
 }
 
-// The UI bundle is the desk's biggest asset and changes only on a rebuild, so it carries an
+// An etag'd JS asset server (ui.js, worker.js). Assets change only on a rebuild, so they carry an
 // etag derived from size+mtime: the tab revalidates cheaply and a 304 skips the body entirely.
-export async function serveUiBundle({ req, res }: RouteRequest): Promise<void> {
-	const file = await uiBundlePath()
+async function serveJsBundle(
+	pathOf: () => Promise<string>,
+	{ req, res }: RouteRequest,
+): Promise<void> {
+	const file = await pathOf()
 	const stat = await fs.stat(file).catch(() => null)
 	const etag = stat ? `"${stat.size}-${Math.round(stat.mtimeMs)}"` : ''
 	if (etag && req.headers['if-none-match'] === etag) {
@@ -28,6 +31,14 @@ export async function serveUiBundle({ req, res }: RouteRequest): Promise<void> {
 		...cacheHeaders(etag),
 	})
 	res.end(js)
+}
+
+export async function serveUiBundle(request: RouteRequest): Promise<void> {
+	return serveJsBundle(uiBundlePath, request)
+}
+
+export async function serveWorkerBundle(request: RouteRequest): Promise<void> {
+	return serveJsBundle(workerBundlePath, request)
 }
 
 function cacheHeaders(

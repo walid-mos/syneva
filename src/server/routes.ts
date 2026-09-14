@@ -21,7 +21,12 @@ import {
 	sendReviewToAgent,
 } from './routes/review.js'
 import { stageFiles, stageOneChange, unstageFile } from './routes/staging.js'
-import { serveFavicon, serveIndex, serveUiBundle } from './routes/static.js'
+import {
+	serveFavicon,
+	serveIndex,
+	serveUiBundle,
+	serveWorkerBundle,
+} from './routes/static.js'
 
 import type { RouteTable } from './router.js'
 
@@ -30,6 +35,7 @@ import type { RouteTable } from './router.js'
 export const routes: RouteTable = {
 	'GET /': serveIndex,
 	'GET /ui.js': serveUiBundle,
+	'GET /worker.js': serveWorkerBundle,
 	'GET /favicon.ico': serveFavicon,
 	'GET /api/poll': servePoll,
 	'GET /api/state': serveState,
