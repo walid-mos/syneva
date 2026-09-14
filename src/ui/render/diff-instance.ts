@@ -27,6 +27,7 @@ import { renderSignature } from './render-signature'
 import { diffWorkerPool, syncPoolRenderOptions } from './worker-pool'
 
 import type { FileDiffMetadata, FileDiffOptions } from '@pierre/diffs'
+import type { LineMap } from '../linemap'
 import type { AnnotationMeta, ReviewState } from '../types'
 
 type ReviewFile = ReviewState['files'][number]
@@ -40,10 +41,13 @@ export type DiffView = { isPreviewing: boolean; isExpandedUnchanged: boolean }
 // (decisions replayed), mount it into a cached wrapper, then run the work that needs committed rows.
 
 // How many rendered file instances to keep warm (each holds DOM + @pierre's highlight cache).
-// Cheap now that the state itself is lean (issue 04 removed embedded contents), so we keep ~30
-// files warm - returning to any recently viewed file re-mounts its cached wrapper without
-// re-tokenizing, matching the per-file contents LRU's cap (contents.ts).
-const DIFF_CACHE_CAP = 30
+// Bench check (2026): 30 entries held ~350-500MB of detached DOM + instance state on a
+// mid-size desk (medium fixture: 200MB resident -> 594MB after browsing 34 files), and the
+// memory pressure shows up as scroll/switch jank - while a revisit re-render costs roughly
+// the same as a cold render anyway (the earlier rows are re-parsed, not reused), so the warm
+// cap primarily buys memory. 12 keeps a reviewer's working set (a handful of files revisited
+// during a session) warm without pinning the desk for tens of seconds afterward.
+const DIFF_CACHE_CAP = 12
 // FNV-1a over a string, base36: a cheap stable hash used as @pierre cacheKeys for the old side
 // (the new side reuses the server's contentHash). Same content -> same key -> cache hit.
 const FNV_OFFSET_BASIS = 2166136261
@@ -100,6 +104,67 @@ function isViewOnly(isPreviewing: boolean): boolean {
 // The parsed diff @pierre renders, carrying the reviewer's decisions. Changes (identity, raw
 // anchors) derive from the raw diff; the rendered diff is the decision-replayed one, so display
 // anchors must be re-read from it (resolutions renumber lines - see linemap.ts).
+//
+// Passing the SAME metadata object back across passes lets @pierre short-circuit its row build
+// (reference-equal fileDiff skips the whole reconstruction), so the memo below is also a render
+// fast path - on a revisit the cached wrapper re-mounts its already-painted rows.
+//
+// The memo key covers everything buildDiffMetadata consumes: file identity (paths, contentHash,
+// old-side content digest + lengths), the view flags that change the parse, and the non-pending
+// decision set (the replay filters pending). Comments are NOT in the scope: they anchor
+// separately (annotations), and skim collapse is applied without touching metadata.
+type MetadataMemo = { diff: FileDiffMetadata; lineMap: LineMap | null }
+const METADATA_CAP = 8
+const metadataMemo = new Map<string, MetadataMemo>()
+
+function metadataFingerprint(file: ReviewFile, view: DiffView): string {
+	const changes = currentChanges()
+		.filter(c => c.status !== 'pending')
+		.map(c => `${c.id}|${c.status}`)
+		.join(',')
+	return [
+		view.isPreviewing ? 'p' : 'd',
+		view.isExpandedUnchanged ? 'e' : 'c',
+		isViewOnly(view.isPreviewing) ? 'v' : 'r',
+		file.path,
+		file.oldPath ?? file.path,
+		file.newPath ?? file.path,
+		file.contentHash,
+		ckey(cur.oldContents),
+		cur.oldContents.length,
+		cur.newContents.length,
+		changes,
+	].join('\x00')
+}
+
+// Parse+replay once per fingerprint, then hand @pierre the SAME diff reference across
+// passes: its reference-equality fast path skips the whole row build, so a revisit (the
+// measured revisit cost on a mid-size desk: ~628ms -> the cached-wrapper remount) re-mounts
+// painted rows instead of paying the pass again. The memo also carries the D.lineMap the
+// replay saved: rebuilds happen only through buildDiffMetadata below.
+function memoizedDiffMetadata(
+	file: ReviewFile,
+	view: DiffView,
+): FileDiffMetadata {
+	const fingerprint = metadataFingerprint(file, view)
+	const memo = metadataMemo.get(fingerprint)
+	if (memo) {
+		// LRU refresh: the fingerprint's memo is fresh by definition; keep it hot.
+		metadataMemo.delete(fingerprint)
+		metadataMemo.set(fingerprint, memo)
+		D.lineMap = memo.lineMap
+		return memo.diff
+	}
+	const diff = buildDiffMetadata(file, view)
+	metadataMemo.set(fingerprint, { diff, lineMap: D.lineMap })
+	while (metadataMemo.size > METADATA_CAP) {
+		const oldest = metadataMemo.keys().next()
+		if (oldest.done) break
+		metadataMemo.delete(oldest.value)
+	}
+	return diff
+}
+
 function buildDiffMetadata(file: ReviewFile, view: DiffView): FileDiffMetadata {
 	// Old/new display names carry rename info to @pierre (distinct paths -> rename coloring);
 	// they're metadata (oldPath/newPath), not contents, so they stay independent of the bytes.
@@ -274,7 +339,11 @@ export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
 		// markdown, ...) or detach may have emptied #diff in between - re-render then.
 		D.diffCache.get(key)?.wrapper === host.firstElementChild
 	if (stillMounted) return
-	const metadata = buildDiffMetadata(file, view)
+	// Metadata memo: an identical fingerprint hands @pierre the same diff reference it
+	// already rendered, engaging its reference-equality fast path (no full row rebuild) so a
+	// revisit re-mounts painted rows instead of paying parse+replay+rebuild again.
+	// Miss → parse+replay once, memoized.
+	const metadata = memoizedDiffMetadata(file, view)
 	D.fileDiff = metadata
 	const entry = acquireEntry(key, view)
 	D.instance = entry.inst
