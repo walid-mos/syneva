@@ -125,9 +125,9 @@ void test('opening, moving, editing and closing a composer repaint without chang
 		digest({ comments, composer: { ...composer, editingCommentId: 't1' } }),
 		opened,
 	)
-	assert.deepEqual(
-		digest({ comments, composer: { ...composer, composerOpen: false } }),
-		closed,
+	assert.ok(
+		digest({ comments, composer: { ...composer, composerOpen: false } }) ===
+			closed,
 	)
 })
 
