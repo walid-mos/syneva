@@ -17,6 +17,12 @@ const ANCHORS = [
 	'repo (default)',
 	'galley file <path>',
 	'galley pr <ref>',
+	// Native attachment must not send Pi agents back to a one-shot waiting child.
+	'Pi attachment',
+	'galley_agent',
+	'questions AND completed reviews wake this same session',
+	'Never delegate waiting to a one-shot subagent',
+	'Print/JSON sessions cannot attach',
 	// the loop + events
 	'galley await',
 	'galley comment',

@@ -15,9 +15,8 @@ Treat **`galley spec`** as the authoritative contract — run it once before you
    sleep 2; cat /tmp/galley-<slug>.log
    ```
    Report the printed URL to the user.
-5. **The loop**:
-   - `galley await --timeout 300` → empty output = timeout, loop again. Non-zero exit = no live desk → stop and report.
+5. **Attach the owning Pi session** with `galley_agent` as documented in `galley spec`, then return control. Never delegate waiting to a one-shot subagent. If the tool is unavailable, report the missing native attachment rather than claim the desk will wake an idle agent. Incoming native messages point to the complete event JSON; read it before handling the event:
    - `question` event: read-only answering — comment replies at path/lineNumber/side, no file edits, no implementation chatter. Long work → `galley status --body "…"`.
    - `review` event: the plan was judged — `requestedChanges[]` → **edit the plan file** at those points between rounds (this file is the artifact edit target; never repo code); `rejected[]` → remove/rework those parts; `accepted`/`approvedFiles` → keep; `openQuestions[]` → answer read-only first. Regenerate/annotate the plan file, then `galley reload` so the desk re-reads it in the same tab.
-   - After handling ANY event, `galley await` again immediately; keep looping until **the plan file is approved** (every section approved by the reviewer) or the human says done.
-6. **On approval**: post one `galley comment` summarizing the agreed approach (2–4 sentences), tell the user in chat the plan is approved with the path of the file, and **keep the desk open** for further rounds — do not start implementing until the user explicitly asks. Run `galley stop` only when the human says the review session is over.
+   - After handling any event, return control: the native listener remains attached and delivers further events automatically. Continue until **the plan file is approved** (every section approved by the reviewer) or the human says done.
+6. **On approval**: post one `galley comment` summarizing the agreed approach (2–4 sentences), tell the user in chat the plan is approved with the path of the file, and **keep the desk open** for further rounds — do not start implementing until the user explicitly asks. Detach with `galley_agent` and run `galley stop` only when the human says the review session is over.

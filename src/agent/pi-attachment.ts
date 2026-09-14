@@ -9,6 +9,11 @@ import type { DeskConnection, DeskTarget } from './desk-connection.js'
 
 const ATTACHMENT_ENTRY = 'galley-attachment'
 type SavedEntry = { type: string; customType?: string; data?: unknown }
+export type AttachmentContext = {
+	mode: ExtensionContext['mode']
+	sessionManager: { getSessionId(): string; getEntries(): SavedEntry[] }
+	ui: Pick<ExtensionContext['ui'], 'notify'>
+}
 
 // Forked children must never inherit their parent's listener. All entries are
 // read, not just the active branch: tree navigation cannot undo a detach.
@@ -90,13 +95,13 @@ export class PiDeskAttachment {
 		this.connection = undefined
 	}
 
-	async detach(ctx: ExtensionContext): Promise<void> {
+	async detach(ctx: AttachmentContext): Promise<void> {
 		await this.stop()
 		this.failure = undefined
 		this.remember(ctx)
 	}
 
-	async restore(ctx: ExtensionContext): Promise<void> {
+	async restore(ctx: AttachmentContext): Promise<void> {
 		const target = savedAttachment(
 			ctx.sessionManager.getEntries(),
 			ctx.sessionManager.getSessionId(),
@@ -109,7 +114,7 @@ export class PiDeskAttachment {
 		}
 	}
 
-	async attach(target: DeskTarget, ctx: ExtensionContext): Promise<void> {
+	async attach(target: DeskTarget, ctx: AttachmentContext): Promise<void> {
 		this.requireAvailable(ctx)
 		this.isConnecting = true
 		const attempt = this.generation
@@ -129,7 +134,7 @@ export class PiDeskAttachment {
 		}
 	}
 
-	private requireAvailable(ctx: ExtensionContext): void {
+	private requireAvailable(ctx: AttachmentContext): void {
 		if (ctx.mode !== 'tui' && ctx.mode !== 'rpc')
 			throw new Error(
 				'Attach Galley from the owning persistent Pi session, not a print/JSON one-shot child.',
@@ -142,7 +147,7 @@ export class PiDeskAttachment {
 			)
 	}
 
-	private remember(ctx: ExtensionContext, target?: DeskTarget): void {
+	private remember(ctx: AttachmentContext, target?: DeskTarget): void {
 		this.pi.appendEntry(ATTACHMENT_ENTRY, {
 			owner: ctx.sessionManager.getSessionId(),
 			target,
@@ -152,7 +157,7 @@ export class PiDeskAttachment {
 	private async listen(
 		desk: DeskConnection,
 		signal: AbortSignal,
-		ctx: ExtensionContext,
+		ctx: AttachmentContext,
 	): Promise<void> {
 		try {
 			await startDeskListener({
@@ -165,7 +170,7 @@ export class PiDeskAttachment {
 		}
 	}
 
-	private reportFailure(error: unknown, ctx: ExtensionContext): void {
+	private reportFailure(error: unknown, ctx: AttachmentContext): void {
 		this.failure = error instanceof Error ? error.message : String(error)
 		ctx.ui.notify(
 			`Galley disconnected: ${this.failure}. Reattach with galley_agent.`,

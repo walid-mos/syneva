@@ -32,7 +32,22 @@ below; --session at start (and restart) names the desk - needed only for a stabl
   branch and re-review.
 ReviewResult.mode (repo|file|pr) tells you how to read verdicts.
 
-## The loop
+## Pi attachment (preferred when galley_agent is available)
+Start the desk, then call the Pi tool \`galley_agent\` with
+\`{action:"attach", repo:"<absolute repo>", session:"<desk session>"}\` from the owning
+persistent session. Return control: questions AND completed reviews wake this same session
+via native follow-up messages, each pointing to a complete saved JSON event. Read that file,
+handle its kind as below, then return control again. Do not run the CLI wait loop while attached.
+Never delegate waiting to a one-shot subagent: its exit cannot wake an idle parent indefinitely.
+The listener survives agent turns and restores on reload/resume of the SAME Pi session; a fork
+cannot inherit it. Print/JSON sessions cannot attach. Keep the owning Pi process open.
+\`galley_agent {action:"status"}\` reports the connection; transport failures are reported and
+require reattachment. Before switching desks, or when the human ends the review, detach with
+\`galley_agent {action:"detach"}\`; detach does not stop the desk. Use \`galley stop\` separately.
+For an existing unattached desk, attach the session that owns its review context, not an unrelated
+agent. If the tool is missing in an already-open Pi process, reload the Pi extensions first.
+
+## The loop (CLI-only hosts, without the Pi attachment)
 Start the desk in the background, then await events and branch on kind:
 \`\`\`bash
 galley --session <id> --diff working &
@@ -111,7 +126,8 @@ new Send). Live questions arrive only via await, so a file-poller sees Sends but
 - stagedFiles → already staged by the reviewer; don't touch unless a requested change requires it.
 In pr mode the diff is committed changes: amend the branch/commits to apply the review, leaving
 approved hunks as-is (rather than editing the working tree).
-Then \`galley reload\` to surface your edits, and \`galley await\` for the next round.
+Then \`galley reload\` to surface your edits. With the Pi attachment, return control; otherwise
+run \`galley await\` for the next round.
 
 ## Guided review (optional)
 Attach with \`galley <mode> --guide <file>\`: an overview page + your files in order with per-file

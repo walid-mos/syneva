@@ -1,7 +1,7 @@
 type DeskListener = {
 	signal: AbortSignal
-	receive(signal: AbortSignal): Promise<string>
-	deliver(event: string): void
+	receive: (signal: AbortSignal) => Promise<string>
+	deliver: (event: string) => void
 }
 
 // The attachment, not an LLM turn or a one-shot child, owns this loop. Empty 204s
@@ -14,7 +14,11 @@ export async function startDeskListener(listener: DeskListener): Promise<void> {
 	}
 }
 
-async function deliverNext({ signal, receive, deliver }: DeskListener): Promise<void> {
+async function deliverNext({
+	signal,
+	receive,
+	deliver,
+}: DeskListener): Promise<void> {
 	const event = await receive(signal)
 	if (!signal.aborted && event) deliver(event)
 }

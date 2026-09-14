@@ -8,15 +8,17 @@ void test('one attachment delivers consecutive questions and a completed review,
 	const events = ['question one', 'question two', 'review']
 	const received: string[] = []
 	let calls = 0
-	let rearmed = (): void => {}
-	const listeningAgain = new Promise<void>(resolve => { rearmed = resolve })
+	let rearmed: (() => void) | undefined
+	const listeningAgain = new Promise<void>(resolve => {
+		rearmed = resolve
+	})
 	const listener = startDeskListener({
 		signal: controller.signal,
 		receive: async signal => {
 			calls++
 			const event = events.shift()
 			if (event) return event
-			rearmed()
+			rearmed?.()
 			return new Promise<string>(resolve =>
 				signal.addEventListener('abort', () => resolve(''), {
 					once: true,
@@ -27,9 +29,17 @@ void test('one attachment delivers consecutive questions and a completed review,
 			received.push(event)
 		},
 	})
-	await listeningAgain
-	assert.deepEqual(received, ['question one', 'question two', 'review'])
-	assert.equal(calls, 4)
+	const exitedEarly = async (): Promise<never> => {
+		await listener
+		assert.fail('The attachment exited instead of rearming after feedback')
+	}
+	await Promise.race([listeningAgain, exitedEarly()])
+	assert.deepEqual(received, [
+		'question one',
+		'question two',
+		'review',
+	] as const)
+	assert.deepEqual(calls, 4)
 	controller.abort()
 	await listener
 })
@@ -46,8 +56,8 @@ void test('a long-poll timeout rearms without sending an empty agent message', a
 			controller.abort()
 		},
 	})
-	assert.deepEqual(received, ['review'])
-	assert.equal(calls, 2)
+	assert.deepEqual(received, ['review'] as const)
+	assert.deepEqual(calls, 2)
 })
 
 void test('shutdown cannot inject a late event into the replacement Pi session', async () => {

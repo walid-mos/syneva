@@ -19,6 +19,12 @@ export default defineConfig({
 	],
 	overrides: [
 		{
+			// Each long-poll consumes the next queued event. Parallel requests would
+			// reorder feedback and detach event ownership from its delivery.
+			files: ['src/agent/desk-listener.ts'],
+			rules: { 'eslint/no-await-in-loop': 'off' },
+		},
+		{
 			// The bench fixtures encode file counts and per-file sizes by design (an 8k-line
 			// giant, a 2.4MB oversized file) and the browser bench reports with console.log
 			// like perf-smoke does. The shared preset's readability rules (magic numbers,
