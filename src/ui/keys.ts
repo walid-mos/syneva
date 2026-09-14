@@ -1,446 +1,87 @@
-import { S } from "./store";
-import { hasGuide } from "./guide";
-import { approveCurrentFile } from "./decisions";
-import { isOversizedPlaceholder, loadOversizedDiff } from "./oversized";
-import { closeComposer } from "./composer";
-import {
-  cursorMoveLine,
-  cursorMoveHunk,
-  cursorComment,
-  cursorVerdict,
-  cursorResolve,
-  cursorReset,
-  cursorSelection,
-  golineActive,
-  golineDigit,
-  golineCommit,
-  golineCancel,
-} from "./cursor";
+import { confirmYes } from './confirm'
+import { golineCancel } from './cursor'
+import { cmd, enter } from './hotkey-matchers'
+import { HOTKEYS_APP } from './hotkeys-app'
+import { HOTKEYS_DIFF } from './hotkeys-diff'
+import { S } from './store'
+
+import type { Group, Hotkey } from './hotkey-matchers'
 
 // ── Central keyboard map ─────────────────────────────────────────────────────
 // One ordered table is the single source of truth: the dispatcher runs the first binding whose
-// key matches and whose scope is active, and the ? help overlay renders from the same table — so
+// key matches and whose scope is active, and the ? help overlay renders from the same table - so
 // hints can never drift from behavior. Scopes keep a key meaning the right thing in context.
+//
+// The entries live in scope segments (hotkeys-diff.ts, hotkeys-app.ts) purely for size, and this
+// file owns their order - the dispatcher's first-match rule makes that order part of the contract:
+// the modal keys below come first because ⌘↵ must send while the Send modal is up even with a
+// composer still open behind it, and ↵ must confirm a dialog raised from the diff.
+const HOTKEYS_MODAL: Hotkey[] = [
+	// Confirm dialog (⇧R / ⇧S / ⇧A): Enter accepts (Esc cancels via the escape cascade). First so
+	// it wins over any plain-key binding while the dialog is up.
+	{
+		combo: '↵',
+		desc: 'Confirm',
+		group: 'App',
+		test: enter,
+		when: () => !!S.confirmMsg,
+		run: confirmYes,
+		hide: true,
+	},
+	// Send modal: ⌘↵ sends (typing:true - focus is in the note box). Plain Enter has no matching
+	// typing hotkey, so it falls through to a textarea newline; Esc cancels via the escape cascade.
+	{
+		combo: '⌘↵',
+		desc: 'Send to agent',
+		group: 'App',
+		test: cmd('Enter'),
+		when: () => S.sendOpen,
+		typing: true,
+		run: () => S.sendConfirm?.(),
+		hide: true,
+	},
+]
 
-type Group = "Navigate" | "Review" | "Comment" | "View" | "App";
-type Hotkey = {
-  combo: string;
-  desc: string;
-  group: Group;
-  test: (e: KeyboardEvent) => boolean;
-  run: (e: KeyboardEvent) => void;
-  when?: () => boolean; // scope guard (default: anywhere not typing)
-  typing?: boolean; // also fires while typing in the composer
-  hide?: boolean; // omit from the help overlay
-  goline?: boolean; // part of the go-to-line gesture — doesn't cancel a pending digit buffer
-};
+const HOTKEYS: Hotkey[] = [...HOTKEYS_MODAL, ...HOTKEYS_DIFF, ...HOTKEYS_APP]
 
-// Scopes
-const inComposer = () => S.composerOpen;
-const inModal = () => S.settingsOpen || !!S.confirmMsg || S.sendOpen;
-const inOverview = () => !!S.overviewOpen && hasGuide();
-const inDiff = () => !inComposer() && !inModal() && !inOverview();
-const navigable = () => !inComposer() && !inModal();
-const isMd = () => inDiff() && !!S.isMarkdownFile?.();
-
-// Key matchers
-const k = (key: string) => (e: KeyboardEvent) =>
-  e.key === key && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
-const enter = (e: KeyboardEvent) =>
-  e.key === "Enter" && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
-const shift = (key: string) => (e: KeyboardEvent) =>
-  e.key === key && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey;
-const cmd = (key: string) => (e: KeyboardEvent) =>
-  e.key === key && (e.metaKey || e.ctrlKey) && !e.shiftKey;
-const cmdShift = (key: string) => (e: KeyboardEvent) =>
-  e.key === key && (e.metaKey || e.ctrlKey) && e.shiftKey;
-
-// Esc cascade: close the topmost transient surface.
-function escape() {
-  if (golineActive()) {
-    golineCancel();
-    return;
-  }
-  if (S.confirmMsg) {
-    S.confirmMsg = "";
-    return;
-  }
-  if (S.sendOpen) {
-    S.sendOpen = false;
-    S.sendNote = "";
-    return;
-  }
-  if (S.settingsOpen) {
-    S.settingsOpen = false;
-    return;
-  }
-  if (S.composerOpen || S.editingCommentId) {
-    cursorReset(); // also drop the line highlight the composer was anchored to
-    closeComposer(); // rebuilds the diff so the inline composer's DOM goes away
-    return;
-  }
-  // A lone line selection (keyboard cursor, or a click that left the highlight without an open
-  // surface): Esc clears it. Below the surfaces above so Esc dismisses a composer/modal first.
-  if (cursorSelection()) {
-    cursorReset();
-    return;
-  }
-  // Lowest priority: the narrow-width file drawer. Closes only once every transient surface
-  // above it is gone, so Esc dismisses a composer/modal opened over the drawer first.
-  if (S.treeDrawerOpen) S.treeDrawerOpen = false;
+function isTyping(e: KeyboardEvent): boolean {
+	const { target } = e
+	if (!(target instanceof HTMLElement)) return false
+	return (
+		target.tagName === 'INPUT' ||
+		target.tagName === 'TEXTAREA' ||
+		target.isContentEditable
+	)
 }
 
-// Stage a destructive action behind a confirm dialog (Enter confirms, Esc cancels).
-let pending: (() => void) | null = null;
-export function askConfirm(msg: string, run: () => void) {
-  S.confirmMsg = msg;
-  pending = run;
-}
-export function confirmYes() {
-  const run = pending;
-  S.confirmMsg = "";
-  pending = null;
-  run?.();
-}
-export function confirmNo() {
-  S.confirmMsg = "";
-  pending = null;
-}
-
-const HOTKEYS: Hotkey[] = [
-  // Confirm dialog (⇧R / ⇧S / ⇧A): Enter accepts (Esc cancels via the escape cascade). First so
-  // it wins over any plain-key binding while the dialog is up.
-  {
-    combo: "↵",
-    desc: "Confirm",
-    group: "App",
-    test: enter,
-    when: () => !!S.confirmMsg,
-    run: confirmYes,
-    hide: true,
-  },
-  // Send modal: ⌘↵ sends (typing:true — focus is in the note box). Plain Enter has no matching
-  // typing hotkey, so it falls through to a textarea newline; Esc cancels via the escape cascade.
-  {
-    combo: "⌘↵",
-    desc: "Send to agent",
-    group: "App",
-    test: cmd("Enter"),
-    when: () => S.sendOpen,
-    typing: true,
-    run: () => S.sendConfirm?.(),
-    hide: true,
-  },
-  // Navigate
-  {
-    combo: "⇧→",
-    desc: "Next file (review order)",
-    group: "Navigate",
-    test: shift("ArrowRight"),
-    when: navigable,
-    run: () => S.nextFile?.(),
-  },
-  {
-    combo: "⇧←",
-    desc: "Previous file (review order)",
-    group: "Navigate",
-    test: shift("ArrowLeft"),
-    when: navigable,
-    run: () => S.prevFile?.(),
-  },
-  {
-    combo: "⌘⇧↓",
-    desc: "Next file (tree order)",
-    group: "Navigate",
-    test: cmdShift("ArrowDown"),
-    when: navigable,
-    run: () => S.treeStep?.(1),
-  },
-  {
-    combo: "⌘⇧↑",
-    desc: "Previous file (tree order)",
-    group: "Navigate",
-    test: cmdShift("ArrowUp"),
-    when: navigable,
-    run: () => S.treeStep?.(-1),
-  },
-  {
-    combo: "⇧↓",
-    desc: "Next change",
-    group: "Navigate",
-    test: shift("ArrowDown"),
-    when: inDiff,
-    run: () => cursorMoveHunk(1),
-  },
-  {
-    combo: "⇧↑",
-    desc: "Previous change",
-    group: "Navigate",
-    test: shift("ArrowUp"),
-    when: inDiff,
-    run: () => cursorMoveHunk(-1),
-  },
-  {
-    combo: "↑",
-    desc: "Move up a line",
-    group: "Navigate",
-    test: k("ArrowUp"),
-    when: inDiff,
-    run: () => cursorMoveLine(-1),
-  },
-  {
-    combo: "↓",
-    desc: "Move down a line",
-    group: "Navigate",
-    test: k("ArrowDown"),
-    when: inDiff,
-    run: () => cursorMoveLine(1),
-  },
-  {
-    combo: "j",
-    desc: "Next change",
-    group: "Navigate",
-    test: k("j"),
-    when: inDiff,
-    run: () => cursorMoveHunk(1),
-    hide: true,
-  },
-  {
-    combo: "k",
-    desc: "Previous change",
-    group: "Navigate",
-    test: k("k"),
-    when: inDiff,
-    run: () => cursorMoveHunk(-1),
-    hide: true,
-  },
-  {
-    combo: "1–9",
-    desc: "Go to line (↵ jump, esc cancel)",
-    group: "Navigate",
-    test: (e) => /^[0-9]$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey,
-    when: inDiff,
-    run: (e) => golineDigit(e.key),
-    goline: true,
-  },
-  {
-    combo: "o",
-    desc: "Overview",
-    group: "Navigate",
-    test: k("o"),
-    when: () => hasGuide() && navigable(),
-    run: () => S.openOverview?.(),
-  },
-  {
-    combo: "↵",
-    desc: "Start review",
-    group: "Navigate",
-    test: enter,
-    when: inOverview,
-    run: () => S.startGuided?.(),
-  },
-  // Goline commit must outrank "comment on line" while digits are pending — same key, same scope.
-  {
-    combo: "↵",
-    desc: "Jump to typed line",
-    group: "Navigate",
-    test: enter,
-    when: () => inDiff() && golineActive(),
-    run: () => golineCommit(),
-    goline: true,
-    hide: true,
-  },
-  // On an oversized-file placeholder card there's no line to comment on — ↵ loads the real diff
-  // instead. More specific than the plain-↵ comment binding below, so it wins in that one scope.
-  {
-    combo: "↵",
-    desc: "Load diff anyway (large file)",
-    group: "Review",
-    test: enter,
-    when: () => inDiff() && isOversizedPlaceholder(),
-    run: () => loadOversizedDiff(),
-  },
-  // Comment
-  {
-    combo: "↵",
-    desc: "Comment / reply on line",
-    group: "Comment",
-    test: enter,
-    when: inDiff,
-    run: () => cursorComment(),
-  },
-  {
-    combo: "c",
-    desc: "Comment on line",
-    group: "Comment",
-    test: k("c"),
-    when: inDiff,
-    run: () => cursorComment(),
-    hide: true,
-  }, // alias for ↵
-  {
-    combo: "r",
-    desc: "Resolve / reopen thread",
-    group: "Comment",
-    test: k("r"),
-    when: inDiff,
-    run: () => cursorResolve(),
-  },
-  {
-    combo: "⌘↵",
-    desc: "Submit comment (Request change)",
-    group: "Comment",
-    test: cmd("Enter"),
-    when: inComposer,
-    typing: true,
-    run: () => S.saveComment?.(),
-  },
-  {
-    combo: "⌘⇧↵",
-    desc: "Submit as question (Ask)",
-    group: "Comment",
-    test: cmdShift("Enter"),
-    when: () => inComposer() && !S.editingCommentId,
-    typing: true,
-    run: () => S.ask?.(),
-  },
-  // Review
-  {
-    combo: "⇧Y",
-    desc: "Accept change (Keep)",
-    group: "Review",
-    test: shift("Y"),
-    when: inDiff,
-    run: () => cursorVerdict("accepted"),
-  },
-  {
-    combo: "⇧N",
-    desc: "Reject change (Undo)",
-    group: "Review",
-    test: shift("N"),
-    when: inDiff,
-    run: () => cursorVerdict("rejected"),
-  },
-  // View
-  {
-    combo: "v",
-    desc: "Split / Stacked",
-    group: "View",
-    test: k("v"),
-    when: inDiff,
-    run: () => S.setStyle?.(S.diffStyle === "split" ? "unified" : "split"),
-  },
-  {
-    combo: "m",
-    desc: "Rendered / source (markdown)",
-    group: "View",
-    test: k("m"),
-    when: isMd,
-    run: () => S.setFileView?.(S.fileView === "rendered" ? "source" : "rendered"),
-  },
-  {
-    combo: "w",
-    desc: "Tree / Walkthrough sidebar",
-    group: "View",
-    when: () => hasGuide() && navigable(),
-    test: k("w"),
-    run: () => (S.sidebarTab = S.sidebarTab === "tree" ? "walkthrough" : "tree"),
-  },
-  {
-    combo: "⇧B",
-    desc: "Files drawer (narrow screens)",
-    group: "View",
-    when: navigable,
-    test: shift("B"),
-    // Toggles the off-canvas file tree at narrow widths; inert on desktop (drawer is media-gated).
-    run: () => (S.treeDrawerOpen = !S.treeDrawerOpen),
-  },
-  {
-    combo: "⇧E",
-    desc: "Open in editor",
-    group: "View",
-    test: shift("E"),
-    when: inDiff,
-    run: () => S.openInEditor?.(),
-  },
-  // Finalize (⇧ trio) + app
-  {
-    combo: "⇧A",
-    desc: "Approve / mark file reviewed",
-    group: "Review",
-    test: shift("A"),
-    when: inDiff,
-    run: () => approveCurrentFile(),
-  },
-  {
-    combo: "⇧R",
-    desc: "Reset review",
-    group: "App",
-    test: shift("R"),
-    when: navigable,
-    run: () =>
-      askConfirm("Reset the whole review? This clears every decision and comment.", () =>
-        S.reset?.(),
-      ),
-  },
-  {
-    combo: "⇧S",
-    desc: "Send to agent",
-    group: "App",
-    test: shift("S"),
-    when: navigable,
-    run: () => S.confirmSend?.(),
-  },
-  {
-    combo: "⇧,",
-    desc: "Settings",
-    group: "App",
-    test: (e) =>
-      (e.key === "<" || (e.key === "," && e.shiftKey)) && !e.metaKey && !e.ctrlKey && !e.altKey,
-    when: () => !inComposer(),
-    run: () => S.openSettings?.(),
-  },
-  {
-    combo: "Esc",
-    desc: "Close / cancel",
-    group: "App",
-    test: (e) => e.key === "Escape",
-    typing: true,
-    run: escape, // cancels pending goline digits first (see escape()), so no dispatcher pre-cancel
-    goline: true,
-  },
-];
-
-function isTyping(e: KeyboardEvent) {
-  const t = e.target as HTMLElement;
-  return t?.tagName === "INPUT" || t?.tagName === "TEXTAREA" || !!t?.isContentEditable;
-}
-
-export function installKeys() {
-  document.addEventListener("keydown", (e) => {
-    const typing = isTyping(e);
-    for (const h of HOTKEYS) {
-      if (!h.test(e)) continue;
-      if (typing && !h.typing) continue;
-      if (h.when && !h.when()) continue;
-      // Any other action abandons pending goline digits — otherwise the idle timer would
-      // yank the cursor away ~800ms after e.g. a j/⇧Y that already moved on.
-      if (!h.goline) golineCancel();
-      e.preventDefault();
-      h.run(e);
-      return;
-    }
-  });
+export function installKeys(): void {
+	document.addEventListener('keydown', e => {
+		const typing = isTyping(e)
+		for (const h of HOTKEYS) {
+			if (!h.test(e)) continue
+			if (typing && !h.typing) continue
+			if (h.when && !h.when()) continue
+			// Any other action abandons pending goline digits - otherwise the idle timer would
+			// yank the cursor away ~800ms after e.g. a j/⇧Y that already moved on.
+			if (!h.goline) golineCancel()
+			e.preventDefault()
+			h.run(e)
+			return
+		}
+	})
 }
 
 // Grouped view for the ? help overlay (built from the table so it stays in sync).
-export function helpGroups(): { group: Group; items: { combo: string; desc: string }[] }[] {
-  const order: Group[] = ["Navigate", "Review", "Comment", "View", "App"];
-  return order.map((group) => ({
-    group,
-    items: HOTKEYS.filter((h) => h.group === group && !h.hide).map((h) => ({
-      combo: h.combo,
-      desc: h.desc,
-    })),
-  }));
+export function helpGroups(): {
+	group: Group
+	items: { combo: string; desc: string }[]
+}[] {
+	const order: Group[] = ['Navigate', 'Review', 'Comment', 'View', 'App']
+	return order.map(group => ({
+		group,
+		items: HOTKEYS.filter(h => h.group === group && !h.hide).map(h => ({
+			combo: h.combo,
+			desc: h.desc,
+		})),
+	}))
 }

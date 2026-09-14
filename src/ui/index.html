@@ -1,110 +1,116 @@
 <!doctype html>
 <html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Galley</title>
+		<link
+			rel="icon"
+			type="image/svg+xml"
+			href="data:image/svg+xml,%3Csvg%20viewBox%3D%224%20-5%20120%20120%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20filter%3D%22url(%23hb_f0)%22%3E%3Ccircle%20cx%3D%2254.0259%22%20cy%3D%2255.9741%22%20r%3D%2244.0259%22%20fill%3D%22%23EB5103%22%2F%3E%3C%2Fg%3E%3Cg%20filter%3D%22url(%23hb_f1)%22%3E%3Ccircle%20cx%3D%2272.6284%22%20cy%3D%2255.9741%22%20r%3D%2244.0259%22%20fill%3D%22%23EFCA44%22%2F%3E%3C%2Fg%3E%3Cg%20filter%3D%22url(%23hb_f2)%22%3E%3Ccircle%20cx%3D%2264.5923%22%20cy%3D%2254.0259%22%20r%3D%2244.0259%22%20fill%3D%22%23FAF6EA%22%2F%3E%3C%2Fg%3E%3Cdefs%3E%3Cfilter%20id%3D%22hb_f0%22%20x%3D%220.699%22%20y%3D%222.647%22%20width%3D%22106.654%22%20height%3D%22106.654%22%20filterUnits%3D%22userSpaceOnUse%22%20color-interpolation-filters%3D%22sRGB%22%3E%3CfeFlood%20flood-opacity%3D%220%22%20result%3D%22bg%22%2F%3E%3CfeBlend%20mode%3D%22normal%22%20in%3D%22SourceGraphic%22%20in2%3D%22bg%22%20result%3D%22shape%22%2F%3E%3CfeGaussianBlur%20stdDeviation%3D%224.6505%22%2F%3E%3C%2Ffilter%3E%3Cfilter%20id%3D%22hb_f1%22%20x%3D%2219.301%22%20y%3D%222.647%22%20width%3D%22106.654%22%20height%3D%22106.654%22%20filterUnits%3D%22userSpaceOnUse%22%20color-interpolation-filters%3D%22sRGB%22%3E%3CfeFlood%20flood-opacity%3D%220%22%20result%3D%22bg%22%2F%3E%3CfeBlend%20mode%3D%22normal%22%20in%3D%22SourceGraphic%22%20in2%3D%22bg%22%20result%3D%22shape%22%2F%3E%3CfeGaussianBlur%20stdDeviation%3D%224.6505%22%2F%3E%3C%2Ffilter%3E%3Cfilter%20id%3D%22hb_f2%22%20x%3D%2211.265%22%20y%3D%220.699%22%20width%3D%22106.654%22%20height%3D%22106.654%22%20filterUnits%3D%22userSpaceOnUse%22%20color-interpolation-filters%3D%22sRGB%22%3E%3CfeFlood%20flood-opacity%3D%220%22%20result%3D%22bg%22%2F%3E%3CfeBlend%20mode%3D%22normal%22%20in%3D%22SourceGraphic%22%20in2%3D%22bg%22%20result%3D%22shape%22%2F%3E%3CfeGaussianBlur%20stdDeviation%3D%224.6505%22%2F%3E%3C%2Ffilter%3E%3C%2Fdefs%3E%3C%2Fsvg%3E"
+		/>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				color-scheme: dark;
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Galley</title>
-  <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,%3Csvg%20viewBox%3D%224%20-5%20120%20120%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20filter%3D%22url(%23hb_f0)%22%3E%3Ccircle%20cx%3D%2254.0259%22%20cy%3D%2255.9741%22%20r%3D%2244.0259%22%20fill%3D%22%23EB5103%22%2F%3E%3C%2Fg%3E%3Cg%20filter%3D%22url(%23hb_f1)%22%3E%3Ccircle%20cx%3D%2272.6284%22%20cy%3D%2255.9741%22%20r%3D%2244.0259%22%20fill%3D%22%23EFCA44%22%2F%3E%3C%2Fg%3E%3Cg%20filter%3D%22url(%23hb_f2)%22%3E%3Ccircle%20cx%3D%2264.5923%22%20cy%3D%2254.0259%22%20r%3D%2244.0259%22%20fill%3D%22%23FAF6EA%22%2F%3E%3C%2Fg%3E%3Cdefs%3E%3Cfilter%20id%3D%22hb_f0%22%20x%3D%220.699%22%20y%3D%222.647%22%20width%3D%22106.654%22%20height%3D%22106.654%22%20filterUnits%3D%22userSpaceOnUse%22%20color-interpolation-filters%3D%22sRGB%22%3E%3CfeFlood%20flood-opacity%3D%220%22%20result%3D%22bg%22%2F%3E%3CfeBlend%20mode%3D%22normal%22%20in%3D%22SourceGraphic%22%20in2%3D%22bg%22%20result%3D%22shape%22%2F%3E%3CfeGaussianBlur%20stdDeviation%3D%224.6505%22%2F%3E%3C%2Ffilter%3E%3Cfilter%20id%3D%22hb_f1%22%20x%3D%2219.301%22%20y%3D%222.647%22%20width%3D%22106.654%22%20height%3D%22106.654%22%20filterUnits%3D%22userSpaceOnUse%22%20color-interpolation-filters%3D%22sRGB%22%3E%3CfeFlood%20flood-opacity%3D%220%22%20result%3D%22bg%22%2F%3E%3CfeBlend%20mode%3D%22normal%22%20in%3D%22SourceGraphic%22%20in2%3D%22bg%22%20result%3D%22shape%22%2F%3E%3CfeGaussianBlur%20stdDeviation%3D%224.6505%22%2F%3E%3C%2Ffilter%3E%3Cfilter%20id%3D%22hb_f2%22%20x%3D%2211.265%22%20y%3D%220.699%22%20width%3D%22106.654%22%20height%3D%22106.654%22%20filterUnits%3D%22userSpaceOnUse%22%20color-interpolation-filters%3D%22sRGB%22%3E%3CfeFlood%20flood-opacity%3D%220%22%20result%3D%22bg%22%2F%3E%3CfeBlend%20mode%3D%22normal%22%20in%3D%22SourceGraphic%22%20in2%3D%22bg%22%20result%3D%22shape%22%2F%3E%3CfeGaussianBlur%20stdDeviation%3D%224.6505%22%2F%3E%3C%2Ffilter%3E%3C%2Fdefs%3E%3C%2Fsvg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-    rel="stylesheet">
-  <style>
-    :root {
-      color-scheme: dark;
+				/* ── Surfaces (dark → light) ── */
+				--bg: #070909;
+				/* page / diff / overview canvas */
+				--surface: #0b0e0f;
+				/* recessed: inputs, headers, scroll track */
+				--panel: #101415;
+				/* panels: sidebar, guide bar, modal */
+				--surface-raised: #151a1c;
+				/* hover / active rows */
+				--panel3: #1d2426;
+				/* strongest raised: selected, chips */
 
-      /* ── Surfaces (dark → light) ── */
-      --bg: #070909;
-      /* page / diff / overview canvas */
-      --surface: #0b0e0f;
-      /* recessed: inputs, headers, scroll track */
-      --panel: #101415;
-      /* panels: sidebar, guide bar, modal */
-      --surface-raised: #151a1c;
-      /* hover / active rows */
-      --panel3: #1d2426;
-      /* strongest raised: selected, chips */
+				/* ── Lines ── */
+				--line: #222a2d;
+				/* default border */
+				--line-strong: #354146;
+				/* emphasized / hover border */
 
-      /* ── Lines ── */
-      --line: #222a2d;
-      /* default border */
-      --line-strong: #354146;
-      /* emphasized / hover border */
+				/* ── Text ── */
+				--ink: #d9d9d4;
+				/* primary text */
+				--ink-bright: #fafafa;
+				/* highest-contrast text */
+				--muted: #8a9396;
+				/* secondary text */
+				--ghost: #4b5558;
+				/* faint text / icons */
+				--on-accent: #050608;
+				/* near-black text on a bright accent fill */
 
-      /* ── Text ── */
-      --ink: #d9d9d4;
-      /* primary text */
-      --ink-bright: #fafafa;
-      /* highest-contrast text */
-      --muted: #8a9396;
-      /* secondary text */
-      --ghost: #4b5558;
-      /* faint text / icons */
-      --on-accent: #050608;
-      /* near-black text on a bright accent fill */
+				/* ── Accents (hue + bg/line/fg tints) ── */
+				--cyan: #00a8ff;
+				--cyan-bg: #081923;
+				--cyan-bg-strong: #0c2533;
+				/* hover fill for cyan tinted buttons */
+				--cyan-line: #17394a;
+				--cyan-line-strong: #25617a;
+				/* hover border + comment-thread rail */
+				--cyan-fg: #8fc4d4;
+				--green: #00d084;
+				--green-bg: #071811;
+				--green-line: #163b2b;
+				--green-fg: #9af0b2;
 
-      /* ── Accents (hue + bg/line/fg tints) ── */
-      --cyan: #00a8ff;
-      --cyan-bg: #081923;
-      --cyan-bg-strong: #0c2533;
-      /* hover fill for cyan tinted buttons */
-      --cyan-line: #17394a;
-      --cyan-line-strong: #25617a;
-      /* hover border + comment-thread rail */
-      --cyan-fg: #8fc4d4;
-      --green: #00d084;
-      --green-bg: #071811;
-      --green-line: #163b2b;
-      --green-fg: #9af0b2;
+				/* Verdict action buttons (Keep / Undo) — shared by per-hunk + header */
+				--accept: rgba(34, 197, 94, 0.72);
+				--accept-hover: rgba(34, 197, 94, 0.9);
+				--reject: rgba(63, 63, 70, 0.82);
+				--reject-hover: rgba(82, 82, 91, 0.92);
+				--amber: #e0af68;
+				--amber-fg: #f0c783;
+				--red: #ff4d6d;
+				--red-fg: #ff8095;
+				--guide: #1b2226;
+				/* file-tree nesting rails */
 
-      /* Verdict action buttons (Keep / Undo) — shared by per-hunk + header */
-      --accept: rgba(34, 197, 94, .72);
-      --accept-hover: rgba(34, 197, 94, .9);
-      --reject: rgba(63, 63, 70, .82);
-      --reject-hover: rgba(82, 82, 91, .92);
-      --amber: #e0af68;
-      --amber-fg: #f0c783;
-      --red: #ff4d6d;
-      --red-fg: #ff8095;
-      --guide: #1b2226;
-      /* file-tree nesting rails */
+				/* ── Radius scale ── */
+				--radius-xs: 3px;
+				--radius-sm: 4px;
+				--radius: 6px;
+				--radius-lg: 8px;
+				--radius-xl: 12px;
+				--radius-pill: 999px;
 
-      /* ── Radius scale ── */
-      --radius-xs: 3px;
-      --radius-sm: 4px;
-      --radius: 6px;
-      --radius-lg: 8px;
-      --radius-xl: 12px;
-      --radius-pill: 999px;
-
-      /* Height of the secondary bar directly under the top header — shared by the sidebar
+				/* Height of the secondary bar directly under the top header — shared by the sidebar
          Tree/Walkthrough tab strip (.tree-tabs) and the guide bar (.guidebar) so their bottom
          borders form one continuous line across the column seam. Keep both in sync. */
-      --subbar-h: 40px;
+				--subbar-h: 40px;
 
-      /* Gap between the +added / −removed (and state badge) churn indicators, kept in sync
+				/* Gap between the +added / −removed (and state badge) churn indicators, kept in sync
          across every surface that renders them: sidebar walkthrough, Overview group headers
          + file rows, and the diff header. */
-      --churn-gap: 5px;
+				--churn-gap: 5px;
 
-      /* ── Type scale ── */
-      --text-2xs: 10px;
-      --text-xs: 11px;
-      --text-sm: 12px;
-      --text-md: 13px;
-      --text-lg: 14px;
-      --text-xl: 17px;
+				/* ── Type scale ── */
+				--text-2xs: 10px;
+				--text-xs: 11px;
+				--text-sm: 12px;
+				--text-md: 13px;
+				--text-lg: 14px;
+				--text-xl: 17px;
 
-      --mono: "JetBrains Mono", ui-monospace, monospace;
-      /* UI / non-code text. Code (the diff, inline code, file paths) stays --mono. Both are
+				--mono: 'JetBrains Mono', ui-monospace, monospace;
+				/* UI / non-code text. Code (the diff, inline code, file paths) stays --mono. Both are
          overridable in Settings → Appearance (Code font / UI font) via applyAppearance. */
-      --sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      font-family: var(--sans)
-    }
+				--sans:
+					'Geist', system-ui, -apple-system, 'Segoe UI', Roboto,
+					sans-serif;
+				font-family: var(--sans);
+			}
 
-    /* ── Light mode ──────────────────────────────────────────────────────────
+			/* ── Light mode ──────────────────────────────────────────────────────────
        Overrides only the semantic color tokens; every other token (radius, type
        scale, fonts) is mode-agnostic and inherits from :root above. Toggled by
        Settings → Appearance, which sets data-theme="light" on <html> (see
@@ -114,3267 +120,3936 @@
        tint over the white canvas and still read with the near-black --on-accent.
        The diff/comment code theme is a separate, freely-mixable setting (the Code
        theme picker groups Dark and Light shiki themes) — it does not flip here. */
-    :root[data-theme="light"] {
-      color-scheme: light;
+			:root[data-theme='light'] {
+				color-scheme: light;
 
-      /* ── Surfaces (light → dark) ── */
-      --bg: #ffffff;
-      --surface: #f2f4f5;
-      --panel: #f7f8f9;
-      --surface-raised: #eceff1;
-      --panel3: #dfe4e7;
+				/* ── Surfaces (light → dark) ── */
+				--bg: #ffffff;
+				--surface: #f2f4f5;
+				--panel: #f7f8f9;
+				--surface-raised: #eceff1;
+				--panel3: #dfe4e7;
 
-      /* ── Lines ── */
-      --line: #d6dcdf;
-      --line-strong: #b6c0c4;
+				/* ── Lines ── */
+				--line: #d6dcdf;
+				--line-strong: #b6c0c4;
 
-      /* ── Text ── */
-      --ink: #1b1f21;
-      --ink-bright: #05080a;
-      --muted: #5a6469;
-      --ghost: #9aa4a8;
-      /* near-black text still reads on the light-tinted accent fills below */
-      --on-accent: #050608;
+				/* ── Text ── */
+				--ink: #1b1f21;
+				--ink-bright: #05080a;
+				--muted: #5a6469;
+				--ghost: #9aa4a8;
+				/* near-black text still reads on the light-tinted accent fills below */
+				--on-accent: #050608;
 
-      /* ── Accents (hue kept, darkened so text/rails read on white) ── */
-      --cyan: #0067c0;
-      --cyan-bg: #e8f2fb;
-      --cyan-bg-strong: #d7e9f8;
-      --cyan-line: #bcdaf0;
-      --cyan-line-strong: #7fb4de;
-      --cyan-fg: #1d5f86;
-      --green: #16a34a;
-      --green-bg: #e7f6ee;
-      --green-line: #b3e0c6;
-      --green-fg: #147a45;
+				/* ── Accents (hue kept, darkened so text/rails read on white) ── */
+				--cyan: #0067c0;
+				--cyan-bg: #e8f2fb;
+				--cyan-bg-strong: #d7e9f8;
+				--cyan-line: #bcdaf0;
+				--cyan-line-strong: #7fb4de;
+				--cyan-fg: #1d5f86;
+				--green: #16a34a;
+				--green-bg: #e7f6ee;
+				--green-line: #b3e0c6;
+				--green-fg: #147a45;
 
-      /* Keep/Undo: accept keeps its alpha (blends to a readable light green); reject
+				/* Keep/Undo: accept keeps its alpha (blends to a readable light green); reject
          flips from a dark neutral to a light one so --ink text reads on it. */
-      --accept: rgba(34, 197, 94, .72);
-      --accept-hover: rgba(34, 197, 94, .9);
-      --reject: rgba(0, 0, 0, .055);
-      --reject-hover: rgba(0, 0, 0, .1);
-      --amber: #b46f18;
-      --amber-fg: #8f5711;
-      --red: #d81f43;
-      --red-fg: #b3163a;
-      --guide: #ece7db;
-    }
+				--accept: rgba(34, 197, 94, 0.72);
+				--accept-hover: rgba(34, 197, 94, 0.9);
+				--reject: rgba(0, 0, 0, 0.055);
+				--reject-hover: rgba(0, 0, 0, 0.1);
+				--amber: #b46f18;
+				--amber-fg: #8f5711;
+				--red: #d81f43;
+				--red-fg: #b3163a;
+				--guide: #ece7db;
+			}
 
-    /* Code is always monospace, wherever it appears in the chrome (inline code, fenced blocks).
+			/* Code is always monospace, wherever it appears in the chrome (inline code, fenced blocks).
        The @pierre diff uses its own --diffs-font-family (set from the Code font in applyAppearance). */
-    code,
-    pre {
-      font-family: var(--mono)
-    }
+			code,
+			pre {
+				font-family: var(--mono);
+			}
 
-    /* Base size for sprite icons (<svg class="ic"><use href="#gly-…">). currentColor is inherited;
+			/* Base size for sprite icons (<svg class="ic"><use href="#gly-…">). currentColor is inherited;
        .tree-scoped rules below refine size/color per context. vertical-align tucks inline icons
        (in labels, callouts) onto the text baseline. */
-    svg.ic {
-      width: 14px;
-      height: 14px;
-      flex: 0 0 auto;
-      vertical-align: -.15em
-    }
+			svg.ic {
+				width: 14px;
+				height: 14px;
+				flex: 0 0 auto;
+				vertical-align: -0.15em;
+			}
 
-    * {
-      box-sizing: border-box
-    }
+			* {
+				box-sizing: border-box;
+			}
 
-    * {
-      scrollbar-width: thin;
-      scrollbar-color: var(--line) transparent
-    }
+			* {
+				scrollbar-width: thin;
+				scrollbar-color: var(--line) transparent;
+			}
 
-    *::-webkit-scrollbar {
-      width: 8px;
-      height: 8px
-    }
+			*::-webkit-scrollbar {
+				width: 8px;
+				height: 8px;
+			}
 
-    *::-webkit-scrollbar-track {
-      background: transparent
-    }
+			*::-webkit-scrollbar-track {
+				background: transparent;
+			}
 
-    *::-webkit-scrollbar-thumb {
-      background: var(--line);
-      border: 2px solid transparent;
-      border-radius: var(--radius-pill);
-      background-clip: content-box
-    }
+			*::-webkit-scrollbar-thumb {
+				background: var(--line);
+				border: 2px solid transparent;
+				border-radius: var(--radius-pill);
+				background-clip: content-box;
+			}
 
-    *::-webkit-scrollbar-thumb:hover {
-      background: var(--line-strong);
-      background-clip: content-box
-    }
+			*::-webkit-scrollbar-thumb:hover {
+				background: var(--line-strong);
+				background-clip: content-box;
+			}
 
-    *::-webkit-scrollbar-corner {
-      background: transparent
-    }
+			*::-webkit-scrollbar-corner {
+				background: transparent;
+			}
 
-    html,
-    body {
-      height: 100%
-    }
+			html,
+			body {
+				height: 100%;
+			}
 
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--ink);
-      overflow: hidden
-    }
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--ink);
+				overflow: hidden;
+			}
 
-    button,
-    input,
-    textarea {
-      font: inherit
-    }
+			button,
+			input,
+			textarea {
+				font: inherit;
+			}
 
-    button {
-      color: inherit;
-      cursor: pointer
-    }
+			button {
+				color: inherit;
+				cursor: pointer;
+			}
 
-    .app {
-      height: 100%;
-      display: grid;
-      /* Tall enough that the topbar buttons keep clear air above the progress strip riding
+			.app {
+				height: 100%;
+				display: grid;
+				/* Tall enough that the topbar buttons keep clear air above the progress strip riding
          the bar's bottom edge. */
-      grid-template-rows: 48px 1fr
-    }
+				grid-template-rows: 48px 1fr;
+			}
 
-    .top,
-    .bottom {
-      display: grid;
-      align-items: center;
-      padding: 0 12px;
-      background: var(--panel);
-      border-color: var(--line);
-      color: var(--muted);
-      font-size: var(--text-sm)
-    }
+			.top,
+			.bottom {
+				display: grid;
+				align-items: center;
+				padding: 0 12px;
+				background: var(--panel);
+				border-color: var(--line);
+				color: var(--muted);
+				font-size: var(--text-sm);
+			}
 
-    .top {
-      position: relative;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 12px;
-      border-bottom: 1px solid var(--line)
-    }
+			.top {
+				position: relative;
+				grid-template-columns: 1fr auto 1fr;
+				gap: 12px;
+				border-bottom: 1px solid var(--line);
+			}
 
-    /* Review progress: a fill strip riding the topbar's bottom edge (covers the border as it
+			/* Review progress: a fill strip riding the topbar's bottom edge (covers the border as it
        advances) + the "% reviewed" label beside the actions. progress.ts drives both. */
-    .top-progress {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: -1px;
-      height: 3px;
-      pointer-events: none
-    }
+			.top-progress {
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: -1px;
+				height: 3px;
+				pointer-events: none;
+			}
 
-    .top-progress>i {
-      display: block;
-      height: 100%;
-      width: 0;
-      background: var(--green);
-      border-radius: 0 2px 2px 0;
-      transition: width .45s cubic-bezier(.22, .9, .34, 1)
-    }
+			.top-progress > i {
+				display: block;
+				height: 100%;
+				width: 0;
+				background: var(--green);
+				border-radius: 0 2px 2px 0;
+				transition: width 0.45s cubic-bezier(0.22, 0.9, 0.34, 1);
+			}
 
-    .top-progress.pulse>i {
-      animation: prog-pulse .8s ease-out
-    }
+			.top-progress.pulse > i {
+				animation: prog-pulse 0.8s ease-out;
+			}
 
-    @keyframes prog-pulse {
-      0% {
-        filter: brightness(1.7);
-        box-shadow: 0 0 10px 0 var(--green)
-      }
+			@keyframes prog-pulse {
+				0% {
+					filter: brightness(1.7);
+					box-shadow: 0 0 10px 0 var(--green);
+				}
 
-      100% {
-        filter: brightness(1);
-        box-shadow: 0 0 0 0 transparent
-      }
-    }
+				100% {
+					filter: brightness(1);
+					box-shadow: 0 0 0 0 transparent;
+				}
+			}
 
-    .top-pct {
-      color: var(--muted);
-      font-size: var(--text-xs);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap
-    }
+			.top-pct {
+				color: var(--muted);
+				font-size: var(--text-xs);
+				font-variant-numeric: tabular-nums;
+				white-space: nowrap;
+			}
 
-    .bottom {
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      border-top: 1px solid var(--line)
-    }
+			.bottom {
+				grid-template-columns: 1fr auto;
+				gap: 12px;
+				border-top: 1px solid var(--line);
+			}
 
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px
-    }
+			.brand {
+				display: inline-flex;
+				align-items: center;
+				gap: 9px;
+			}
 
-    .brand span {
-      color: var(--ink);
-      font-weight: 700
-    }
+			.brand span {
+				color: var(--ink);
+				font-weight: 700;
+			}
 
-    .brand-logo {
-      width: 22px;
-      height: 22px;
-      flex: 0 0 auto;
-      border-radius: var(--radius-sm)
-    }
+			.brand-logo {
+				width: 22px;
+				height: 22px;
+				flex: 0 0 auto;
+				border-radius: var(--radius-sm);
+			}
 
-    /* Hamburger that opens the off-canvas file drawer — the topbar's only tree affordance once
+			/* Hamburger that opens the off-canvas file drawer — the topbar's only tree affordance once
        the tree goes off-canvas. Hidden by default; revealed only under the ≤1100px media query
        (and re-hidden in single-file / file-mode, which have no tree). */
-    .nav-toggle {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: 26px;
-      height: 26px;
-      padding: 0;
-      margin-left: -4px;
-      border: 0;
-      border-radius: var(--radius-sm);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer
-    }
+			.nav-toggle {
+				display: none;
+				align-items: center;
+				justify-content: center;
+				width: 26px;
+				height: 26px;
+				padding: 0;
+				margin-left: -4px;
+				border: 0;
+				border-radius: var(--radius-sm);
+				background: transparent;
+				color: var(--muted);
+				cursor: pointer;
+			}
 
-    .nav-toggle:hover {
-      background: var(--surface-raised);
-      color: var(--ink)
-    }
+			.nav-toggle:hover {
+				background: var(--surface-raised);
+				color: var(--ink);
+			}
 
-    /* Scrim behind the open file drawer; CSS-gated to narrow widths (see media query). */
-    .tree-backdrop {
-      display: none
-    }
+			/* Scrim behind the open file drawer; CSS-gated to narrow widths (see media query). */
+			.tree-backdrop {
+				display: none;
+			}
 
-    .actions {
-      justify-self: end;
-      display: flex;
-      gap: 8px;
-      align-items: center
-    }
+			.actions {
+				justify-self: end;
+				display: flex;
+				gap: 8px;
+				align-items: center;
+			}
 
-    .actions .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px
-    }
+			.actions .btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 7px;
+			}
 
-    .toggle {
-      display: flex;
-      gap: 3px;
-      padding: 0;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      background: var(--bg);
-      margin: 0
-    }
+			.toggle {
+				display: flex;
+				gap: 3px;
+				padding: 0;
+				border: 1px solid var(--line);
+				border-radius: var(--radius-lg);
+				background: var(--bg);
+				margin: 0;
+			}
 
-    .toggle button,
-    .btn {
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--muted);
-      border-radius: var(--radius);
-      padding: 5px 8px
-    }
+			.toggle button,
+			.btn {
+				border: 1px solid transparent;
+				background: transparent;
+				color: var(--muted);
+				border-radius: var(--radius);
+				padding: 5px 8px;
+			}
 
-    .toggle button.active {
-      background: var(--panel3);
-      color: var(--ink)
-    }
+			.toggle button.active {
+				background: var(--panel3);
+				color: var(--ink);
+			}
 
-    .toggle button:disabled {
-      opacity: .4;
-      cursor: default
-    }
+			.toggle button:disabled {
+				opacity: 0.4;
+				cursor: default;
+			}
 
-    .toggle button:disabled.active {
-      opacity: .6
-    }
+			.toggle button:disabled.active {
+				opacity: 0.6;
+			}
 
-    .btn {
-      border-color: var(--line);
-      background: var(--panel);
-      color: var(--ink)
-    }
+			.btn {
+				border-color: var(--line);
+				background: var(--panel);
+				color: var(--ink);
+			}
 
-    .btn:hover {
-      border-color: var(--line-strong);
-      background: var(--surface-raised)
-    }
+			.btn:hover {
+				border-color: var(--line-strong);
+				background: var(--surface-raised);
+			}
 
-    .btn.primary {
-      color: var(--cyan);
-      border-color: var(--cyan-line);
-      background: var(--cyan-bg)
-    }
+			.btn.primary {
+				color: var(--cyan);
+				border-color: var(--cyan-line);
+				background: var(--cyan-bg);
+			}
 
-    .btn.primary:hover {
-      background: var(--cyan-bg-strong);
-      border-color: var(--cyan-line-strong)
-    }
+			.btn.primary:hover {
+				background: var(--cyan-bg-strong);
+				border-color: var(--cyan-line-strong);
+			}
 
-    /* Icon-only button (settings gear): no border, so it reads apart from the bordered actions. */
-    .btn.icon,
-    .btn.icon:hover {
-      border-color: transparent
-    }
+			/* Icon-only button (settings gear): no border, so it reads apart from the bordered actions. */
+			.btn.icon,
+			.btn.icon:hover {
+				border-color: transparent;
+			}
 
-    .btn.icon:hover {
-      background: var(--surface-raised)
-    }
+			.btn.icon:hover {
+				background: var(--surface-raised);
+			}
 
-    /* Destructive action (Reset Review): hint danger on hover. */
-    .btn.danger:hover {
-      color: var(--red);
-      border-color: color-mix(in srgb, var(--red) 55%, transparent);
-      background: color-mix(in srgb, var(--red) 12%, transparent)
-    }
+			/* Destructive action (Reset Review): hint danger on hover. */
+			.btn.danger:hover {
+				color: var(--red);
+				border-color: color-mix(in srgb, var(--red) 55%, transparent);
+				background: color-mix(in srgb, var(--red) 12%, transparent);
+			}
 
-    .btn.green {
-      color: var(--green);
-      border-color: var(--green-line);
-      background: var(--green-bg)
-    }
+			.btn.green {
+				color: var(--green);
+				border-color: var(--green-line);
+				background: var(--green-bg);
+			}
 
-    .main {
-      min-height: 0;
-      display: grid;
-      grid-template-columns: var(--left-width, 280px) 1px minmax(0, 1fr);
-      position: relative
-    }
+			.main {
+				min-height: 0;
+				display: grid;
+				grid-template-columns: var(--left-width, 280px) 1px minmax(
+						0,
+						1fr
+					);
+				position: relative;
+			}
 
-    .tree,
-    .right {
-      min-width: 0;
-      overflow: auto;
-      background: var(--panel);
-      padding: 10px
-    }
+			.tree,
+			.right {
+				min-width: 0;
+				overflow: auto;
+				background: var(--panel);
+				padding: 10px;
+			}
 
-    .tree {
-      border-right: 1px solid var(--line);
-      padding-top: 8px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden
-    }
+			.tree {
+				border-right: 1px solid var(--line);
+				padding-top: 8px;
+				display: flex;
+				flex-direction: column;
+				overflow: hidden;
+			}
 
-    #files,
-    #walk {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: auto
-    }
+			#files,
+			#walk {
+				flex: 1 1 auto;
+				min-height: 0;
+				overflow: auto;
+			}
 
-    /* Settings lives docked at the sidebar's far bottom; the topbar twin (.top-settings)
+			/* Settings lives docked at the sidebar's far bottom; the topbar twin (.top-settings)
        shows only when the tree is hidden (single-column / file mode) so it stays reachable. */
-    .tree-settings {
-      flex: 0 0 auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: auto -10px -10px;
-      padding: 10px 14px;
-      border: 0;
-      border-top: 1px solid var(--line);
-      background: none;
-      color: var(--muted);
-      font-size: var(--text-sm);
-      text-align: left
-    }
+			.tree-settings {
+				flex: 0 0 auto;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				margin: auto -10px -10px;
+				padding: 10px 14px;
+				border: 0;
+				border-top: 1px solid var(--line);
+				background: none;
+				color: var(--muted);
+				font-size: var(--text-sm);
+				text-align: left;
+			}
 
-    .tree-settings:hover {
-      color: var(--ink);
-      background: var(--surface-raised)
-    }
+			.tree-settings:hover {
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
 
-    .tree-settings kbd {
-      margin-left: auto
-    }
+			.tree-settings kbd {
+				margin-left: auto;
+			}
 
-    .actions .top-settings {
-      display: none
-    }
+			.actions .top-settings {
+				display: none;
+			}
 
-    body.single .actions .top-settings,
-    body.file-mode .actions .top-settings {
-      display: inline-flex
-    }
+			body.single .actions .top-settings,
+			body.file-mode .actions .top-settings {
+				display: inline-flex;
+			}
 
-    /* No tree exists in these modes (tree is display:none below), so suppress the drawer toggle. */
-    body.single .nav-toggle,
-    body.file-mode .nav-toggle {
-      display: none !important
-    }
+			/* No tree exists in these modes (tree is display:none below), so suppress the drawer toggle. */
+			body.single .nav-toggle,
+			body.file-mode .nav-toggle {
+				display: none !important;
+			}
 
-    .right {
-      border-left: 1px solid var(--line)
-    }
+			.right {
+				border-left: 1px solid var(--line);
+			}
 
-    .resizer {
-      background: var(--line);
-      cursor: col-resize;
-      min-width: 1px;
-      position: relative
-    }
+			.resizer {
+				background: var(--line);
+				cursor: col-resize;
+				min-width: 1px;
+				position: relative;
+			}
 
-    .resizer:before {
-      content: '';
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: -4px;
-      right: -4px
-    }
+			.resizer:before {
+				content: '';
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				left: -4px;
+				right: -4px;
+			}
 
-    .resizer:hover,
-    .resizer.dragging {
-      background: var(--cyan)
-    }
+			.resizer:hover,
+			.resizer.dragging {
+				background: var(--cyan);
+			}
 
-    .center {
-      min-width: 0;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden
-    }
+			.center {
+				min-width: 0;
+				min-height: 0;
+				display: flex;
+				flex-direction: column;
+				overflow: hidden;
+			}
 
-    .bar {
-      display: none
-    }
+			.bar {
+				display: none;
+			}
 
-    [x-cloak] {
-      display: none !important
-    }
+			[x-cloak] {
+				display: none !important;
+			}
 
-    .guidebar {
-      flex: 0 0 auto;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 12px;
-      height: var(--subbar-h);
-      background: var(--surface);
-      border-bottom: 1px solid var(--line);
-      font-size: var(--text-sm)
-    }
+			.guidebar {
+				flex: 0 0 auto;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding: 0 12px;
+				height: var(--subbar-h);
+				background: var(--surface);
+				border-bottom: 1px solid var(--line);
+				font-size: var(--text-sm);
+			}
 
-    .guidebar .gb-acts {
-      flex: 0 0 auto;
-      display: flex;
-      align-items: center;
-      gap: 4px
-    }
+			.guidebar .gb-acts {
+				flex: 0 0 auto;
+				display: flex;
+				align-items: center;
+				gap: 4px;
+			}
 
-    .guidebar .gb-home,
-    .guidebar .gb-nav {
-      flex: 0 0 auto;
-      width: 26px;
-      height: 26px;
-      display: grid;
-      place-items: center;
-      padding: 0;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--panel);
-      color: var(--muted);
-      font-size: var(--text-lg)
-    }
+			.guidebar .gb-home,
+			.guidebar .gb-nav {
+				flex: 0 0 auto;
+				width: 26px;
+				height: 26px;
+				display: grid;
+				place-items: center;
+				padding: 0;
+				border: 1px solid var(--line);
+				border-radius: var(--radius);
+				background: var(--panel);
+				color: var(--muted);
+				font-size: var(--text-lg);
+			}
 
-    .guidebar .gb-home:hover,
-    .guidebar .gb-nav:not(:disabled):hover {
-      border-color: var(--line-strong);
-      color: var(--ink);
-      background: var(--surface-raised)
-    }
+			.guidebar .gb-home:hover,
+			.guidebar .gb-nav:not(:disabled):hover {
+				border-color: var(--line-strong);
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
 
-    .guidebar .gb-nav:disabled {
-      opacity: .4;
-      cursor: default
-    }
+			.guidebar .gb-nav:disabled {
+				opacity: 0.4;
+				cursor: default;
+			}
 
-    .guidebar .gb-fill {
-      flex: 1 1 auto
-    }
+			.guidebar .gb-fill {
+				flex: 1 1 auto;
+			}
 
-    .guidebar .gb-stale {
-      flex: 0 0 auto;
-      color: var(--amber);
-      font-size: var(--text-xs)
-    }
+			.guidebar .gb-stale {
+				flex: 0 0 auto;
+				color: var(--amber);
+				font-size: var(--text-xs);
+			}
 
-    .guide-overview .go-stale {
-      margin: 12px 0 18px;
-      padding: 8px 11px;
-      border: 1px solid rgba(224, 175, 104, .5);
-      border-radius: var(--radius);
-      background: rgba(224, 175, 104, .05);
-      color: var(--amber);
-      font-size: var(--text-sm);
-      line-height: 1.45
-    }
+			.guide-overview .go-stale {
+				margin: 12px 0 18px;
+				padding: 8px 11px;
+				border: 1px solid rgba(224, 175, 104, 0.5);
+				border-radius: var(--radius);
+				background: rgba(224, 175, 104, 0.05);
+				color: var(--amber);
+				font-size: var(--text-sm);
+				line-height: 1.45;
+			}
 
-    .guide-overview .go-stale code {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      padding: 0 4px
-    }
+			.guide-overview .go-stale code {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: var(--radius-sm);
+				padding: 0 4px;
+			}
 
-    /* Guided custom diff header (renderCustomHeader): row 1 = icon + file + counts + actions
+			/* Guided custom diff header (renderCustomHeader): row 1 = icon + file + counts + actions
        (preserves @pierre's look); below it the guidance card = category label + markdown prose. */
-    .ghdr {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      width: 100%;
-      padding: 8px 16px;
-      box-sizing: border-box;
-      background: var(--surface-raised);
-      border-bottom: 1px solid var(--line);
-      font-family: var(--sans);
-      font-size: var(--text-sm)
-    }
+			.ghdr {
+				display: flex;
+				flex-direction: column;
+				gap: 5px;
+				width: 100%;
+				padding: 8px 16px;
+				box-sizing: border-box;
+				background: var(--surface-raised);
+				border-bottom: 1px solid var(--line);
+				font-family: var(--sans);
+				font-size: var(--text-sm);
+			}
 
-    .ghdr .ghdr-row1 {
-      display: flex;
-      align-items: center;
-      gap: 8px
-    }
+			.ghdr .ghdr-row1 {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
 
-    .ghdr .ghdr-guide {
-      align-self: flex-start;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      /* center the 2px rule under the 15px change-type icon above (icon center − border) */
-      margin-left: 6.5px;
-      margin-bottom: 2px;
-      max-width: 78ch;
-      padding: 10px 14px 12px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      /* cyan accent — the guide card joins the comment-thread card family (design decision) */
-      border-left: 2px solid var(--cyan);
-      border-radius: 0 var(--radius) var(--radius) 0
-    }
+			.ghdr .ghdr-guide {
+				align-self: flex-start;
+				display: flex;
+				flex-direction: column;
+				gap: 5px;
+				/* center the 2px rule under the 15px change-type icon above (icon center − border) */
+				margin-left: 6.5px;
+				margin-bottom: 2px;
+				max-width: 78ch;
+				padding: 10px 14px 12px;
+				background: var(--surface);
+				border: 1px solid var(--line);
+				/* cyan accent — the guide card joins the comment-thread card family (design decision) */
+				border-left: 2px solid var(--cyan);
+				border-radius: 0 var(--radius) var(--radius) 0;
+			}
 
-    .ghdr .ghdr-grow {
-      flex: 1 1 auto
-    }
+			.ghdr .ghdr-grow {
+				flex: 1 1 auto;
+			}
 
-    .ghdr .ghdr-icon {
-      flex: 0 0 auto;
-      width: 15px;
-      height: 15px;
-      fill: currentColor;
-      color: var(--ct-color, var(--muted))
-    }
+			.ghdr .ghdr-icon {
+				flex: 0 0 auto;
+				width: 15px;
+				height: 15px;
+				fill: currentColor;
+				color: var(--ct-color, var(--muted));
+			}
 
-    .ghdr .ghdr-cat {
-      font-size: var(--text-2xs);
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--cyan);
-      white-space: nowrap
-    }
+			.ghdr .ghdr-cat {
+				font-size: var(--text-2xs);
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--cyan);
+				white-space: nowrap;
+			}
 
-    .ghdr .ghdr-cat.crit {
-      color: var(--amber)
-    }
+			.ghdr .ghdr-cat.crit {
+				color: var(--amber);
+			}
 
-    .ghdr .ghdr-file {
-      flex: 0 0 auto;
-      color: var(--ink);
-      font-family: var(--mono);
-      font-weight: 600
-    }
+			.ghdr .ghdr-file {
+				flex: 0 0 auto;
+				color: var(--ink);
+				font-family: var(--mono);
+				font-weight: 600;
+			}
 
-    /* "moved from <old>" note beside a renamed file's new path (git -M). */
-    .ghdr .ghdr-moved {
-      flex: 0 1 auto;
-      margin-left: 8px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-family: var(--mono);
-      font-size: var(--text-2xs);
-      color: var(--amber)
-    }
+			/* "moved from <old>" note beside a renamed file's new path (git -M). */
+			.ghdr .ghdr-moved {
+				flex: 0 1 auto;
+				margin-left: 8px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-family: var(--mono);
+				font-size: var(--text-2xs);
+				color: var(--amber);
+			}
 
-    /* Subtle Split/Stacked toggle next to the filename — low-contrast so the filename leads,
+			/* Subtle Split/Stacked toggle next to the filename — low-contrast so the filename leads,
        but bordered so it reads as a control. */
-    .ghdr .ghdr-layout {
-      flex: 0 0 auto;
-      display: inline-flex;
-      gap: 1px;
-      margin-left: 8px;
-      padding: 1px;
-      border: 1px solid var(--line-strong);
-      border-radius: var(--radius-sm)
-    }
+			.ghdr .ghdr-layout {
+				flex: 0 0 auto;
+				display: inline-flex;
+				gap: 1px;
+				margin-left: 8px;
+				padding: 1px;
+				border: 1px solid var(--line-strong);
+				border-radius: var(--radius-sm);
+			}
 
-    .ghdr .ghdr-layout button {
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      font-size: var(--text-2xs);
-      line-height: 1.5;
-      padding: 1px 6px;
-      border-radius: var(--radius-xs)
-    }
+			.ghdr .ghdr-layout button {
+				border: 0;
+				background: transparent;
+				color: var(--muted);
+				font-size: var(--text-2xs);
+				line-height: 1.5;
+				padding: 1px 6px;
+				border-radius: var(--radius-xs);
+			}
 
-    .ghdr .ghdr-layout button:hover {
-      color: var(--ink)
-    }
+			.ghdr .ghdr-layout button:hover {
+				color: var(--ink);
+			}
 
-    .ghdr .ghdr-layout button.active {
-      background: var(--panel3);
-      color: var(--ink-bright)
-    }
+			.ghdr .ghdr-layout button.active {
+				background: var(--panel3);
+				color: var(--ink-bright);
+			}
 
-    /* Open-in-editor: icon-only, as quiet as the layout toggle — file-scoped action. */
-    .ghdr .ghdr-open {
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      margin-left: 6px;
-      padding: 3px;
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      border-radius: var(--radius-xs)
-    }
+			/* Open-in-editor: icon-only, as quiet as the layout toggle — file-scoped action. */
+			.ghdr .ghdr-open {
+				flex: 0 0 auto;
+				display: inline-flex;
+				align-items: center;
+				margin-left: 6px;
+				padding: 3px;
+				border: 0;
+				background: transparent;
+				color: var(--muted);
+				border-radius: var(--radius-xs);
+			}
 
-    .ghdr .ghdr-open:hover {
-      color: var(--ink);
-      background: var(--surface-raised)
-    }
+			.ghdr .ghdr-open:hover {
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
 
-    .ghdr .ghdr-open .ic {
-      width: 13px;
-      height: 13px
-    }
+			.ghdr .ghdr-open .ic {
+				width: 13px;
+				height: 13px;
+			}
 
-    /* The guidance is the primary reading content of a guided review — ink, not muted,
+			/* The guidance is the primary reading content of a guided review — ink, not muted,
        one step above the header's text-sm. */
-    .ghdr .ghdr-expl.md {
-      margin-top: 0;
-      max-width: 72ch;
-      color: var(--ink);
-      font-size: var(--text-md);
-      line-height: 1.6
-    }
+			.ghdr .ghdr-expl.md {
+				margin-top: 0;
+				max-width: 72ch;
+				color: var(--ink);
+				font-size: var(--text-md);
+				line-height: 1.6;
+			}
 
-    /* The flag is a bordered amber callout box (not a bare text row) — the one thing on the
+			/* The flag is a bordered amber callout box (not a bare text row) — the one thing on the
        card that says "decide this before approving". */
-    .ghdr .ghdr-flag {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      max-width: 74ch;
-      margin-top: 5px;
-      padding: 8px 11px;
-      border: 1px solid rgba(224, 175, 104, .35);
-      background: rgba(224, 175, 104, .06);
-      border-radius: var(--radius-sm);
-      color: var(--amber)
-    }
+			.ghdr .ghdr-flag {
+				display: flex;
+				align-items: flex-start;
+				gap: 8px;
+				max-width: 74ch;
+				margin-top: 5px;
+				padding: 8px 11px;
+				border: 1px solid rgba(224, 175, 104, 0.35);
+				background: rgba(224, 175, 104, 0.06);
+				border-radius: var(--radius-sm);
+				color: var(--amber);
+			}
 
-    .ghdr .ghdr-flag>.ic {
-      width: 13px;
-      height: 13px;
-      margin-top: 3px;
-      fill: currentColor
-    }
+			.ghdr .ghdr-flag > .ic {
+				width: 13px;
+				height: 13px;
+				margin-top: 3px;
+				fill: currentColor;
+			}
 
-    .ghdr .ghdr-flag .md {
-      margin-top: 0;
-      color: var(--amber-fg);
-      font-size: var(--text-md);
-      line-height: 1.5
-    }
+			.ghdr .ghdr-flag .md {
+				margin-top: 0;
+				color: var(--amber-fg);
+				font-size: var(--text-md);
+				line-height: 1.5;
+			}
 
-    .ghdr .ghdr-readonly {
-      flex: 0 0 auto;
-      color: var(--muted);
-      font-size: var(--text-xs);
-      letter-spacing: .02em
-    }
+			.ghdr .ghdr-readonly {
+				flex: 0 0 auto;
+				color: var(--muted);
+				font-size: var(--text-xs);
+				letter-spacing: 0.02em;
+			}
 
-    .ghdr .ghdr-counts {
-      flex: 0 0 auto;
-      display: inline-flex;
-      font-family: var(--mono);
-      gap: var(--churn-gap)
-    }
+			.ghdr .ghdr-counts {
+				flex: 0 0 auto;
+				display: inline-flex;
+				font-family: var(--mono);
+				gap: var(--churn-gap);
+			}
 
-    .ghdr .ghdr-counts .a {
-      color: var(--green)
-    }
+			.ghdr .ghdr-counts .a {
+				color: var(--green);
+			}
 
-    .ghdr .ghdr-counts .d {
-      color: var(--red)
-    }
+			.ghdr .ghdr-counts .d {
+				color: var(--red);
+			}
 
-    .ghdr .ghdr-actions {
-      flex: 0 0 auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px
-    }
+			.ghdr .ghdr-actions {
+				flex: 0 0 auto;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+			}
 
-    #diff {
-      flex: 1;
-      min-height: 0;
-      overflow: auto;
-      background: var(--bg);
-      padding: 0;
-      /* @pierre reserves a right-side scrollbar gutter; we scroll on #diff itself, so drop it */
-      --diffs-scrollbar-gutter-override: 0px
-    }
+			#diff {
+				flex: 1;
+				min-height: 0;
+				overflow: auto;
+				background: var(--bg);
+				padding: 0;
+				/* @pierre reserves a right-side scrollbar gutter; we scroll on #diff itself, so drop it */
+				--diffs-scrollbar-gutter-override: 0px;
+			}
 
-    #diff>* {
-      font-family: var(--sans);
-      font-size: var(--code-size, 12.5px);
-      line-height: 1.62
-    }
+			#diff > * {
+				font-family: var(--sans);
+				font-size: var(--code-size, 12.5px);
+				line-height: 1.62;
+			}
 
-    /* Diff area = the scroller (#diff) plus a fixed overview ruler overlaid on its right edge.
+			/* Diff area = the scroller (#diff) plus a fixed overview ruler overlaid on its right edge.
        The wrapper doesn't scroll, so the ruler stays put while #diff scrolls under it. */
-    .diff-area {
-      position: relative;
-      flex: 1;
-      min-height: 0;
-      display: flex
-    }
+			.diff-area {
+				position: relative;
+				flex: 1;
+				min-height: 0;
+				display: flex;
+			}
 
-    /* Floating sign-off: the header's Approve/Mark-reviewed scrolls out of view on a long file,
+			/* Floating sign-off: the header's Approve/Mark-reviewed scrolls out of view on a long file,
        so mirror it in the SAME spot — pinned to the diff pane's top-right — revealed once scrolled
        (diffScrolled). Styled like the header's .diff-header-action so it reads as the same button
        staying put, not a new affordance; a soft shadow lifts it off the code it floats over. */
-    .diff-fab {
-      position: absolute;
-      top: 12px;
-      right: 20px;
-      z-index: 9;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 9px;
-      border: 0;
-      border-radius: var(--radius-sm);
-      background: var(--accept);
-      color: var(--on-accent);
-      font-family: var(--sans);
-      font-size: var(--text-sm);
-      line-height: 16px;
-      cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, .35)
-    }
+			.diff-fab {
+				position: absolute;
+				top: 12px;
+				right: 20px;
+				z-index: 9;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 4px 9px;
+				border: 0;
+				border-radius: var(--radius-sm);
+				background: var(--accept);
+				color: var(--on-accent);
+				font-family: var(--sans);
+				font-size: var(--text-sm);
+				line-height: 16px;
+				cursor: pointer;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+			}
 
-    .diff-fab:hover {
-      background: var(--accept-hover);
-      color: var(--on-accent)
-    }
+			.diff-fab:hover {
+				background: var(--accept-hover);
+				color: var(--on-accent);
+			}
 
-    .diff-fab.warn {
-      background: rgba(224, 175, 104, .14);
-      color: var(--amber-fg)
-    }
+			.diff-fab.warn {
+				background: rgba(224, 175, 104, 0.14);
+				color: var(--amber-fg);
+			}
 
-    .diff-fab.warn:hover {
-      background: rgba(224, 175, 104, .22)
-    }
+			.diff-fab.warn:hover {
+				background: rgba(224, 175, 104, 0.22);
+			}
 
-    .diff-fab kbd {
-      color: var(--ink-bright);
-      background: rgba(0, 0, 0, .22);
-      border-color: var(--line)
-    }
+			.diff-fab kbd {
+				color: var(--ink-bright);
+				background: rgba(0, 0, 0, 0.22);
+				border-color: var(--line);
+			}
 
-    /* VSCode-style change overview: green/red ticks mapping the whole file to the gutter,
+			/* VSCode-style change overview: green/red ticks mapping the whole file to the gutter,
        so changes are visible in one skim. Shown only in "expand unchanged" mode. */
-    .ovr {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 8px;
-      z-index: 6;
-      pointer-events: none;
-      display: none
-    }
+			.ovr {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				width: 8px;
+				z-index: 6;
+				pointer-events: none;
+				display: none;
+			}
 
-    .ovr.show {
-      display: block
-    }
+			.ovr.show {
+				display: block;
+			}
 
-    /* "Rendering…" indicator shown while a non-cached diff render is in flight. Covers the
+			/* "Rendering…" indicator shown while a non-cached diff render is in flight. Covers the
        diff area so stale content isn't shown; the work is synchronous so it can't animate. */
-    .diff-rendering {
-      position: absolute;
-      inset: 0;
-      z-index: 8;
-      display: grid;
-      place-items: center;
-      background: var(--bg);
-      pointer-events: none
-    }
+			.diff-rendering {
+				position: absolute;
+				inset: 0;
+				z-index: 8;
+				display: grid;
+				place-items: center;
+				background: var(--bg);
+				pointer-events: none;
+			}
 
-    .diff-rendering span {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-pill);
-      background: var(--surface);
-      color: var(--muted);
-      font-size: var(--text-sm)
-    }
+			.diff-rendering span {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				padding: 6px 14px;
+				border: 1px solid var(--line);
+				border-radius: var(--radius-pill);
+				background: var(--surface);
+				color: var(--muted);
+				font-size: var(--text-sm);
+			}
 
-    .ovr i {
-      position: absolute;
-      left: 1px;
-      right: 1px;
-      min-height: 2px;
-      border-radius: var(--radius-xs);
-      opacity: .85
-    }
+			.ovr i {
+				position: absolute;
+				left: 1px;
+				right: 1px;
+				min-height: 2px;
+				border-radius: var(--radius-xs);
+				opacity: 0.85;
+			}
 
-    .ovr i.add {
-      background: var(--green)
-    }
+			.ovr i.add {
+				background: var(--green);
+			}
 
-    .ovr i.del {
-      background: var(--red)
-    }
+			.ovr i.del {
+				background: var(--red);
+			}
 
-    .label {
-      color: var(--ghost);
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      font-size: var(--text-2xs);
-      margin: 8px 0 7px
-    }
+			.label {
+				color: var(--ghost);
+				text-transform: uppercase;
+				letter-spacing: 0.12em;
+				font-size: var(--text-2xs);
+				margin: 8px 0 7px;
+			}
 
-    .tree-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: 0 0 8px;
-      padding: 0 4px 0 6px
-    }
+			.tree-title {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin: 0 0 8px;
+				padding: 0 4px 0 6px;
+			}
 
-    .tree-toggle {
-      flex: 0 0 auto;
-      width: 22px;
-      height: 22px;
-      display: grid;
-      place-items: center;
-      padding: 0;
-      border: 1px solid transparent;
-      border-radius: var(--radius-sm);
-      background: transparent;
-      color: var(--ghost)
-    }
+			.tree-toggle {
+				flex: 0 0 auto;
+				width: 22px;
+				height: 22px;
+				display: grid;
+				place-items: center;
+				padding: 0;
+				border: 1px solid transparent;
+				border-radius: var(--radius-sm);
+				background: transparent;
+				color: var(--ghost);
+			}
 
-    .tree-toggle:hover {
-      color: var(--ink);
-      border-color: var(--line);
-      background: var(--surface-raised)
-    }
+			.tree-toggle:hover {
+				color: var(--ink);
+				border-color: var(--line);
+				background: var(--surface-raised);
+			}
 
-    .node {
-      position: relative;
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      /* Indent + guide lines derive from --depth (set inline per row by treeRows) so any
+			.node {
+				position: relative;
+				display: flex;
+				gap: 6px;
+				align-items: center;
+				/* Indent + guide lines derive from --depth (set inline per row by treeRows) so any
          nesting depth renders correctly — fixed per-level classes capped at 3 and made
          deeper files sit flush with their folder. Guides are 1px lines every 14px,
          clipped to the indent width via background-size. */
-      padding: 3px 6px 3px calc(6px + var(--depth, 0) * 14px);
-      background-image: repeating-linear-gradient(to right,
-          transparent 0 12px, var(--guide) 12px 13px, transparent 13px 14px);
-      background-size: calc(var(--depth, 0) * 14px) 100%;
-      background-repeat: no-repeat;
-      color: var(--muted);
-      font-size: var(--text-sm);
-      line-height: 1.6;
-      white-space: nowrap;
-      cursor: pointer;
-      user-select: none
-    }
+				padding: 3px 6px 3px calc(6px + var(--depth, 0) * 14px);
+				background-image: repeating-linear-gradient(
+					to right,
+					transparent 0 12px,
+					var(--guide) 12px 13px,
+					transparent 13px 14px
+				);
+				background-size: calc(var(--depth, 0) * 14px) 100%;
+				background-repeat: no-repeat;
+				color: var(--muted);
+				font-size: var(--text-sm);
+				line-height: 1.6;
+				white-space: nowrap;
+				cursor: pointer;
+				user-select: none;
+			}
 
-    .node .nm {
-      overflow: hidden;
-      text-overflow: ellipsis
-    }
+			.node .nm {
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
 
-    /* background-color (not the shorthand) so the --depth guide image survives hover/active */
-    .node:hover {
-      background-color: var(--surface-raised);
-      color: var(--ink)
-    }
+			/* background-color (not the shorthand) so the --depth guide image survives hover/active */
+			.node:hover {
+				background-color: var(--surface-raised);
+				color: var(--ink);
+			}
 
-    .node.active {
-      color: var(--ink);
-      background-color: var(--panel3)
-    }
+			.node.active {
+				color: var(--ink);
+				background-color: var(--panel3);
+			}
 
-    .node.active::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--cyan)
-    }
+			.node.active::before {
+				content: '';
+				position: absolute;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				width: 2px;
+				background: var(--cyan);
+			}
 
-    .node.changed {
-      color: var(--ink)
-    }
+			.node.changed {
+				color: var(--ink);
+			}
 
-    /* tree icons (custom sprite, currentColor) */
-    .tree .ic {
-      width: 14px;
-      height: 14px;
-      flex: 0 0 auto
-    }
+			/* tree icons (custom sprite, currentColor) */
+			.tree .ic {
+				width: 14px;
+				height: 14px;
+				flex: 0 0 auto;
+			}
 
-    .tree .chev {
-      width: 12px;
-      color: var(--ghost);
-      transition: transform .12s ease
-    }
+			.tree .chev {
+				width: 12px;
+				color: var(--ghost);
+				transition: transform 0.12s ease;
+			}
 
-    .tree .chev-spacer {
-      width: 12px;
-      flex: 0 0 auto
-    }
+			.tree .chev-spacer {
+				width: 12px;
+				flex: 0 0 auto;
+			}
 
-    .tree .chev.open {
-      transform: rotate(90deg)
-    }
+			.tree .chev.open {
+				transform: rotate(90deg);
+			}
 
-    .tree .folder {
-      color: var(--muted)
-    }
+			.tree .folder {
+				color: var(--muted);
+			}
 
-    .tree .file {
-      color: var(--ghost)
-    }
+			.tree .file {
+				color: var(--ghost);
+			}
 
-    .tree .file.new {
-      color: var(--green)
-    }
+			.tree .file.new {
+				color: var(--green);
+			}
 
-    .tree .file.modified {
-      color: var(--cyan)
-    }
+			.tree .file.modified {
+				color: var(--cyan);
+			}
 
-    .tree .file.deleted {
-      color: var(--red)
-    }
+			.tree .file.deleted {
+				color: var(--red);
+			}
 
-    .node .testcaret {
-      color: var(--ghost);
-      font-size: var(--text-xs);
-      cursor: pointer
-    }
+			.node .testcaret {
+				color: var(--ghost);
+				font-size: var(--text-xs);
+				cursor: pointer;
+			}
 
-    .node .status-pack {
-      margin-left: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: var(--churn-gap)
-    }
+			.node .status-pack {
+				margin-left: auto;
+				display: inline-flex;
+				align-items: center;
+				gap: var(--churn-gap);
+			}
 
-    .node .badge {
-      width: 13px;
-      height: 13px
-    }
+			.node .badge {
+				width: 13px;
+				height: 13px;
+			}
 
-    .node .badge.pending {
-      color: var(--cyan)
-    }
+			.node .badge.pending {
+				color: var(--cyan);
+			}
 
-    .node .badge.approved {
-      color: var(--green)
-    }
+			.node .badge.approved {
+				color: var(--green);
+			}
 
-    .node .badge.changes {
-      color: var(--amber)
-    }
+			.node .badge.changes {
+				color: var(--amber);
+			}
 
-    .node.test {
-      color: var(--ghost)
-    }
+			.node.test {
+				color: var(--ghost);
+			}
 
-    /* Sidebar Tree/Walkthrough tabs (guided desks only) — the settings tabs, sized down. */
-    .tree-tabs {
-      flex: 0 0 auto;
-      display: flex;
-      align-items: stretch;
-      gap: 2px;
-      height: var(--subbar-h);
-      margin: -8px -10px 8px;
-      padding: 0 4px;
-      border-bottom: 1px solid var(--line)
-    }
+			/* Sidebar Tree/Walkthrough tabs (guided desks only) — the settings tabs, sized down. */
+			.tree-tabs {
+				flex: 0 0 auto;
+				display: flex;
+				align-items: stretch;
+				gap: 2px;
+				height: var(--subbar-h);
+				margin: -8px -10px 8px;
+				padding: 0 4px;
+				border-bottom: 1px solid var(--line);
+			}
 
-    .tree-tabs button {
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      font: inherit;
-      font-size: var(--text-sm);
-      display: inline-flex;
-      align-items: center;
-      padding: 0 8px;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px
-    }
+			.tree-tabs button {
+				border: 0;
+				background: transparent;
+				color: var(--muted);
+				font: inherit;
+				font-size: var(--text-sm);
+				display: inline-flex;
+				align-items: center;
+				padding: 0 8px;
+				cursor: pointer;
+				border-bottom: 2px solid transparent;
+				margin-bottom: -1px;
+			}
 
-    .tree-tabs button:hover {
-      color: var(--ink)
-    }
+			.tree-tabs button:hover {
+				color: var(--ink);
+			}
 
-    .tree-tabs button.active {
-      color: var(--ink-bright);
-      border-bottom-color: var(--cyan)
-    }
+			.tree-tabs button.active {
+				color: var(--ink-bright);
+				border-bottom-color: var(--cyan);
+			}
 
-    .tree-tabs button kbd {
-      margin-left: 2px
-    }
+			.tree-tabs button kbd {
+				margin-left: 2px;
+			}
 
-    /* Walkthrough rows: category headers read like the FILES label but are jump targets;
+			/* Walkthrough rows: category headers read like the FILES label but are jump targets;
        file rows reuse the .node treatment (active/hover/badges) with a one-level indent. */
-    .node.walk-cat {
-      margin-top: 8px;
-      color: var(--ghost);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      font-size: var(--text-2xs);
-      font-weight: 700
-    }
+			.node.walk-cat {
+				margin-top: 8px;
+				color: var(--ghost);
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				font-size: var(--text-2xs);
+				font-weight: 700;
+			}
 
-    .node.walk-cat:first-child {
-      margin-top: 0
-    }
+			.node.walk-cat:first-child {
+				margin-top: 0;
+			}
 
-    .node.walk-cat:hover {
-      color: var(--ink)
-    }
+			.node.walk-cat:hover {
+				color: var(--ink);
+			}
 
-    /* ± in a fixed-width right column so the numbers align across rows. */
-    #walk .status-pack i {
-      font-style: normal;
-      font-size: var(--text-2xs)
-    }
+			/* ± in a fixed-width right column so the numbers align across rows. */
+			#walk .status-pack i {
+				font-style: normal;
+				font-size: var(--text-2xs);
+			}
 
-    #walk .status-pack .add {
-      color: var(--green)
-    }
+			#walk .status-pack .add {
+				color: var(--green);
+			}
 
-    #walk .status-pack .del {
-      color: var(--red)
-    }
+			#walk .status-pack .del {
+				color: var(--red);
+			}
 
-    #walk .crit {
-      color: var(--amber);
-      width: 12px;
-      height: 12px
-    }
+			#walk .crit {
+				color: var(--amber);
+				width: 12px;
+				height: 12px;
+			}
 
-    /* Per-file review state leads the row: empty circle = to do, green check-circle =
+			/* Per-file review state leads the row: empty circle = to do, green check-circle =
        approved, amber alert-circle = changes requested. */
-    #walk .st {
-      width: 13px;
-      height: 13px;
-      flex: 0 0 auto
-    }
+			#walk .st {
+				width: 13px;
+				height: 13px;
+				flex: 0 0 auto;
+			}
 
-    #walk .st.pending {
-      color: var(--ghost)
-    }
+			#walk .st.pending {
+				color: var(--ghost);
+			}
 
-    #walk .st.approved {
-      color: var(--green)
-    }
+			#walk .st.approved {
+				color: var(--green);
+			}
 
-    #walk .st.changes {
-      color: var(--amber)
-    }
+			#walk .st.changes {
+				color: var(--amber);
+			}
 
-    .card {
-      border: 1px solid var(--line);
-      background: var(--surface);
-      border-radius: var(--radius-lg);
-      padding: 9px;
-      margin-bottom: 8px;
-      font-size: var(--text-sm)
-    }
+			.card {
+				border: 1px solid var(--line);
+				background: var(--surface);
+				border-radius: var(--radius-lg);
+				padding: 9px;
+				margin-bottom: 8px;
+				font-size: var(--text-sm);
+			}
 
-    .card.active {
-      border-color: var(--cyan-line);
-      background: var(--cyan-bg)
-    }
+			.card.active {
+				border-color: var(--cyan-line);
+				background: var(--cyan-bg);
+			}
 
-    .card p {
-      color: var(--muted);
-      margin: 6px 0 0;
-      line-height: 1.45
-    }
+			.card p {
+				color: var(--muted);
+				margin: 6px 0 0;
+				line-height: 1.45;
+			}
 
-    textarea,
-    input {
-      width: 100%;
-      color: var(--ink);
-      background: var(--bg);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 8px
-    }
+			textarea,
+			input {
+				width: 100%;
+				color: var(--ink);
+				background: var(--bg);
+				border: 1px solid var(--line);
+				border-radius: var(--radius);
+				padding: 8px;
+			}
 
-    textarea {
-      min-height: 80px;
-      resize: vertical
-    }
+			textarea {
+				min-height: 80px;
+				resize: vertical;
+			}
 
-    /* kbd chips inside buttons don't intercept clicks. On a colored/solid button (primary, the
+			/* kbd chips inside buttons don't intercept clicks. On a colored/solid button (primary, the
        diff verdict + approve actions) the default panel chip is unreadable, so use a subtle
        translucent-black chip; the text is --ink-bright (near-white in dark, near-black in light)
        so it reads against the darkened accent fill in either theme. */
-    .btn kbd,
-    .change-actions button kbd,
-    .diff-header-action kbd {
-      pointer-events: none
-    }
+			.btn kbd,
+			.change-actions button kbd,
+			.diff-header-action kbd {
+				pointer-events: none;
+			}
 
-    .btn.primary kbd,
-    .change-actions button kbd,
-    .diff-header-action kbd {
-      color: var(--ink-bright);
-      background: rgba(0, 0, 0, .22);
-      border-color: var(--line)
-    }
+			.btn.primary kbd,
+			.change-actions button kbd,
+			.diff-header-action kbd {
+				color: var(--ink-bright);
+				background: rgba(0, 0, 0, 0.22);
+				border-color: var(--line);
+			}
 
-    .change-actions button,
-    .diff-header-action {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px
-    }
+			.change-actions button,
+			.diff-header-action {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+			}
 
-    .show {
-      display: block
-    }
+			.show {
+				display: block;
+			}
 
-    /* Open comment threads whose anchor line no longer exists in the diff — shown as the
+			/* Open comment threads whose anchor line no longer exists in the diff — shown as the
        diff's first row (inside the file header, below the action bar) so they stay
        actionable (they block approval until resolved). */
-    .unanchored-strip {
-      font-family: var(--sans);
-      margin: 5px 0 2px;
-      border: 1px solid rgba(224, 175, 104, .35);
-      background: rgba(224, 175, 104, .05);
-      border-radius: var(--radius-sm);
-      padding: 2px 0 4px
-    }
+			.unanchored-strip {
+				font-family: var(--sans);
+				margin: 5px 0 2px;
+				border: 1px solid rgba(224, 175, 104, 0.35);
+				background: rgba(224, 175, 104, 0.05);
+				border-radius: var(--radius-sm);
+				padding: 2px 0 4px;
+			}
 
-    .unanchored-strip .unanchored-head {
-      color: var(--amber);
-      font-size: var(--text-xs);
-      padding: 7px 12px 2px
-    }
+			.unanchored-strip .unanchored-head {
+				color: var(--amber);
+				font-size: var(--text-xs);
+				padding: 7px 12px 2px;
+			}
 
-    .unanchored-strip .annotation+.annotation {
-      border-top: 1px solid rgba(224, 175, 104, .18)
-    }
+			.unanchored-strip .annotation + .annotation {
+				border-top: 1px solid rgba(224, 175, 104, 0.18);
+			}
 
-    /* Skim (issue 06): a muted, low-attention treatment — the opposite of the amber flag.
+			/* Skim (issue 06): a muted, low-attention treatment — the opposite of the amber flag.
        skim LOWERS scrutiny, so it reads gray, never as a state shout. */
-    .ic.skim {
-      color: var(--muted);
-      width: 12px;
-      height: 12px;
-      opacity: .7
-    }
+			.ic.skim {
+				color: var(--muted);
+				width: 12px;
+				height: 12px;
+				opacity: 0.7;
+			}
 
-    /* Fully-skimmed group (issue 07): a quiet collapsed row at the bottom of the tree/walkthrough
+			/* Fully-skimmed group (issue 07): a quiet collapsed row at the bottom of the tree/walkthrough
        gathering files that left the flow. Reads like the walk-cat header — muted, never a shout. */
-    .node.skimgrp {
-      color: var(--ghost)
-    }
+			.node.skimgrp {
+				color: var(--ghost);
+			}
 
-    .node.skimgrp .skimgrp-name {
-      color: var(--muted)
-    }
+			.node.skimgrp .skimgrp-name {
+				color: var(--muted);
+			}
 
-    .node.skimgrp .skimgrp-count,
-    .node.walk-skim .walk-skim-count {
-      margin-left: auto;
-      font-size: var(--text-2xs);
-      color: var(--ghost)
-    }
+			.node.skimgrp .skimgrp-count,
+			.node.walk-skim .walk-skim-count {
+				margin-left: auto;
+				font-size: var(--text-2xs);
+				color: var(--ghost);
+			}
 
-    .node.walk-skim .chev {
-      width: 12px
-    }
+			.node.walk-skim .chev {
+				width: 12px;
+			}
 
-    /* Block collapse/expand strip — a diff annotation standing in for a skimmed change block. */
-    .annotation.skim-strip {
-      min-height: 0
-    }
+			/* Block collapse/expand strip — a diff annotation standing in for a skimmed change block. */
+			.annotation.skim-strip {
+				min-height: 0;
+			}
 
-    .skim-strip .skim-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-      padding: 4px 12px;
-      font-family: var(--sans);
-      font-size: var(--text-xs);
-      color: var(--muted);
-      background: var(--panel);
-      border: 0;
-      border-top: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
-      cursor: pointer;
-      text-align: left
-    }
+			.skim-strip .skim-toggle {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				width: 100%;
+				padding: 4px 12px;
+				font-family: var(--sans);
+				font-size: var(--text-xs);
+				color: var(--muted);
+				background: var(--panel);
+				border: 0;
+				border-top: 1px solid var(--line);
+				border-bottom: 1px solid var(--line);
+				cursor: pointer;
+				text-align: left;
+			}
 
-    .skim-strip .skim-toggle:hover {
-      background: var(--panel3);
-      color: var(--ink)
-    }
+			.skim-strip .skim-toggle:hover {
+				background: var(--panel3);
+				color: var(--ink);
+			}
 
-    .skim-strip .skim-caret {
-      flex: 0 0 auto;
-      width: 1em
-    }
+			.skim-strip .skim-caret {
+				flex: 0 0 auto;
+				width: 1em;
+			}
 
-    .skim-strip .skim-label {
-      flex: 1 1 auto
-    }
+			.skim-strip .skim-label {
+				flex: 1 1 auto;
+			}
 
-    .skim-strip .skim-action {
-      opacity: .75
-    }
+			.skim-strip .skim-action {
+				opacity: 0.75;
+			}
 
-    /* File-level collapse card: the whole diff folds behind one expandable strip. */
-    .file-skim {
-      padding: 12px
-    }
+			/* File-level collapse card: the whole diff folds behind one expandable strip. */
+			.file-skim {
+				padding: 12px;
+			}
 
-    .file-skim-strip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-      padding: 10px 12px;
-      font-family: var(--sans);
-      font-size: var(--text-sm);
-      color: var(--muted);
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      text-align: left
-    }
+			.file-skim-strip {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				width: 100%;
+				padding: 10px 12px;
+				font-family: var(--sans);
+				font-size: var(--text-sm);
+				color: var(--muted);
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: var(--radius-sm);
+				cursor: pointer;
+				text-align: left;
+			}
 
-    .file-skim-strip:hover {
-      background: var(--panel3);
-      color: var(--ink)
-    }
+			.file-skim-strip:hover {
+				background: var(--panel3);
+				color: var(--ink);
+			}
 
-    .file-skim-strip .file-skim-name {
-      font-family: var(--mono);
-      color: var(--ink)
-    }
+			.file-skim-strip .file-skim-name {
+				font-family: var(--mono);
+				color: var(--ink);
+			}
 
-    .file-skim-strip .file-skim-meta {
-      flex: 1 1 auto
-    }
+			.file-skim-strip .file-skim-meta {
+				flex: 1 1 auto;
+			}
 
-    .file-skim-strip .file-skim-expand {
-      color: var(--cyan)
-    }
+			.file-skim-strip .file-skim-expand {
+				color: var(--cyan);
+			}
 
-    /* Pure-rename row: a static note (identical content, nothing to expand), not a toggle. */
-    .file-skim-strip.moved {
-      cursor: default
-    }
+			/* Pure-rename row: a static note (identical content, nothing to expand), not a toggle. */
+			.file-skim-strip.moved {
+				cursor: default;
+			}
 
-    .file-skim-strip.moved:hover {
-      background: var(--panel);
-      color: var(--muted)
-    }
+			.file-skim-strip.moved:hover {
+				background: var(--panel);
+				color: var(--muted);
+			}
 
-    .file-skim-strip.moved .ic {
-      flex: 0 0 auto;
-      width: 14px;
-      height: 14px;
-      color: var(--amber)
-    }
+			.file-skim-strip.moved .ic {
+				flex: 0 0 auto;
+				width: 14px;
+				height: 14px;
+				color: var(--amber);
+			}
 
-    /* Oversized-file placeholder (issue 05): a verdict-capable summary shown instead of a diff
+			/* Oversized-file placeholder (issue 05): a verdict-capable summary shown instead of a diff
        that would freeze the tab. Reuses the panel / churn-count / flag idioms so it reads as
        native; the change-kind accent (--ct-color) mirrors the diff header's ctColor language and
        colors the kind badge/icon only — a uniform border like the overview card, no left accent
        (reviewer preference). */
-    .oversized-card {
-      --ct-color: var(--muted);
-      max-width: 620px;
-      margin: 40px auto;
-      padding: 20px 22px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      font-family: var(--sans)
-    }
+			.oversized-card {
+				--ct-color: var(--muted);
+				max-width: 620px;
+				margin: 40px auto;
+				padding: 20px 22px;
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: var(--radius-lg);
+				font-family: var(--sans);
+			}
 
-    .oversized-card.ct-new {
-      --ct-color: var(--green)
-    }
+			.oversized-card.ct-new {
+				--ct-color: var(--green);
+			}
 
-    .oversized-card.ct-modified {
-      --ct-color: var(--cyan)
-    }
+			.oversized-card.ct-modified {
+				--ct-color: var(--cyan);
+			}
 
-    .oversized-card.ct-deleted {
-      --ct-color: var(--red)
-    }
+			.oversized-card.ct-deleted {
+				--ct-color: var(--red);
+			}
 
-    .oversized-card.ct-renamed {
-      --ct-color: var(--amber)
-    }
+			.oversized-card.ct-renamed {
+				--ct-color: var(--amber);
+			}
 
-    .oversized-card .ovsz-head {
-      display: flex;
-      align-items: center;
-      gap: 8px
-    }
+			.oversized-card .ovsz-head {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
 
-    .oversized-card .ovsz-icon {
-      flex: 0 0 auto;
-      width: 15px;
-      height: 15px;
-      color: var(--ct-color)
-    }
+			.oversized-card .ovsz-icon {
+				flex: 0 0 auto;
+				width: 15px;
+				height: 15px;
+				color: var(--ct-color);
+			}
 
-    .oversized-card .ovsz-path {
-      font-family: var(--mono);
-      font-weight: 600;
-      font-size: var(--text-md);
-      color: var(--ink-bright);
-      word-break: break-all
-    }
+			.oversized-card .ovsz-path {
+				font-family: var(--mono);
+				font-weight: 600;
+				font-size: var(--text-md);
+				color: var(--ink-bright);
+				word-break: break-all;
+			}
 
-    .oversized-card .ovsz-moved {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      font-family: var(--mono);
-      font-size: var(--text-2xs);
-      color: var(--amber)
-    }
+			.oversized-card .ovsz-moved {
+				display: inline-flex;
+				align-items: center;
+				gap: 3px;
+				font-family: var(--mono);
+				font-size: var(--text-2xs);
+				color: var(--amber);
+			}
 
-    .oversized-card .ovsz-moved .ic {
-      width: 11px;
-      height: 11px
-    }
+			.oversized-card .ovsz-moved .ic {
+				width: 11px;
+				height: 11px;
+			}
 
-    .oversized-card .ovsz-kind {
-      margin-left: auto;
-      flex: 0 0 auto;
-      font-size: var(--text-2xs);
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--ct-color)
-    }
+			.oversized-card .ovsz-kind {
+				margin-left: auto;
+				flex: 0 0 auto;
+				font-size: var(--text-2xs);
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--ct-color);
+			}
 
-    .oversized-card .ovsz-badges {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-      margin-top: 13px
-    }
+			.oversized-card .ovsz-badges {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 10px;
+				margin-top: 13px;
+			}
 
-    .oversized-card .ovsz-cat {
-      font-size: var(--text-2xs);
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--cyan)
-    }
+			.oversized-card .ovsz-cat {
+				font-size: var(--text-2xs);
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--cyan);
+			}
 
-    .oversized-card .ovsz-cat.crit {
-      color: var(--amber)
-    }
+			.oversized-card .ovsz-cat.crit {
+				color: var(--amber);
+			}
 
-    .oversized-card .ovsz-skim {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: var(--text-2xs);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--muted)
-    }
+			.oversized-card .ovsz-skim {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				font-size: var(--text-2xs);
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				color: var(--muted);
+			}
 
-    .oversized-card .ovsz-skim .ic {
-      width: 12px;
-      height: 12px
-    }
+			.oversized-card .ovsz-skim .ic {
+				width: 12px;
+				height: 12px;
+			}
 
-    .oversized-card .ovsz-stats {
-      display: flex;
-      align-items: baseline;
-      gap: 14px;
-      margin-top: 16px
-    }
+			.oversized-card .ovsz-stats {
+				display: flex;
+				align-items: baseline;
+				gap: 14px;
+				margin-top: 16px;
+			}
 
-    .oversized-card .ovsz-size {
-      font-family: var(--mono);
-      font-size: var(--text-xl);
-      font-weight: 600;
-      color: var(--ink-bright)
-    }
+			.oversized-card .ovsz-size {
+				font-family: var(--mono);
+				font-size: var(--text-xl);
+				font-weight: 600;
+				color: var(--ink-bright);
+			}
 
-    .oversized-card .ovsz-counts {
-      display: inline-flex;
-      gap: var(--churn-gap);
-      font-family: var(--mono);
-      font-size: var(--text-md)
-    }
+			.oversized-card .ovsz-counts {
+				display: inline-flex;
+				gap: var(--churn-gap);
+				font-family: var(--mono);
+				font-size: var(--text-md);
+			}
 
-    .oversized-card .ovsz-counts .a {
-      color: var(--green)
-    }
+			.oversized-card .ovsz-counts .a {
+				color: var(--green);
+			}
 
-    .oversized-card .ovsz-counts .d {
-      color: var(--red)
-    }
+			.oversized-card .ovsz-counts .d {
+				color: var(--red);
+			}
 
-    .oversized-card .ovsz-note {
-      margin: 10px 0 0;
-      font-size: var(--text-sm);
-      color: var(--muted);
-      line-height: 1.5
-    }
+			.oversized-card .ovsz-note {
+				margin: 10px 0 0;
+				font-size: var(--text-sm);
+				color: var(--muted);
+				line-height: 1.5;
+			}
 
-    /* Flag callout — the amber bordered box the guide header uses, restated here (its rules are
+			/* Flag callout — the amber bordered box the guide header uses, restated here (its rules are
        scoped under .ghdr, so they don't reach the card). "Decide this before approving." */
-    .oversized-card .ovsz-flag {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-top: 14px;
-      padding: 8px 11px;
-      border: 1px solid rgba(224, 175, 104, .35);
-      background: rgba(224, 175, 104, .06);
-      border-radius: var(--radius-sm);
-      font-size: var(--text-sm);
-      line-height: 1.5;
-      color: var(--amber-fg)
-    }
+			.oversized-card .ovsz-flag {
+				display: flex;
+				align-items: flex-start;
+				gap: 8px;
+				margin-top: 14px;
+				padding: 8px 11px;
+				border: 1px solid rgba(224, 175, 104, 0.35);
+				background: rgba(224, 175, 104, 0.06);
+				border-radius: var(--radius-sm);
+				font-size: var(--text-sm);
+				line-height: 1.5;
+				color: var(--amber-fg);
+			}
 
-    .oversized-card .ovsz-flag .ic {
-      flex: 0 0 auto;
-      width: 13px;
-      height: 13px;
-      margin-top: 2px;
-      color: var(--amber);
-      fill: currentColor
-    }
+			.oversized-card .ovsz-flag .ic {
+				flex: 0 0 auto;
+				width: 13px;
+				height: 13px;
+				margin-top: 2px;
+				color: var(--amber);
+				fill: currentColor;
+			}
 
-    .oversized-card .ovsz-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 18px;
-      padding-top: 16px;
-      border-top: 1px solid var(--line)
-    }
+			.oversized-card .ovsz-actions {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				margin-top: 18px;
+				padding-top: 16px;
+				border-top: 1px solid var(--line);
+			}
 
-    .oversized-card .ovsz-verdict {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px
-    }
+			.oversized-card .ovsz-verdict {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+			}
 
-    .oversized-card .ovsz-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border: 1px solid var(--line-strong);
-      background: var(--surface-raised);
-      color: var(--ink);
-      border-radius: var(--radius-sm);
-      font-family: var(--sans);
-      font-size: var(--text-sm);
-      cursor: pointer
-    }
+			.oversized-card .ovsz-btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 5px 12px;
+				border: 1px solid var(--line-strong);
+				background: var(--surface-raised);
+				color: var(--ink);
+				border-radius: var(--radius-sm);
+				font-family: var(--sans);
+				font-size: var(--text-sm);
+				cursor: pointer;
+			}
 
-    .oversized-card .ovsz-btn:hover {
-      background: var(--panel3);
-      color: var(--ink-bright)
-    }
+			.oversized-card .ovsz-btn:hover {
+				background: var(--panel3);
+				color: var(--ink-bright);
+			}
 
-    .oversized-card .ovsz-btn kbd {
-      pointer-events: none;
-      color: var(--ink-bright);
-      background: rgba(0, 0, 0, .22);
-      border-color: var(--line)
-    }
+			.oversized-card .ovsz-btn kbd {
+				pointer-events: none;
+				color: var(--ink-bright);
+				background: rgba(0, 0, 0, 0.22);
+				border-color: var(--line);
+			}
 
-    .oversized-card .ovsz-btn.primary {
-      border-color: transparent;
-      background: var(--green);
-      color: var(--on-accent);
-      font-weight: 600
-    }
+			.oversized-card .ovsz-btn.primary {
+				border-color: transparent;
+				background: var(--green);
+				color: var(--on-accent);
+				font-weight: 600;
+			}
 
-    .oversized-card .ovsz-btn.primary:hover {
-      background: var(--green);
-      filter: brightness(1.08)
-    }
+			.oversized-card .ovsz-btn.primary:hover {
+				background: var(--green);
+				filter: brightness(1.08);
+			}
 
-    .oversized-card .ovsz-btn.primary.warn {
-      background: transparent;
-      border-color: rgba(224, 175, 104, .5);
-      color: var(--amber);
-      font-weight: 600
-    }
+			.oversized-card .ovsz-btn.primary.warn {
+				background: transparent;
+				border-color: rgba(224, 175, 104, 0.5);
+				color: var(--amber);
+				font-weight: 600;
+			}
 
-    .oversized-card .ovsz-btn.primary.warn:hover {
-      background: rgba(224, 175, 104, .1)
-    }
+			.oversized-card .ovsz-btn.primary.warn:hover {
+				background: rgba(224, 175, 104, 0.1);
+			}
 
-    .oversized-card .ovsz-btn.primary.warn kbd {
-      color: var(--amber);
-      background: rgba(224, 175, 104, .12);
-      border-color: rgba(224, 175, 104, .3)
-    }
+			.oversized-card .ovsz-btn.primary.warn kbd {
+				color: var(--amber);
+				background: rgba(224, 175, 104, 0.12);
+				border-color: rgba(224, 175, 104, 0.3);
+			}
 
-    .oversized-card .ovsz-btn.danger {
-      border-color: rgba(255, 77, 109, .4);
-      background: transparent;
-      color: var(--red)
-    }
+			.oversized-card .ovsz-btn.danger {
+				border-color: rgba(255, 77, 109, 0.4);
+				background: transparent;
+				color: var(--red);
+			}
 
-    .oversized-card .ovsz-btn.danger:hover {
-      background: rgba(255, 77, 109, .1)
-    }
+			.oversized-card .ovsz-btn.danger:hover {
+				background: rgba(255, 77, 109, 0.1);
+			}
 
-    .oversized-card .ovsz-btn.ghost {
-      color: var(--muted)
-    }
+			.oversized-card .ovsz-btn.ghost {
+				color: var(--muted);
+			}
 
-    .oversized-card .ovsz-pill {
-      padding: 2px 9px;
-      border-radius: var(--radius-pill);
-      font-size: var(--text-2xs);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .06em
-    }
+			.oversized-card .ovsz-pill {
+				padding: 2px 9px;
+				border-radius: var(--radius-pill);
+				font-size: var(--text-2xs);
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+			}
 
-    .oversized-card .ovsz-pill.ok {
-      background: rgba(0, 208, 132, .12);
-      color: var(--green)
-    }
+			.oversized-card .ovsz-pill.ok {
+				background: rgba(0, 208, 132, 0.12);
+				color: var(--green);
+			}
 
-    .oversized-card .ovsz-pill.warn {
-      background: rgba(224, 175, 104, .12);
-      color: var(--amber)
-    }
+			.oversized-card .ovsz-pill.warn {
+				background: rgba(224, 175, 104, 0.12);
+				color: var(--amber);
+			}
 
-    .oversized-card .ovsz-load {
-      margin-left: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border: 1px solid var(--line-strong);
-      background: transparent;
-      color: var(--cyan);
-      border-radius: var(--radius-sm);
-      font-family: var(--sans);
-      font-size: var(--text-sm);
-      cursor: pointer
-    }
+			.oversized-card .ovsz-load {
+				margin-left: auto;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 5px 12px;
+				border: 1px solid var(--line-strong);
+				background: transparent;
+				color: var(--cyan);
+				border-radius: var(--radius-sm);
+				font-family: var(--sans);
+				font-size: var(--text-sm);
+				cursor: pointer;
+			}
 
-    .oversized-card .ovsz-load:hover {
-      background: var(--surface-raised)
-    }
+			.oversized-card .ovsz-load:hover {
+				background: var(--surface-raised);
+			}
 
-    .oversized-card .ovsz-load kbd {
-      pointer-events: none
-    }
+			.oversized-card .ovsz-load kbd {
+				pointer-events: none;
+			}
 
-    /* "← old path" arrow on a pure-rename row in the Skimmed tree/walkthrough group. */
-    .node .moved-from {
-      margin-left: 6px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: var(--text-2xs);
-      color: var(--ghost)
-    }
+			/* "← old path" arrow on a pure-rename row in the Skimmed tree/walkthrough group. */
+			.node .moved-from {
+				margin-left: 6px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: var(--text-2xs);
+				color: var(--ghost);
+			}
 
-    .annotation {
-      font-family: var(--sans);
-      position: relative;
-      width: 100%;
-      min-height: 30px;
-      max-width: none;
-      margin: 0;
-      border-radius: 0;
-      background: transparent;
-      color: var(--ink);
-      border: 0;
-      box-shadow: none;
-      padding: 0
-    }
+			.annotation {
+				font-family: var(--sans);
+				position: relative;
+				width: 100%;
+				min-height: 30px;
+				max-width: none;
+				margin: 0;
+				border-radius: 0;
+				background: transparent;
+				color: var(--ink);
+				border: 0;
+				box-shadow: none;
+				padding: 0;
+			}
 
-    .annotation.resolved {
-      opacity: .62
-    }
+			.annotation.resolved {
+				opacity: 0.62;
+			}
 
-    .annotation.resolved .comment-box {
-      padding: 7px 12px
-    }
+			.annotation.resolved .comment-box {
+				padding: 7px 12px;
+			}
 
-    .annotation .comment-box {
-      position: relative;
-      padding: 11px 16px 12px
-    }
+			.annotation .comment-box {
+				position: relative;
+				padding: 11px 16px 12px;
+			}
 
-    .annotation .thread-actions {
-      display: flex;
-      justify-content: flex-start;
-      gap: 6px;
-      align-items: center;
-      border-top: 1px solid rgba(34, 42, 45, .75);
-      padding-top: 8px;
-      margin-top: 12px
-    }
+			.annotation .thread-actions {
+				display: flex;
+				justify-content: flex-start;
+				gap: 6px;
+				align-items: center;
+				border-top: 1px solid rgba(34, 42, 45, 0.75);
+				padding-top: 8px;
+				margin-top: 12px;
+			}
 
-    .annotation .thread-intent {
-      border: 1px solid rgba(224, 175, 104, .35);
-      background: rgba(224, 175, 104, .06);
-      color: var(--amber);
-      border-radius: var(--radius-sm);
-      padding: 2px 6px;
-      font-size: var(--text-xs);
-      line-height: 15px
-    }
+			.annotation .thread-intent {
+				border: 1px solid rgba(224, 175, 104, 0.35);
+				background: rgba(224, 175, 104, 0.06);
+				color: var(--amber);
+				border-radius: var(--radius-sm);
+				padding: 2px 6px;
+				font-size: var(--text-xs);
+				line-height: 15px;
+			}
 
-    .annotation .thread-actions button {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--muted);
-      border-radius: var(--radius-sm);
-      padding: 2px 6px;
-      font-size: var(--text-xs);
-      line-height: 15px
-    }
+			.annotation .thread-actions button {
+				border: 1px solid var(--line);
+				background: var(--panel);
+				color: var(--muted);
+				border-radius: var(--radius-sm);
+				padding: 2px 6px;
+				font-size: var(--text-xs);
+				line-height: 15px;
+			}
 
-    .annotation .thread-actions button:hover {
-      border-color: var(--line-strong);
-      color: var(--ink);
-      background: var(--surface-raised)
-    }
+			.annotation .thread-actions button:hover {
+				border-color: var(--line-strong);
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
 
-    .annotation .thread-actions .resolve-thread {
-      color: var(--green);
-      border-color: rgba(115, 218, 145, .28);
-      background: rgba(115, 218, 145, .06)
-    }
+			.annotation .thread-actions .resolve-thread {
+				color: var(--green);
+				border-color: rgba(115, 218, 145, 0.28);
+				background: rgba(115, 218, 145, 0.06);
+			}
 
-    .annotation .thread-actions .resolve-thread:hover {
-      border-color: rgba(115, 218, 145, .55);
-      background: rgba(115, 218, 145, .11);
-      color: var(--green-fg)
-    }
+			.annotation .thread-actions .resolve-thread:hover {
+				border-color: rgba(115, 218, 145, 0.55);
+				background: rgba(115, 218, 145, 0.11);
+				color: var(--green-fg);
+			}
 
-    .annotation .thread-actions .reopen-thread {
-      color: var(--amber);
-      border-color: rgba(224, 175, 104, .35);
-      background: rgba(224, 175, 104, .06)
-    }
+			.annotation .thread-actions .reopen-thread {
+				color: var(--amber);
+				border-color: rgba(224, 175, 104, 0.35);
+				background: rgba(224, 175, 104, 0.06);
+			}
 
-    .annotation .thread-actions .reopen-thread:hover {
-      border-color: rgba(224, 175, 104, .6);
-      background: rgba(224, 175, 104, .12);
-      color: var(--amber-fg)
-    }
+			.annotation .thread-actions .reopen-thread:hover {
+				border-color: rgba(224, 175, 104, 0.6);
+				background: rgba(224, 175, 104, 0.12);
+				color: var(--amber-fg);
+			}
 
-    /* Each message reads as a small card so a back-and-forth Q&A thread is scannable: neutral
+			/* Each message reads as a small card so a back-and-forth Q&A thread is scannable: neutral
        for the reviewer, a cyan left bar for the agent's replies. Square left edge with a thick
        straight rule (no radius) so the accent reads as a solid bar down the message's left side.
        Roomier padding + a ~76ch measure so the body reads as prose, not a form field. */
-    .annotation .msg {
-      max-width: 76ch;
-      margin: 0 0 10px 0;
-      padding: 11px 14px 12px;
-      border-radius: 0 var(--radius) var(--radius) 0;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-left: 3px solid var(--line-strong)
-    }
+			.annotation .msg {
+				max-width: 76ch;
+				margin: 0 0 10px 0;
+				padding: 11px 14px 12px;
+				border-radius: 0 var(--radius) var(--radius) 0;
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-left: 3px solid var(--line-strong);
+			}
 
-    .annotation .msg.agent {
-      background: rgba(0, 168, 255, .06);
-      border-color: rgba(0, 168, 255, .16);
-      border-left-color: var(--cyan)
-    }
+			.annotation .msg.agent {
+				background: rgba(0, 168, 255, 0.06);
+				border-color: rgba(0, 168, 255, 0.16);
+				border-left-color: var(--cyan);
+			}
 
-    .annotation .msg:last-child {
-      margin-bottom: 0
-    }
+			.annotation .msg:last-child {
+				margin-bottom: 0;
+			}
 
-    .annotation .thread-summary {
-      color: var(--muted);
-      font-size: var(--text-sm);
-      line-height: 20px
-    }
+			.annotation .thread-summary {
+				color: var(--muted);
+				font-size: var(--text-sm);
+				line-height: 20px;
+			}
 
-    .annotation .thread-summary b {
-      color: var(--ink);
-      font-weight: 700
-    }
+			.annotation .thread-summary b {
+				color: var(--ink);
+				font-weight: 700;
+			}
 
-    .annotation.resolved .thread-actions {
-      display: none
-    }
+			.annotation.resolved .thread-actions {
+				display: none;
+			}
 
-    .annotation.resolved .reopen-inline {
-      border: 1px solid rgba(224, 175, 104, .35);
-      background: rgba(224, 175, 104, .06);
-      color: var(--amber);
-      border-radius: var(--radius-sm);
-      padding: 2px 6px;
-      margin-left: 6px;
-      font-size: var(--text-xs);
-      line-height: 15px
-    }
+			.annotation.resolved .reopen-inline {
+				border: 1px solid rgba(224, 175, 104, 0.35);
+				background: rgba(224, 175, 104, 0.06);
+				color: var(--amber);
+				border-radius: var(--radius-sm);
+				padding: 2px 6px;
+				margin-left: 6px;
+				font-size: var(--text-xs);
+				line-height: 15px;
+			}
 
-    .annotation.resolved .reopen-inline:hover {
-      border-color: rgba(224, 175, 104, .6);
-      background: rgba(224, 175, 104, .12);
-      color: var(--amber-fg)
-    }
+			.annotation.resolved .reopen-inline:hover {
+				border-color: rgba(224, 175, 104, 0.6);
+				background: rgba(224, 175, 104, 0.12);
+				color: var(--amber-fg);
+			}
 
-    .annotation .meta {
-      display: flex;
-      gap: 8px;
-      align-items: baseline;
-      margin-bottom: 5px;
-      color: var(--muted);
-      font-size: var(--text-xs)
-    }
+			.annotation .meta {
+				display: flex;
+				gap: 8px;
+				align-items: baseline;
+				margin-bottom: 5px;
+				color: var(--muted);
+				font-size: var(--text-xs);
+			}
 
-    .annotation .msg-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 4px;
-      opacity: 0;
-      transition: opacity .12s
-    }
+			.annotation .msg-actions {
+				margin-left: auto;
+				display: flex;
+				gap: 4px;
+				opacity: 0;
+				transition: opacity 0.12s;
+			}
 
-    .annotation .msg:hover .msg-actions {
-      opacity: 1
-    }
+			.annotation .msg:hover .msg-actions {
+				opacity: 1;
+			}
 
-    .annotation .msg-actions button {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--muted);
-      border-radius: var(--radius-sm);
-      padding: 1px 7px;
-      font-size: var(--text-2xs);
-      line-height: 15px
-    }
+			.annotation .msg-actions button {
+				border: 1px solid var(--line);
+				background: var(--panel);
+				color: var(--muted);
+				border-radius: var(--radius-sm);
+				padding: 1px 7px;
+				font-size: var(--text-2xs);
+				line-height: 15px;
+			}
 
-    .annotation .msg-actions button:hover {
-      border-color: var(--line-strong);
-      color: var(--ink);
-      background: var(--surface-raised)
-    }
+			.annotation .msg-actions button:hover {
+				border-color: var(--line-strong);
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
 
-    .annotation .msg-actions .delete-comment:hover {
-      color: var(--red-fg);
-      border-color: rgba(255, 77, 109, .5);
-      background: rgba(255, 77, 109, .1)
-    }
+			.annotation .msg-actions .delete-comment:hover {
+				color: var(--red-fg);
+				border-color: rgba(255, 77, 109, 0.5);
+				background: rgba(255, 77, 109, 0.1);
+			}
 
-    /* Uppercase outline pills — Question cyan, Change requested amber (per the design). */
-    .annotation .intent-badge {
-      font-size: var(--text-2xs);
-      font-weight: 600;
-      letter-spacing: .05em;
-      text-transform: uppercase;
-      padding: 1px 7px;
-      border-radius: var(--radius-pill);
-      line-height: 15px
-    }
+			/* Uppercase outline pills — Question cyan, Change requested amber (per the design). */
+			.annotation .intent-badge {
+				font-size: var(--text-2xs);
+				font-weight: 600;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				padding: 1px 7px;
+				border-radius: var(--radius-pill);
+				line-height: 15px;
+			}
 
-    .annotation .intent-badge.q {
-      color: var(--cyan-fg);
-      border: 1px solid var(--cyan-line-strong);
-      background: var(--cyan-bg)
-    }
+			.annotation .intent-badge.q {
+				color: var(--cyan-fg);
+				border: 1px solid var(--cyan-line-strong);
+				background: var(--cyan-bg);
+			}
 
-    .annotation .intent-badge.a {
-      color: var(--amber);
-      border: 1px solid rgba(224, 175, 104, .4);
-      background: rgba(224, 175, 104, .07)
-    }
+			.annotation .intent-badge.a {
+				color: var(--amber);
+				border: 1px solid rgba(224, 175, 104, 0.4);
+				background: rgba(224, 175, 104, 0.07);
+			}
 
-    .annotation .awaiting-answer {
-      margin-top: 6px;
-      color: var(--cyan);
-      font-size: var(--text-xs);
-      opacity: .85
-    }
+			.annotation .awaiting-answer {
+				margin-top: 6px;
+				color: var(--cyan);
+				font-size: var(--text-xs);
+				opacity: 0.85;
+			}
 
-    .annotation .awaiting-answer::before {
-      content: "◷ "
-    }
+			.annotation .awaiting-answer::before {
+				content: '◷ ';
+			}
 
-    /* The activity line is the informative part — full ink, brighter than the label. */
-    .annotation .awaiting-answer .agent-activity {
-      color: var(--ink)
-    }
+			/* The activity line is the informative part — full ink, brighter than the label. */
+			.annotation .awaiting-answer .agent-activity {
+				color: var(--ink);
+			}
 
-    .annotation .awaiting-answer.queued {
-      color: var(--amber)
-    }
+			.annotation .awaiting-answer.queued {
+				color: var(--amber);
+			}
 
-    .actions .agent-status {
-      font-size: var(--text-xs);
-      color: var(--cyan);
-      max-width: 260px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis
-    }
+			.actions .agent-status {
+				font-size: var(--text-xs);
+				color: var(--cyan);
+				max-width: 260px;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
 
-    .actions .agent-status.queued {
-      color: var(--amber)
-    }
+			.actions .agent-status.queued {
+				color: var(--amber);
+			}
 
-    .annotation .author {
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--ink-bright)
-    }
+			.annotation .author {
+				font-size: var(--text-sm);
+				font-weight: 600;
+				color: var(--ink-bright);
+			}
 
-    .annotation .author.agent {
-      color: var(--cyan-fg)
-    }
+			.annotation .author.agent {
+				color: var(--cyan-fg);
+			}
 
-    .annotation time {
-      font-family: var(--mono);
-      font-size: var(--text-2xs);
-      color: var(--ghost)
-    }
+			.annotation time {
+				font-family: var(--mono);
+				font-size: var(--text-2xs);
+				color: var(--ghost);
+			}
 
-    .annotation p {
-      margin: 7px 0 0;
-      color: var(--ink);
-      line-height: 1.5
-    }
+			.annotation p {
+				margin: 7px 0 0;
+				color: var(--ink);
+				line-height: 1.5;
+			}
 
-    .annotation .msg.agent p {
-      color: var(--ink)
-    }
+			.annotation .msg.agent p {
+				color: var(--ink);
+			}
 
-    .md {
-      color: var(--ink);
-      line-height: 1.55;
-      font-size: var(--text-sm);
-      margin-top: 6px;
-      overflow-wrap: break-word
-    }
+			.md {
+				color: var(--ink);
+				line-height: 1.55;
+				font-size: var(--text-sm);
+				margin-top: 6px;
+				overflow-wrap: break-word;
+			}
 
-    .annotation .msg.agent .md {
-      color: var(--ink)
-    }
+			.annotation .msg.agent .md {
+				color: var(--ink);
+			}
 
-    /* The message body reads as prose at the reading scale. Scoped to the thread — the base
+			/* The message body reads as prose at the reading scale. Scoped to the thread — the base
        .md (rendered markdown files) keeps its own smaller size. Both flow through the type
        tokens, so the Settings font/size knobs still apply. */
-    .annotation .md {
-      font-size: var(--text-md);
-      line-height: 1.6
-    }
+			.annotation .md {
+				font-size: var(--text-md);
+				line-height: 1.6;
+			}
 
-    .annotation .md code {
-      font-size: var(--text-sm);
-      background: var(--panel3);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-xs);
-      padding: .5px 4px
-    }
+			.annotation .md code {
+				font-size: var(--text-sm);
+				background: var(--panel3);
+				border: 1px solid var(--line);
+				border-radius: var(--radius-xs);
+				padding: 0.5px 4px;
+			}
 
-    /* Inline composer (new comment / reply): the same card family as a message, so replying
+			/* Inline composer (new comment / reply): the same card family as a message, so replying
        feels like adding the next message rather than summoning a dialog. */
-    .annotation .composer-card {
-      max-width: 76ch;
-      margin: 0 0 10px;
-      padding: 10px 14px 11px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-left: 3px solid var(--line-strong);
-      border-radius: 0 var(--radius) var(--radius) 0
-    }
+			.annotation .composer-card {
+				max-width: 76ch;
+				margin: 0 0 10px;
+				padding: 10px 14px 11px;
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-left: 3px solid var(--line-strong);
+				border-radius: 0 var(--radius) var(--radius) 0;
+			}
 
-    .annotation .composer-card:focus-within {
-      border-color: var(--line-strong);
-      border-left-color: var(--cyan-line-strong)
-    }
+			.annotation .composer-card:focus-within {
+				border-color: var(--line-strong);
+				border-left-color: var(--cyan-line-strong);
+			}
 
-    .annotation .composer-input {
-      width: 100%;
-      min-height: 54px;
-      border: 0;
-      background: transparent;
-      color: var(--ink);
-      font-family: var(--sans);
-      font-size: var(--text-md);
-      line-height: 1.6;
-      padding: 0;
-      resize: vertical
-    }
+			.annotation .composer-input {
+				width: 100%;
+				min-height: 54px;
+				border: 0;
+				background: transparent;
+				color: var(--ink);
+				font-family: var(--sans);
+				font-size: var(--text-md);
+				line-height: 1.6;
+				padding: 0;
+				resize: vertical;
+			}
 
-    .annotation .composer-input:focus {
-      outline: none
-    }
+			.annotation .composer-input:focus {
+				outline: none;
+			}
 
-    .annotation .composer-input::placeholder {
-      color: var(--ghost)
-    }
+			.annotation .composer-input::placeholder {
+				color: var(--ghost);
+			}
 
-    .annotation .crow {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid var(--line)
-    }
+			.annotation .crow {
+				display: flex;
+				gap: 6px;
+				align-items: center;
+				margin-top: 8px;
+				padding-top: 8px;
+				border-top: 1px solid var(--line);
+			}
 
-    .annotation .crow .spacer {
-      flex: 1
-    }
+			.annotation .crow .spacer {
+				flex: 1;
+			}
 
-    .annotation .cbtn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--muted);
-      border-radius: var(--radius-sm);
-      padding: 3px 10px;
-      font-size: var(--text-xs);
-      line-height: 16px
-    }
+			.annotation .cbtn {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				border: 1px solid var(--line);
+				background: var(--panel);
+				color: var(--muted);
+				border-radius: var(--radius-sm);
+				padding: 3px 10px;
+				font-size: var(--text-xs);
+				line-height: 16px;
+			}
 
-    .annotation .cbtn:hover {
-      border-color: var(--line-strong);
-      color: var(--ink);
-      background: var(--surface-raised)
-    }
+			.annotation .cbtn:hover {
+				border-color: var(--line-strong);
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
 
-    /* Composer intents follow the badge mapping: Ask = cyan (question), Request change = amber. */
-    .annotation .cbtn.ask {
-      color: var(--cyan-fg);
-      border-color: var(--cyan-line-strong);
-      background: var(--cyan-bg)
-    }
+			/* Composer intents follow the badge mapping: Ask = cyan (question), Request change = amber. */
+			.annotation .cbtn.ask {
+				color: var(--cyan-fg);
+				border-color: var(--cyan-line-strong);
+				background: var(--cyan-bg);
+			}
 
-    .annotation .cbtn.ask:hover {
-      color: var(--cyan-fg);
-      background: var(--cyan-bg-strong)
-    }
+			.annotation .cbtn.ask:hover {
+				color: var(--cyan-fg);
+				background: var(--cyan-bg-strong);
+			}
 
-    .annotation .cbtn.req {
-      color: var(--amber);
-      border-color: rgba(224, 175, 104, .35);
-      background: rgba(224, 175, 104, .06)
-    }
+			.annotation .cbtn.req {
+				color: var(--amber);
+				border-color: rgba(224, 175, 104, 0.35);
+				background: rgba(224, 175, 104, 0.06);
+			}
 
-    .annotation .cbtn.req:hover {
-      border-color: rgba(224, 175, 104, .6);
-      color: var(--amber-fg)
-    }
+			.annotation .cbtn.req:hover {
+				border-color: rgba(224, 175, 104, 0.6);
+				color: var(--amber-fg);
+			}
 
-    .annotation .cbtn kbd {
-      pointer-events: none
-    }
+			.annotation .cbtn kbd {
+				pointer-events: none;
+			}
 
-    /* Inline edit: the message body swaps for a textarea inside the same card (amber accent). */
-    .annotation .msg.editing {
-      border-left-color: var(--amber)
-    }
+			/* Inline edit: the message body swaps for a textarea inside the same card (amber accent). */
+			.annotation .msg.editing {
+				border-left-color: var(--amber);
+			}
 
-    .annotation .msg.editing .msg-actions {
-      display: none
-    }
+			.annotation .msg.editing .msg-actions {
+				display: none;
+			}
 
-    .annotation .composer-edit {
-      width: 100%;
-      min-height: 44px;
-      margin-top: 2px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      color: var(--ink);
-      font-family: var(--sans);
-      font-size: var(--text-md);
-      line-height: 1.6;
-      padding: 7px 9px;
-      resize: vertical
-    }
+			.annotation .composer-edit {
+				width: 100%;
+				min-height: 44px;
+				margin-top: 2px;
+				border: 1px solid var(--line);
+				border-radius: var(--radius-sm);
+				background: var(--surface);
+				color: var(--ink);
+				font-family: var(--sans);
+				font-size: var(--text-md);
+				line-height: 1.6;
+				padding: 7px 9px;
+				resize: vertical;
+			}
 
-    .annotation .composer-edit:focus {
-      outline: none;
-      border-color: var(--line-strong)
-    }
+			.annotation .composer-edit:focus {
+				outline: none;
+				border-color: var(--line-strong);
+			}
 
-    .annotation .editrow {
-      border-top: 0;
-      padding-top: 6px
-    }
+			.annotation .editrow {
+				border-top: 0;
+				padding-top: 6px;
+			}
 
-    .md>:first-child {
-      margin-top: 0
-    }
+			.md > :first-child {
+				margin-top: 0;
+			}
 
-    .md>:last-child {
-      margin-bottom: 0
-    }
+			.md > :last-child {
+				margin-bottom: 0;
+			}
 
-    .md p {
-      margin: 6px 0
-    }
+			.md p {
+				margin: 6px 0;
+			}
 
-    .md h1,
-    .md h2,
-    .md h3,
-    .md h4 {
-      margin: 10px 0 6px;
-      color: var(--ink);
-      line-height: 1.3
-    }
+			.md h1,
+			.md h2,
+			.md h3,
+			.md h4 {
+				margin: 10px 0 6px;
+				color: var(--ink);
+				line-height: 1.3;
+			}
 
-    .md h1 {
-      font-size: var(--text-lg)
-    }
+			.md h1 {
+				font-size: var(--text-lg);
+			}
 
-    .md h2 {
-      font-size: var(--text-lg)
-    }
+			.md h2 {
+				font-size: var(--text-lg);
+			}
 
-    .md h3 {
-      font-size: var(--text-md)
-    }
+			.md h3 {
+				font-size: var(--text-md);
+			}
 
-    .md h4 {
-      font-size: var(--text-sm)
-    }
+			.md h4 {
+				font-size: var(--text-sm);
+			}
 
-    .md ul,
-    .md ol {
-      margin: 6px 0;
-      padding-left: 0;
-      list-style-position: inside
-    }
+			.md ul,
+			.md ol {
+				margin: 6px 0;
+				padding-left: 0;
+				list-style-position: inside;
+			}
 
-    .md li {
-      margin: 2px 0
-    }
+			.md li {
+				margin: 2px 0;
+			}
 
-    .md li>ul,
-    .md li>ol {
-      margin: 2px 0 2px 1.2em
-    }
+			.md li > ul,
+			.md li > ol {
+				margin: 2px 0 2px 1.2em;
+			}
 
-    .md a {
-      color: var(--cyan);
-      text-decoration: underline
-    }
+			.md a {
+				color: var(--cyan);
+				text-decoration: underline;
+			}
 
-    .md code {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      padding: 1px 4px;
-      font-size: var(--text-xs)
-    }
+			.md code {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: var(--radius-sm);
+				padding: 1px 4px;
+				font-size: var(--text-xs);
+			}
 
-    .md pre {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 8px 10px;
-      overflow: auto;
-      margin: 8px 0
-    }
+			.md pre {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: var(--radius);
+				padding: 8px 10px;
+				overflow: auto;
+				margin: 8px 0;
+			}
 
-    .md pre.shiki {
-      background: var(--surface)
-    }
+			.md pre.shiki {
+				background: var(--surface);
+			}
 
-    .md pre code {
-      background: transparent;
-      border: 0;
-      padding: 0;
-      font-size: var(--text-xs);
-      line-height: 1.5
-    }
+			.md pre code {
+				background: transparent;
+				border: 0;
+				padding: 0;
+				font-size: var(--text-xs);
+				line-height: 1.5;
+			}
 
-    .md blockquote {
-      margin: 6px 0;
-      padding-left: 10px;
-      border-left: 2px solid var(--line);
-      color: var(--muted)
-    }
+			.md blockquote {
+				margin: 6px 0;
+				padding-left: 10px;
+				border-left: 2px solid var(--line);
+				color: var(--muted);
+			}
 
-    .md img {
-      max-width: 100%
-    }
+			.md img {
+				max-width: 100%;
+			}
 
-    .md table {
-      border-collapse: collapse;
-      margin: 6px 0
-    }
+			.md table {
+				border-collapse: collapse;
+				margin: 6px 0;
+			}
 
-    .md th,
-    .md td {
-      border: 1px solid var(--line);
-      padding: 3px 7px
-    }
+			.md th,
+			.md td {
+				border: 1px solid var(--line);
+				padding: 3px 7px;
+			}
 
-    .toggles {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: center
-    }
+			.toggles {
+				display: flex;
+				gap: 8px;
+				align-items: center;
+				justify-content: center;
+			}
 
-    /* Rendered markdown reads as a document, not a full-bleed diff pane: a centered, capped
+			/* Rendered markdown reads as a document, not a full-bleed diff pane: a centered, capped
        reading column (~68ch) with symmetric gutters instead of the old left-aligned 880px. */
-    .md-file {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 28px 32px 64px
-    }
+			.md-file {
+				max-width: 760px;
+				margin: 0 auto;
+				padding: 28px 32px 64px;
+			}
 
-    .md-file.md {
-      color: var(--ink);
-      font-size: var(--text-md);
-      line-height: 1.7
-    }
+			.md-file.md {
+				color: var(--ink);
+				font-size: var(--text-md);
+				line-height: 1.7;
+			}
 
-    .md-file.md h1,
-    .md-file.md h2,
-    .md-file.md h3 {
-      line-height: 1.3;
-      margin-top: 1.4em
-    }
+			.md-file.md h1,
+			.md-file.md h2,
+			.md-file.md h3 {
+				line-height: 1.3;
+				margin-top: 1.4em;
+			}
 
-    .md-file.md h1:first-child,
-    .md-file.md h2:first-child {
-      margin-top: 0
-    }
+			.md-file.md h1:first-child,
+			.md-file.md h2:first-child {
+				margin-top: 0;
+			}
 
-    .md-file.md p,
-    .md-file.md ul,
-    .md-file.md ol,
-    .md-file.md blockquote {
-      margin: 0 0 1em
-    }
+			.md-file.md p,
+			.md-file.md ul,
+			.md-file.md ol,
+			.md-file.md blockquote {
+				margin: 0 0 1em;
+			}
 
-    .md-anchor {
-      cursor: pointer;
-      border-radius: var(--radius-sm);
-      transition: background .1s;
-      box-decoration-break: clone
-    }
+			.md-anchor {
+				cursor: pointer;
+				border-radius: var(--radius-sm);
+				transition: background 0.1s;
+				box-decoration-break: clone;
+			}
 
-    .md-anchor:hover {
-      background: rgba(0, 168, 255, .09);
-      box-shadow: 0 0 0 4px rgba(0, 168, 255, .09)
-    }
+			.md-anchor:hover {
+				background: rgba(0, 168, 255, 0.09);
+				box-shadow: 0 0 0 4px rgba(0, 168, 255, 0.09);
+			}
 
-    .md-thread {
-      margin: 6px 0 14px;
-      border-left: 2px solid var(--cyan-line-strong);
-      border-radius: 0 var(--radius) var(--radius) 0;
-      background: var(--surface);
-      cursor: default
-    }
+			.md-thread {
+				margin: 6px 0 14px;
+				border-left: 2px solid var(--cyan-line-strong);
+				border-radius: 0 var(--radius) var(--radius) 0;
+				background: var(--surface);
+				cursor: default;
+			}
 
-    .md-file li>.md-thread {
-      margin-left: -6px
-    }
+			.md-file li > .md-thread {
+				margin-left: -6px;
+			}
 
-    .md input[type=checkbox] {
-      width: auto;
-      margin: 0 6px 0 0;
-      vertical-align: -1px
-    }
+			.md input[type='checkbox'] {
+				width: auto;
+				margin: 0 6px 0 0;
+				vertical-align: -1px;
+			}
 
-    .md li.task-list-item,
-    .md li:has(>input[type=checkbox]) {
-      list-style: none
-    }
+			.md li.task-list-item,
+			.md li:has(> input[type='checkbox']) {
+				list-style: none;
+			}
 
-    .change-actions {
-      position: absolute;
-      top: 4px;
-      right: 8px;
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      margin: 0;
-      padding: 0;
-      background: transparent;
-      border: 0;
-      width: max-content;
-      z-index: 4
-    }
+			.change-actions {
+				position: absolute;
+				top: 4px;
+				right: 8px;
+				display: flex;
+				gap: 4px;
+				align-items: center;
+				margin: 0;
+				padding: 0;
+				background: transparent;
+				border: 0;
+				width: max-content;
+				z-index: 4;
+			}
 
-    .change-actions button {
-      border: 0;
-      border-radius: var(--radius-sm);
-      padding: 3px 8px;
-      font-size: var(--text-sm);
-      line-height: 16px;
-      transition: background .12s ease, color .12s ease
-    }
+			.change-actions button {
+				border: 0;
+				border-radius: var(--radius-sm);
+				padding: 3px 8px;
+				font-size: var(--text-sm);
+				line-height: 16px;
+				transition:
+					background 0.12s ease,
+					color 0.12s ease;
+			}
 
-    .change-actions .reject {
-      background: var(--reject);
-      color: var(--ink)
-    }
+			.change-actions .reject {
+				background: var(--reject);
+				color: var(--ink);
+			}
 
-    .change-actions .reject:hover {
-      background: var(--reject-hover);
-      color: var(--ink-bright)
-    }
+			.change-actions .reject:hover {
+				background: var(--reject-hover);
+				color: var(--ink-bright);
+			}
 
-    .change-actions .accept {
-      background: var(--accept);
-      color: var(--on-accent)
-    }
+			.change-actions .accept {
+				background: var(--accept);
+				color: var(--on-accent);
+			}
 
-    .change-actions .accept:hover {
-      background: var(--accept-hover);
-      color: var(--on-accent)
-    }
+			.change-actions .accept:hover {
+				background: var(--accept-hover);
+				color: var(--on-accent);
+			}
 
-    .diff-header-action {
-      border: 0;
-      border-radius: var(--radius-sm);
-      padding: 3px 8px;
-      font-size: var(--text-sm);
-      line-height: 16px;
-      background: var(--accept);
-      color: var(--on-accent);
-      margin-left: 4px
-    }
+			.diff-header-action {
+				border: 0;
+				border-radius: var(--radius-sm);
+				padding: 3px 8px;
+				font-size: var(--text-sm);
+				line-height: 16px;
+				background: var(--accept);
+				color: var(--on-accent);
+				margin-left: 4px;
+			}
 
-    .diff-header-action:hover {
-      background: var(--accept-hover);
-      color: var(--on-accent)
-    }
+			.diff-header-action:hover {
+				background: var(--accept-hover);
+				color: var(--on-accent);
+			}
 
-    .diff-header-action.secondary {
-      background: var(--panel3);
-      color: var(--ink-bright)
-    }
+			.diff-header-action.secondary {
+				background: var(--panel3);
+				color: var(--ink-bright);
+			}
 
-    .diff-header-action.secondary:hover {
-      background: var(--line-strong);
-      color: var(--ink-bright)
-    }
+			.diff-header-action.secondary:hover {
+				background: var(--line-strong);
+				color: var(--ink-bright);
+			}
 
-    .diff-header-action.undo {
-      background: transparent;
-      color: var(--amber);
-      border: 1px solid rgba(224, 175, 104, .45)
-    }
+			.diff-header-action.undo {
+				background: transparent;
+				color: var(--amber);
+				border: 1px solid rgba(224, 175, 104, 0.45);
+			}
 
-    .diff-header-action.undo:hover {
-      background: rgba(224, 175, 104, .12);
-      border-color: rgba(224, 175, 104, .75);
-      color: var(--amber-fg)
-    }
+			.diff-header-action.undo:hover {
+				background: rgba(224, 175, 104, 0.12);
+				border-color: rgba(224, 175, 104, 0.75);
+				color: var(--amber-fg);
+			}
 
-    .diff-header-action.done {
-      opacity: .72
-    }
+			.diff-header-action.done {
+				opacity: 0.72;
+			}
 
-    /* "Mark reviewed" (file has objections): amber-tinted, distinct from the green Approve. */
-    .diff-header-action.warn {
-      background: rgba(224, 175, 104, .14);
-      color: var(--amber-fg)
-    }
+			/* "Mark reviewed" (file has objections): amber-tinted, distinct from the green Approve. */
+			.diff-header-action.warn {
+				background: rgba(224, 175, 104, 0.14);
+				color: var(--amber-fg);
+			}
 
-    .diff-header-action.warn:hover {
-      background: rgba(224, 175, 104, .22)
-    }
+			.diff-header-action.warn:hover {
+				background: rgba(224, 175, 104, 0.22);
+			}
 
-    /* The "N blockers" chip + jump list: what keeps a file from Approved, one click away. */
-    /* Quiet link-style trigger: it belongs to the Mark Reviewed action it precedes but is
+			/* The "N blockers" chip + jump list: what keeps a file from Approved, one click away. */
+			/* Quiet link-style trigger: it belongs to the Mark Reviewed action it precedes but is
        secondary — text only, no fill. The asymmetric margins pull it toward the button
        (and away from the +/− counts) so the grouping reads at a glance. */
-    .blockers {
-      position: relative;
-      display: inline-flex;
-      margin-left: 8px;
-      margin-right: -8px
-    }
+			.blockers {
+				position: relative;
+				display: inline-flex;
+				margin-left: 8px;
+				margin-right: -8px;
+			}
 
-    .blockers-chip {
-      border: 0;
-      background: transparent;
-      padding: 3px 4px;
-      font-size: var(--text-sm);
-      line-height: 16px;
-      color: var(--amber)
-    }
+			.blockers-chip {
+				border: 0;
+				background: transparent;
+				padding: 3px 4px;
+				font-size: var(--text-sm);
+				line-height: 16px;
+				color: var(--amber);
+			}
 
-    .blockers-chip:hover,
-    .blockers.open .blockers-chip {
-      color: var(--amber-fg)
-    }
+			.blockers-chip:hover,
+			.blockers.open .blockers-chip {
+				color: var(--amber-fg);
+			}
 
-    .blockers-pop {
-      display: none;
-      position: absolute;
-      top: calc(100% + 6px);
-      right: 0;
-      z-index: 40;
-      min-width: 280px;
-      max-width: 420px;
-      background: var(--panel);
-      border: 1px solid var(--line-strong);
-      border-radius: var(--radius-sm);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
-      padding: 4px
-    }
+			.blockers-pop {
+				display: none;
+				position: absolute;
+				top: calc(100% + 6px);
+				right: 0;
+				z-index: 40;
+				min-width: 280px;
+				max-width: 420px;
+				background: var(--panel);
+				border: 1px solid var(--line-strong);
+				border-radius: var(--radius-sm);
+				box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+				padding: 4px;
+			}
 
-    .blockers.open .blockers-pop {
-      display: block
-    }
+			.blockers.open .blockers-pop {
+				display: block;
+			}
 
-    .blockers-item {
-      display: flex;
-      align-items: baseline;
-      gap: 7px;
-      width: 100%;
-      text-align: left;
-      border: 0;
-      border-radius: var(--radius-sm);
-      background: transparent;
-      color: var(--ink);
-      padding: 6px 8px;
-      font-size: var(--text-sm);
-      line-height: 1.35
-    }
+			.blockers-item {
+				display: flex;
+				align-items: baseline;
+				gap: 7px;
+				width: 100%;
+				text-align: left;
+				border: 0;
+				border-radius: var(--radius-sm);
+				background: transparent;
+				color: var(--ink);
+				padding: 6px 8px;
+				font-size: var(--text-sm);
+				line-height: 1.35;
+			}
 
-    .blockers-item:hover {
-      background: var(--surface-raised)
-    }
+			.blockers-item:hover {
+				background: var(--surface-raised);
+			}
 
-    .blockers-item .bk-kind {
-      flex: none;
-      font-size: var(--text-xs);
-      border-radius: var(--radius-sm);
-      padding: 1px 5px
-    }
+			.blockers-item .bk-kind {
+				flex: none;
+				font-size: var(--text-xs);
+				border-radius: var(--radius-sm);
+				padding: 1px 5px;
+			}
 
-    .blockers-item .bk-kind.reject {
-      color: var(--red);
-      background: rgba(226, 110, 110, .1)
-    }
+			.blockers-item .bk-kind.reject {
+				color: var(--red);
+				background: rgba(226, 110, 110, 0.1);
+			}
 
-    .blockers-item .bk-kind.change {
-      color: var(--amber);
-      background: rgba(224, 175, 104, .1)
-    }
+			.blockers-item .bk-kind.change {
+				color: var(--amber);
+				background: rgba(224, 175, 104, 0.1);
+			}
 
-    .blockers-item .bk-where {
-      flex: none;
-      color: var(--muted);
-      font-size: var(--text-xs)
-    }
+			.blockers-item .bk-where {
+				flex: none;
+				color: var(--muted);
+				font-size: var(--text-xs);
+			}
 
-    .blockers-item .bk-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--muted)
-    }
+			.blockers-item .bk-text {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				color: var(--muted);
+			}
 
-    /* Flash a strip thread when jumped to from the blockers list. */
-    @keyframes blocker-flash {
-      0% {
-        background: rgba(224, 175, 104, .25)
-      }
+			/* Flash a strip thread when jumped to from the blockers list. */
+			@keyframes blocker-flash {
+				0% {
+					background: rgba(224, 175, 104, 0.25);
+				}
 
-      100% {
-        background: transparent
-      }
-    }
+				100% {
+					background: transparent;
+				}
+			}
 
-    .unanchored-strip .annotation.flash {
-      animation: blocker-flash 1.2s ease-out
-    }
+			.unanchored-strip .annotation.flash {
+				animation: blocker-flash 1.2s ease-out;
+			}
 
-    .file-header-actions {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-left: 10px
-    }
+			.file-header-actions {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				margin-left: 10px;
+			}
 
-    .file-header-actions button,
-    .file-header-actions label {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: var(--panel);
-      color: var(--muted);
-      padding: 3px 7px;
-      font-size: var(--text-sm);
-      line-height: 16px
-    }
+			.file-header-actions button,
+			.file-header-actions label {
+				border: 1px solid var(--line);
+				border-radius: var(--radius-sm);
+				background: var(--panel);
+				color: var(--muted);
+				padding: 3px 7px;
+				font-size: var(--text-sm);
+				line-height: 16px;
+			}
 
-    .file-header-actions button:hover,
-    .file-header-actions label:hover {
-      color: var(--ink);
-      border-color: var(--line-strong)
-    }
+			.file-header-actions button:hover,
+			.file-header-actions label:hover {
+				color: var(--ink);
+				border-color: var(--line-strong);
+			}
 
-    .file-header-actions .stage {
-      background: rgba(115, 218, 145, .08);
-      color: var(--green);
-      border-color: rgba(115, 218, 145, .38)
-    }
+			.file-header-actions .stage {
+				background: rgba(115, 218, 145, 0.08);
+				color: var(--green);
+				border-color: rgba(115, 218, 145, 0.38);
+			}
 
-    .file-header-actions .stage:hover {
-      background: rgba(115, 218, 145, .14);
-      border-color: rgba(115, 218, 145, .65);
-      color: var(--green-fg)
-    }
+			.file-header-actions .stage:hover {
+				background: rgba(115, 218, 145, 0.14);
+				border-color: rgba(115, 218, 145, 0.65);
+				color: var(--green-fg);
+			}
 
-    .file-header-actions .unstage {
-      background: transparent;
-      color: var(--amber);
-      border-color: rgba(224, 175, 104, .45)
-    }
+			.file-header-actions .unstage {
+				background: transparent;
+				color: var(--amber);
+				border-color: rgba(224, 175, 104, 0.45);
+			}
 
-    .file-header-actions input {
-      width: auto;
-      margin: 0 5px 0 0;
-      vertical-align: -1px
-    }
+			.file-header-actions input {
+				width: auto;
+				margin: 0 5px 0 0;
+				vertical-align: -1px;
+			}
 
-    .file-action-dock {
-      display: none
-    }
+			.file-action-dock {
+				display: none;
+			}
 
-    .modal-backdrop {
-      position: absolute;
-      inset: 0;
-      z-index: 20;
-      background: rgba(0, 0, 0, .45);
-      display: none;
-      align-items: center;
-      justify-content: center
-    }
+			.modal-backdrop {
+				position: absolute;
+				inset: 0;
+				z-index: 20;
+				background: rgba(0, 0, 0, 0.45);
+				display: none;
+				align-items: center;
+				justify-content: center;
+			}
 
-    .modal-backdrop.show {
-      display: flex
-    }
+			.modal-backdrop.show {
+				display: flex;
+			}
 
-    .modal {
-      width: 420px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      background: var(--surface);
-      box-shadow: 0 24px 100px rgba(0, 0, 0, .65);
-      padding: 16px
-    }
+			.modal {
+				width: 420px;
+				border: 1px solid var(--line);
+				border-radius: var(--radius-lg);
+				background: var(--surface);
+				box-shadow: 0 24px 100px rgba(0, 0, 0, 0.65);
+				padding: 16px;
+			}
 
-    .modal h3 {
-      margin: 0 0 8px;
-      font-size: var(--text-lg)
-    }
+			.modal h3 {
+				margin: 0 0 8px;
+				font-size: var(--text-lg);
+			}
 
-    .modal p {
-      margin: 0;
-      color: var(--muted);
-      font-size: var(--text-sm);
-      line-height: 1.5
-    }
+			.modal p {
+				margin: 0;
+				color: var(--muted);
+				font-size: var(--text-sm);
+				line-height: 1.5;
+			}
 
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-      margin-top: 14px
-    }
+			.modal-actions {
+				display: flex;
+				justify-content: flex-end;
+				gap: 6px;
+				margin-top: 14px;
+			}
 
-    .modal-actions .btn {
-      padding: 4px 7px;
-      font-size: var(--text-sm);
-      line-height: 16px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px
-    }
+			.modal-actions .btn {
+				padding: 4px 7px;
+				font-size: var(--text-sm);
+				line-height: 16px;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+			}
 
-    /* Keyboard hint chip — used in the help overlay, composer actions, and dialog buttons.
+			/* Keyboard hint chip — used in the help overlay, composer actions, and dialog buttons.
        Sans, not mono: key symbols (⇧ ⌘ ↵, arrows) are missing from the code webfonts, where
        they'd fall back to the system mono's shrunken glyphs next to full-size letters. The sans
        stack ends in the system UI font, whose symbols sit at cap height — the native look. */
-    kbd {
-      font-family: var(--sans);
-      font-size: var(--text-2xs);
-      line-height: 1;
-      padding: 3px 5px;
-      min-width: 16px;
-      text-align: center;
-      color: var(--muted);
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-xs)
-    }
+			kbd {
+				font-family: var(--sans);
+				font-size: var(--text-2xs);
+				line-height: 1;
+				padding: 3px 5px;
+				min-width: 16px;
+				text-align: center;
+				color: var(--muted);
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: var(--radius-xs);
+			}
 
-    /* Fast custom tooltip (native title has a ~1.5s delay): elements opt in with data-tip.
+			/* Fast custom tooltip (native title has a ~1.5s delay): elements opt in with data-tip.
        Appears just below the element after a short delay. data-tip-align="end" right-anchors it
        (for controls near the right edge). */
-    [data-tip] {
-      position: relative
-    }
+			[data-tip] {
+				position: relative;
+			}
 
-    [data-tip]::after {
-      content: attr(data-tip);
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 50%;
-      transform: translateX(-50%);
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 60;
-      padding: 4px 7px;
-      border-radius: var(--radius-sm);
-      background: var(--panel3);
-      color: var(--ink);
-      border: 1px solid var(--line-strong);
-      font-family: var(--sans);
-      font-size: var(--text-2xs);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .5);
-      opacity: 0;
-      transition: opacity .1s ease
-    }
+			[data-tip]::after {
+				content: attr(data-tip);
+				position: absolute;
+				top: calc(100% + 6px);
+				left: 50%;
+				transform: translateX(-50%);
+				white-space: nowrap;
+				pointer-events: none;
+				z-index: 60;
+				padding: 4px 7px;
+				border-radius: var(--radius-sm);
+				background: var(--panel3);
+				color: var(--ink);
+				border: 1px solid var(--line-strong);
+				font-family: var(--sans);
+				font-size: var(--text-2xs);
+				box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+				opacity: 0;
+				transition: opacity 0.1s ease;
+			}
 
-    [data-tip][data-tip-align="end"]::after {
-      left: auto;
-      right: 0;
-      transform: none
-    }
+			[data-tip][data-tip-align='end']::after {
+				left: auto;
+				right: 0;
+				transform: none;
+			}
 
-    [data-tip]:hover::after {
-      opacity: 1;
-      transition-delay: .18s
-    }
+			[data-tip]:hover::after {
+				opacity: 1;
+				transition-delay: 0.18s;
+			}
 
-    .modal.help {
-      width: 640px;
-      max-width: 92vw
-    }
+			.modal.help {
+				width: 640px;
+				max-width: 92vw;
+			}
 
-    .help-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px 28px
-    }
+			.help-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 6px 28px;
+			}
 
-    .help-col {
-      break-inside: avoid;
-      margin-bottom: 6px
-    }
+			.help-col {
+				break-inside: avoid;
+				margin-bottom: 6px;
+			}
 
-    .help-h {
-      font-size: var(--text-2xs);
-      font-weight: 700;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--ghost);
-      margin: 8px 0 4px
-    }
+			.help-h {
+				font-size: var(--text-2xs);
+				font-weight: 700;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: var(--ghost);
+				margin: 8px 0 4px;
+			}
 
-    .help-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 3px 0;
-      font-size: var(--text-sm);
-      color: var(--ink)
-    }
+			.help-row {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding: 3px 0;
+				font-size: var(--text-sm);
+				color: var(--ink);
+			}
 
-    .help-row kbd {
-      flex: 0 0 auto
-    }
+			.help-row kbd {
+				flex: 0 0 auto;
+			}
 
-    .modal.confirm {
-      width: 380px
-    }
+			.modal.confirm {
+				width: 380px;
+			}
 
-    .modal.confirm .btn kbd {
-      pointer-events: none
-    }
+			.modal.confirm .btn kbd {
+				pointer-events: none;
+			}
 
-    .modal.send .btn kbd {
-      pointer-events: none
-    }
+			.modal.send .btn kbd {
+				pointer-events: none;
+			}
 
-    .modal.send textarea {
-      width: 100%;
-      box-sizing: border-box;
-      min-height: 84px;
-      margin-top: 12px;
-      padding: 8px;
-      font-size: var(--text-sm);
-      resize: vertical
-    }
+			.modal.send textarea {
+				width: 100%;
+				box-sizing: border-box;
+				min-height: 84px;
+				margin-top: 12px;
+				padding: 8px;
+				font-size: var(--text-sm);
+				resize: vertical;
+			}
 
-    .btn.icon {
-      padding: 3px 9px;
-      font-size: var(--text-xl);
-      line-height: 20px
-    }
+			.btn.icon {
+				padding: 3px 9px;
+				font-size: var(--text-xl);
+				line-height: 20px;
+			}
 
-    .modal.settings {
-      width: 560px;
-      max-height: 82vh;
-      overflow: auto
-    }
+			.modal.settings {
+				width: 560px;
+				max-height: 82vh;
+				overflow: auto;
+			}
 
-    /* Settings ↔ Shortcuts tab strip. */
-    .set-tabs {
-      display: flex;
-      gap: 2px;
-      margin-bottom: 14px;
-      border-bottom: 1px solid var(--line)
-    }
+			/* Settings ↔ Shortcuts tab strip. */
+			.set-tabs {
+				display: flex;
+				gap: 2px;
+				margin-bottom: 14px;
+				border-bottom: 1px solid var(--line);
+			}
 
-    .set-tabs button {
-      border: 0;
-      background: transparent;
-      color: var(--muted);
-      font: inherit;
-      font-size: var(--text-sm);
-      padding: 6px 10px;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px
-    }
+			.set-tabs button {
+				border: 0;
+				background: transparent;
+				color: var(--muted);
+				font: inherit;
+				font-size: var(--text-sm);
+				padding: 6px 10px;
+				cursor: pointer;
+				border-bottom: 2px solid transparent;
+				margin-bottom: -1px;
+			}
 
-    .set-tabs button:hover {
-      color: var(--ink)
-    }
+			.set-tabs button:hover {
+				color: var(--ink);
+			}
 
-    .set-tabs button.active {
-      color: var(--ink-bright);
-      border-bottom-color: var(--cyan)
-    }
+			.set-tabs button.active {
+				color: var(--ink-bright);
+				border-bottom-color: var(--cyan);
+			}
 
-    .set-pane.help-grid {
-      margin-top: 2px
-    }
+			.set-pane.help-grid {
+				margin-top: 2px;
+			}
 
-    .modal.settings .set-section {
-      color: var(--ghost);
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      font-size: var(--text-2xs);
-      margin: 24px 0 10px
-    }
+			.modal.settings .set-section {
+				color: var(--ghost);
+				text-transform: uppercase;
+				letter-spacing: 0.12em;
+				font-size: var(--text-2xs);
+				margin: 24px 0 10px;
+			}
 
-    .modal.settings .set-section:first-of-type {
-      margin-top: 4px
-    }
+			.modal.settings .set-section:first-of-type {
+				margin-top: 4px;
+			}
 
-    .set-grid {
-      display: grid;
-      gap: 9px
-    }
+			.set-grid {
+				display: grid;
+				gap: 9px;
+			}
 
-    .set-grid label {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      font-size: var(--text-sm);
-      color: var(--muted);
-      white-space: nowrap
-    }
+			.set-grid label {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 12px;
+				font-size: var(--text-sm);
+				color: var(--muted);
+				white-space: nowrap;
+			}
 
-    .set-grid label.check {
-      justify-content: flex-start;
-      gap: 8px;
-      cursor: pointer
-    }
+			.set-grid label.check {
+				justify-content: flex-start;
+				gap: 8px;
+				cursor: pointer;
+			}
 
-    .set-grid select,
-    .set-grid input[type=number],
-    .set-grid input[type=text] {
-      width: 160px;
-      min-width: 0;
-      flex: 0 0 auto;
-      color: var(--ink);
-      background: var(--bg);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 5px 7px;
-      font: inherit;
-      font-size: var(--text-sm)
-    }
+			.set-grid select,
+			.set-grid input[type='number'],
+			.set-grid input[type='text'] {
+				width: 160px;
+				min-width: 0;
+				flex: 0 0 auto;
+				color: var(--ink);
+				background: var(--bg);
+				border: 1px solid var(--line);
+				border-radius: var(--radius);
+				padding: 5px 7px;
+				font: inherit;
+				font-size: var(--text-sm);
+			}
 
-    .set-grid input[type=number] {
-      min-width: 0;
-      width: 80px
-    }
+			.set-grid input[type='number'] {
+				min-width: 0;
+				width: 80px;
+			}
 
-    .set-grid input[type=checkbox] {
-      width: auto;
-      margin: 0
-    }
+			.set-grid input[type='checkbox'] {
+				width: auto;
+				margin: 0;
+			}
 
-    .guide-overview {
-      min-height: 100%;
-      display: grid;
-      place-items: start center;
-      padding: 34px 30px
-    }
+			.guide-overview {
+				min-height: 100%;
+				display: grid;
+				place-items: start center;
+				padding: 34px 30px;
+			}
 
-    .guide-overview .go-card {
-      width: min(680px, 100%);
-      border: 1px solid var(--line);
-      background: var(--surface);
-      border-radius: var(--radius-xl);
-      padding: 18px 20px
-    }
+			.guide-overview .go-card {
+				width: min(680px, 100%);
+				border: 1px solid var(--line);
+				background: var(--surface);
+				border-radius: var(--radius-xl);
+				padding: 18px 20px;
+			}
 
-    .guide-overview h1 {
-      margin: 0 0 4px;
-      font-size: var(--text-xl);
-      color: var(--ink)
-    }
+			.guide-overview h1 {
+				margin: 0 0 4px;
+				font-size: var(--text-xl);
+				color: var(--ink);
+			}
 
-    .guide-overview .go-sub {
-      color: var(--ghost);
-      font-size: var(--text-xs);
-      margin-bottom: 14px
-    }
+			.guide-overview .go-sub {
+				color: var(--ghost);
+				font-size: var(--text-xs);
+				margin-bottom: 14px;
+			}
 
-    /* Focused-review badge (issue 04): a muted pill telling the human churn was deliberately skimmed. */
-    .guide-overview .go-focused {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin: -6px 0 14px;
-      padding: 3px 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--panel);
-      color: var(--muted);
-      font-size: var(--text-2xs)
-    }
+			/* Focused-review badge (issue 04): a muted pill telling the human churn was deliberately skimmed. */
+			.guide-overview .go-focused {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				margin: -6px 0 14px;
+				padding: 3px 10px;
+				border: 1px solid var(--line);
+				border-radius: 999px;
+				background: var(--panel);
+				color: var(--muted);
+				font-size: var(--text-2xs);
+			}
 
-    .guide-overview .go-focused .ic {
-      width: 13px;
-      height: 13px;
-      color: var(--muted)
-    }
+			.guide-overview .go-focused .ic {
+				width: 13px;
+				height: 13px;
+				color: var(--muted);
+			}
 
-    .guide-overview .go-overview {
-      color: var(--ink);
-      line-height: 1.55;
-      margin: 0 0 12px;
-      font-size: var(--text-md)
-    }
+			.guide-overview .go-overview {
+				color: var(--ink);
+				line-height: 1.55;
+				margin: 0 0 12px;
+				font-size: var(--text-md);
+			}
 
-    .guide-overview .go-pr {
-      border: 1px solid var(--line);
-      background: var(--bg);
-      border-radius: var(--radius-lg);
-      padding: 9px 12px;
-      margin: 0 0 12px
-    }
+			.guide-overview .go-pr {
+				border: 1px solid var(--line);
+				background: var(--bg);
+				border-radius: var(--radius-lg);
+				padding: 9px 12px;
+				margin: 0 0 12px;
+			}
 
-    .guide-overview .go-pr b {
-      color: var(--ink);
-      display: block;
-      font-size: var(--text-2xs);
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      margin-bottom: 4px
-    }
+			.guide-overview .go-pr b {
+				color: var(--ink);
+				display: block;
+				font-size: var(--text-2xs);
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				margin-bottom: 4px;
+			}
 
-    .guide-overview .go-pr .md {
-      margin-top: 0
-    }
+			.guide-overview .go-pr .md {
+				margin-top: 0;
+			}
 
-    .guide-overview .go-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px
-    }
+			.guide-overview .go-actions {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
 
-    .guide-overview .go-actions .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px
-    }
+			.guide-overview .go-actions .btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+			}
 
-    .guide-overview .go-meta {
-      color: var(--ghost);
-      font-size: var(--text-sm)
-    }
+			.guide-overview .go-meta {
+				color: var(--ghost);
+				font-size: var(--text-sm);
+			}
 
-    .toast {
-      position: absolute;
-      left: 50%;
-      bottom: 46px;
-      transform: translateX(-50%);
-      border: 1px solid var(--green-line);
-      background: var(--green-bg);
-      color: var(--green);
-      border-radius: var(--radius-pill);
-      padding: 7px 12px;
-      font-size: var(--text-sm);
-      display: none
-    }
+			.toast {
+				position: absolute;
+				left: 50%;
+				bottom: 46px;
+				transform: translateX(-50%);
+				border: 1px solid var(--green-line);
+				background: var(--green-bg);
+				color: var(--green);
+				border-radius: var(--radius-pill);
+				padding: 7px 12px;
+				font-size: var(--text-sm);
+				display: none;
+			}
 
-    .toast.show {
-      display: block
-    }
+			.toast.show {
+				display: block;
+			}
 
-    /* Go-to-line pill: mode indicator for pending typed digits (neutral, unlike the green toast). */
-    .goline {
-      position: absolute;
-      left: 50%;
-      bottom: 46px;
-      transform: translateX(-50%);
-      border: 1px solid var(--line-strong);
-      background: var(--panel);
-      color: var(--ink);
-      border-radius: var(--radius-pill);
-      padding: 7px 12px;
-      font-size: var(--text-sm);
-      display: none;
-      align-items: center;
-      gap: 6px
-    }
+			/* Go-to-line pill: mode indicator for pending typed digits (neutral, unlike the green toast). */
+			.goline {
+				position: absolute;
+				left: 50%;
+				bottom: 46px;
+				transform: translateX(-50%);
+				border: 1px solid var(--line-strong);
+				background: var(--panel);
+				color: var(--ink);
+				border-radius: var(--radius-pill);
+				padding: 7px 12px;
+				font-size: var(--text-sm);
+				display: none;
+				align-items: center;
+				gap: 6px;
+			}
 
-    .goline.show {
-      display: flex
-    }
+			.goline.show {
+				display: flex;
+			}
 
-    .goline b {
-      color: var(--ink-bright)
-    }
+			.goline b {
+				color: var(--ink-bright);
+			}
 
-    .goline .goline-hint {
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-left: 4px
-    }
+			.goline .goline-hint {
+				color: var(--muted);
+				display: flex;
+				align-items: center;
+				gap: 4px;
+				margin-left: 4px;
+			}
 
-    /* Narrow widths: the file tree leaves the flow and becomes an off-canvas left drawer, so the
+			/* Narrow widths: the file tree leaves the flow and becomes an off-canvas left drawer, so the
        app stays a fixed-height single column with the diff filling it (the core surface owns the
        screen) — no more tree-on-top page-scroll stacking. The tree is hidden by default and slides
        in over a dimmed backdrop when opened (hamburger / ⇧B); selecting a file auto-closes it. */
-    @media(max-width:1100px) {
-      .main {
-        grid-template-columns: minmax(0, 1fr)
-      }
+			@media (max-width: 1100px) {
+				.main {
+					grid-template-columns: minmax(0, 1fr);
+				}
 
-      .resizer {
-        display: none
-      }
+				.resizer {
+					display: none;
+				}
 
-      .nav-toggle {
-        display: inline-flex
-      }
+				.nav-toggle {
+					display: inline-flex;
+				}
 
-      .tree {
-        position: fixed;
-        top: 48px;
-        left: 0;
-        bottom: 0;
-        width: min(86vw, 300px);
-        z-index: 30;
-        border-right: 1px solid var(--line);
-        box-shadow: 8px 0 24px rgba(0, 0, 0, .35);
-        transform: translateX(-100%);
-        transition: transform .18s ease
-      }
+				.tree {
+					position: fixed;
+					top: 48px;
+					left: 0;
+					bottom: 0;
+					width: min(86vw, 300px);
+					z-index: 30;
+					border-right: 1px solid var(--line);
+					box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+					transform: translateX(-100%);
+					transition: transform 0.18s ease;
+				}
 
-      .tree.drawer-open {
-        transform: translateX(0)
-      }
+				.tree.drawer-open {
+					transform: translateX(0);
+				}
 
-      .tree-backdrop.open {
-        display: block;
-        position: fixed;
-        inset: 48px 0 0 0;
-        z-index: 29;
-        background: rgba(0, 0, 0, .5)
-      }
+				.tree-backdrop.open {
+					display: block;
+					position: fixed;
+					inset: 48px 0 0 0;
+					z-index: 29;
+					background: rgba(0, 0, 0, 0.5);
+				}
 
-      /* Float the comment surfaces over the diff rather than in-flow — an in-flow element would
+				/* Float the comment surfaces over the diff rather than in-flow — an in-flow element would
          add a row to the now fixed-height single column and clip the diff. As a bottom sheet:
          !important beats the inline top/left the JS placer writes (placeNearActionPop) — without
          it a fixed element carrying both an inline `top` and this `bottom` stretches full-height.
          max-height keeps a long draft from overflowing the viewport (the textarea scrolls). */
-      .action-pop,
-      .composer {
-        position: fixed;
-        left: 12px !important;
-        right: 12px !important;
-        bottom: 12px !important;
-        top: auto !important;
-        width: auto;
-        max-width: none;
-        max-height: 60vh;
-        margin: 0;
-        z-index: 40
-      }
+				.action-pop,
+				.composer {
+					position: fixed;
+					left: 12px !important;
+					right: 12px !important;
+					bottom: 12px !important;
+					top: auto !important;
+					width: auto;
+					max-width: none;
+					max-height: 60vh;
+					margin: 0;
+					z-index: 40;
+				}
 
-      .composer textarea {
-        max-height: 34vh
-      }
-    }
+				.composer textarea {
+					max-height: 34vh;
+				}
+			}
 
-    body.single .tree,
-    body.single .resizer[data-resize="left"] {
-      display: none
-    }
+			body.single .tree,
+			body.single .resizer[data-resize='left'] {
+				display: none;
+			}
 
-    body.single .main {
-      grid-template-columns: minmax(0, 1fr)
-    }
+			body.single .main {
+				grid-template-columns: minmax(0, 1fr);
+			}
 
-    body.file-mode .tree,
-    body.file-mode .right,
-    body.file-mode .resizer {
-      display: none
-    }
+			body.file-mode .tree,
+			body.file-mode .right,
+			body.file-mode .resizer {
+				display: none;
+			}
 
-    body.file-mode .main {
-      grid-template-columns: minmax(0, 1fr)
-    }
-  </style>
-</head>
+			body.file-mode .main {
+				grid-template-columns: minmax(0, 1fr);
+			}
+		</style>
+	</head>
 
-<body>
-  <div class="app" x-data>
-    <header class="top">
-      <div class="brand"><button class="nav-toggle" data-tip="Files (⇧B)" aria-label="Toggle file tree"
-          @click="$store.g.treeDrawerOpen = !$store.g.treeDrawerOpen"><svg class="ic" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M2 8h12M2 12h12"/></svg></button><svg class="brand-logo" aria-hidden="true" viewBox="4 -5 120 120" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#hb_f0)"><circle cx="54.0259" cy="55.9741" r="44.0259" fill="#EB5103"/></g><g filter="url(#hb_f1)"><circle cx="72.6284" cy="55.9741" r="44.0259" fill="#EFCA44"/></g><g filter="url(#hb_f2)"><circle cx="64.5923" cy="54.0259" r="44.0259" fill="#FAF6EA"/></g><defs><filter id="hb_f0" x="0.699" y="2.647" width="106.654" height="106.654" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="bg"/><feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/><feGaussianBlur stdDeviation="4.6505"/></filter><filter id="hb_f1" x="19.301" y="2.647" width="106.654" height="106.654" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="bg"/><feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/><feGaussianBlur stdDeviation="4.6505"/></filter><filter id="hb_f2" x="11.265" y="0.699" width="106.654" height="106.654" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="bg"/><feBlend mode="normal" in="SourceGraphic" in2="bg" result="shape"/><feGaussianBlur stdDeviation="4.6505"/></filter></defs></svg><span>Galley</span></div>
-      <div class="toggles">
-        <div class="toggle" x-show="$store.g.isMarkdownFile()" data-tip="Rendered / source (m)"><button :class="{active: $store.g.fileView==='rendered'}"
-            @click="$store.g.setFileView('rendered')">Rendered</button><button
-            :class="{active: $store.g.fileView==='source'}" @click="$store.g.setFileView('source')">Source</button>
-        </div>
-      </div>
-      <div class="actions"><span class="agent-status" x-cloak
-          :class="{queued: $store.g.queuedReviews > 0}"
-          x-show="$store.g.awaitingAgent && ($store.g.queuedReviews > 0 || $store.g.agentActivity)"
-          x-text="$store.g.queuedReviews > 0 ? 'No agent attached — review queued' : $store.g.agentActivity"></span><span class="top-pct" id="progressPct" style="display:none"></span><button class="btn icon top-settings" data-tip="Settings (⇧,)" @click="$store.g.openSettings()"><svg class="ic"><use href="#gly-settings"></use></svg></button><button
-          class="btn danger" data-tip="Reset review (⇧R)" @click="$store.g.reset()">Reset Review</button><button class="btn primary"
-          :disabled="$store.g.awaitingAgent" @click="$store.g.confirmSend()"><span
-            x-text="$store.g.awaitingAgent ? 'Waiting for Agent…' : 'Send to Agent'">Send to Agent</span> <kbd>⇧S</kbd></button></div>
-      <div class="top-progress" id="progressStrip" style="display:none"><i id="progressFill"></i></div>
-    </header>
-    <main class="main">
-      <aside class="tree" :class="{'drawer-open': $store.g.treeDrawerOpen}">
-        <div class="tree-tabs" x-show="$store.g.hasGuide && $store.g.hasGuide()" x-cloak>
-          <!-- The w hint sits on the INACTIVE tab — the one pressing w switches to. -->
-          <button :class="{active: $store.g.sidebarTab==='tree'}" @click="$store.g.sidebarTab='tree'">Tree <kbd x-show="$store.g.sidebarTab!=='tree'">w</kbd></button>
-          <button :class="{active: $store.g.sidebarTab==='walkthrough'}" @click="$store.g.sidebarTab='walkthrough'">Walkthrough <kbd x-show="$store.g.sidebarTab==='tree'">w</kbd></button>
-        </div>
-        <div class="label tree-title" x-show="!($store.g.hasGuide && $store.g.hasGuide()) || $store.g.sidebarTab==='tree'"><span>Files</span>
-          <button class="tree-toggle" @click="$store.g.toggleAllDirs()"
-            :title="$store.g.treeAnyOpen && $store.g.treeAnyOpen() ? 'Collapse all' : 'Expand all'">
-            <svg class="ic" x-show="$store.g.treeAnyOpen && $store.g.treeAnyOpen()"><use href="#gly-collapse-all"></use></svg>
-            <svg class="ic" x-show="!($store.g.treeAnyOpen && $store.g.treeAnyOpen())"><use href="#gly-expand-all"></use></svg>
-          </button>
-        </div>
-        <div id="files" x-show="!($store.g.hasGuide && $store.g.hasGuide()) || $store.g.sidebarTab==='tree'"><template x-for="r in $store.g.treeRows()" :key="r.key">
-            <div class="node" :data-key="r.key" :class="[r.cls, r.kind==='skimgrp' ? 'skimgrp' : '']" :style="r.style" @click="$store.g.rowClick(r)">
-              <svg class="ic chev" :class="{open: r.open}" x-show="r.kind==='dir' || r.kind==='skimgrp'"><use href="#gly-chevron"></use></svg>
-              <svg class="ic folder" x-show="r.kind==='dir'"><use href="#gly-folder"></use></svg>
-              <span class="chev-spacer" x-show="r.kind==='file' || r.kind==='test'"></span>
-              <svg class="ic file" :class="r.changeType" x-show="r.kind==='file' || r.kind==='test'"><use href="#gly-file"></use></svg>
-              <span class="nm" x-show="r.kind!=='skimgrp'" x-text="r.name"></span>
-              <span class="moved-from" x-show="r.movedFrom" x-text="'← '+r.movedFrom" :title="'moved from '+r.movedFrom"></span>
-              <span class="nm skimgrp-name" x-show="r.kind==='skimgrp'">Skimmed</span>
-              <span class="skimgrp-count" x-show="r.kind==='skimgrp'" x-text="r.count + (r.count===1 ? ' file' : ' files')"></span>
-              <svg class="ic skim" x-show="(r.kind==='file' || r.kind==='test') && r.skim" title="Skimmed"><use href="#gly-collapse-all"></use></svg>
-              <span class="testcaret" x-show="r.testToggle" @click.stop="$store.g.toggleTestDir(r.testKey)">
-                <svg class="ic chev" :class="{open: r.testCaret==='▾'}"><use href="#gly-chevron"></use></svg></span>
-              <span class="status-pack" x-show="r.state">
-                <svg class="ic badge pending" x-show="r.state==='pending'" title="Pending review"><use href="#gly-dot"></use></svg>
-                <svg class="ic badge approved" x-show="r.state==='approved'" title="Approved"><use href="#gly-check"></use></svg>
-                <svg class="ic badge changes" x-show="r.state==='changes-requested'" title="Changes requested"><use href="#gly-flag"></use></svg>
-              </span>
-            </div>
-          </template></div>
-        <div id="walk" x-show="$store.g.hasGuide && $store.g.hasGuide() && $store.g.sidebarTab==='walkthrough'" x-cloak>
-          <template x-for="r in $store.g.walkthroughRows()" :key="r.key">
-            <div class="node" :data-key="r.key" :class="[r.kind==='cat' ? 'walk-cat' : r.cls, r.kind==='cat' && r.skimmed ? 'walk-skim' : '']" :style="r.kind==='cat' ? '' : r.style"
-              @click="r.kind!=='cat' ? $store.g.selectFile(r.fileIndex) : (r.skimmed ? $store.g.toggleSkimGroup() : $store.g.selectFile(r.jumpIndex))">
-              <svg class="ic chev" :class="{open: r.open}" x-show="r.kind==='cat' && r.skimmed"><use href="#gly-chevron"></use></svg>
-              <span class="nm walk-cat-name" x-show="r.kind==='cat'" x-text="r.category" :title="r.category"></span>
-              <span class="walk-skim-count" x-show="r.kind==='cat' && r.skimmed" x-text="r.total + (r.total===1 ? ' file' : ' files')"></span>
-              <!-- File status leads the row (empty circle = to do); ± stay flush right below. -->
-              <svg class="ic st pending" x-show="r.kind==='file' && r.state==='pending'" title="Pending review"><use href="#gly-circle"></use></svg>
-              <svg class="ic st approved" x-show="r.kind==='file' && r.state==='approved'" title="Approved"><use href="#gly-check"></use></svg>
-              <svg class="ic st changes" x-show="r.kind==='file' && r.state==='changes-requested'" title="Changes requested"><use href="#gly-circle-alert"></use></svg>
-              <span class="nm" x-show="r.kind==='file'" x-text="r.name" :title="r.path"></span>
-              <span class="moved-from" x-show="r.kind==='file' && r.movedFrom" x-text="'← '+r.movedFrom" :title="'moved from '+r.movedFrom"></span>
-              <svg class="ic crit" x-show="r.kind==='file' && r.flag" :title="r.flag"><use href="#gly-flag"></use></svg>
-              <svg class="ic skim" x-show="r.kind==='file' && r.skim" title="Skimmed"><use href="#gly-collapse-all"></use></svg>
-              <!-- Hidden on cat rows: an empty status-pack still carries margin-left:auto, and two
+	<body>
+		<div class="app" x-data>
+			<header class="top">
+				<div class="brand">
+					<button
+						class="nav-toggle"
+						data-tip="Files (⇧B)"
+						aria-label="Toggle file tree"
+						@click="$store.g.treeDrawerOpen = !$store.g.treeDrawerOpen"
+					>
+						<svg
+							class="ic"
+							viewBox="0 0 16 16"
+							width="16"
+							height="16"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.5"
+							stroke-linecap="round"
+						>
+							<path d="M2 4h12M2 8h12M2 12h12" />
+						</svg></button
+					><svg
+						class="brand-logo"
+						aria-hidden="true"
+						viewBox="4 -5 120 120"
+						fill="none"
+						xmlns="http://www.w3.org/2000/svg"
+					>
+						<g filter="url(#hb_f0)">
+							<circle
+								cx="54.0259"
+								cy="55.9741"
+								r="44.0259"
+								fill="#EB5103"
+							/>
+						</g>
+						<g filter="url(#hb_f1)">
+							<circle
+								cx="72.6284"
+								cy="55.9741"
+								r="44.0259"
+								fill="#EFCA44"
+							/>
+						</g>
+						<g filter="url(#hb_f2)">
+							<circle
+								cx="64.5923"
+								cy="54.0259"
+								r="44.0259"
+								fill="#FAF6EA"
+							/>
+						</g>
+						<defs>
+							<filter
+								id="hb_f0"
+								x="0.699"
+								y="2.647"
+								width="106.654"
+								height="106.654"
+								filterUnits="userSpaceOnUse"
+								color-interpolation-filters="sRGB"
+							>
+								<feFlood flood-opacity="0" result="bg" />
+								<feBlend
+									mode="normal"
+									in="SourceGraphic"
+									in2="bg"
+									result="shape"
+								/>
+								<feGaussianBlur stdDeviation="4.6505" />
+							</filter>
+							<filter
+								id="hb_f1"
+								x="19.301"
+								y="2.647"
+								width="106.654"
+								height="106.654"
+								filterUnits="userSpaceOnUse"
+								color-interpolation-filters="sRGB"
+							>
+								<feFlood flood-opacity="0" result="bg" />
+								<feBlend
+									mode="normal"
+									in="SourceGraphic"
+									in2="bg"
+									result="shape"
+								/>
+								<feGaussianBlur stdDeviation="4.6505" />
+							</filter>
+							<filter
+								id="hb_f2"
+								x="11.265"
+								y="0.699"
+								width="106.654"
+								height="106.654"
+								filterUnits="userSpaceOnUse"
+								color-interpolation-filters="sRGB"
+							>
+								<feFlood flood-opacity="0" result="bg" />
+								<feBlend
+									mode="normal"
+									in="SourceGraphic"
+									in2="bg"
+									result="shape"
+								/>
+								<feGaussianBlur stdDeviation="4.6505" />
+							</filter>
+						</defs></svg
+					><span>Galley</span>
+				</div>
+				<div class="toggles">
+					<div
+						class="toggle"
+						x-show="$store.g.isMarkdownFile()"
+						data-tip="Rendered / source (m)"
+					>
+						<button
+							:class="{active: $store.g.fileView==='rendered'}"
+							@click="$store.g.setFileView('rendered')"
+						>
+							Rendered</button
+						><button
+							:class="{active: $store.g.fileView==='source'}"
+							@click="$store.g.setFileView('source')"
+						>
+							Source
+						</button>
+					</div>
+				</div>
+				<div class="actions">
+					<span
+						class="agent-status"
+						x-cloak
+						:class="{queued: $store.g.queuedReviews > 0}"
+						x-show="$store.g.awaitingAgent && ($store.g.queuedReviews > 0 || $store.g.agentActivity)"
+						x-text="$store.g.queuedReviews > 0 ? 'No agent attached — review queued' : $store.g.agentActivity"
+					></span
+					><span
+						class="top-pct"
+						id="progressPct"
+						style="display: none"
+					></span
+					><button
+						class="btn icon top-settings"
+						data-tip="Settings (⇧,)"
+						@click="$store.g.openSettings()"
+					>
+						<svg class="ic">
+							<use href="#gly-settings"></use>
+						</svg></button
+					><button
+						class="btn danger"
+						data-tip="Reset review (⇧R)"
+						@click="$store.g.reset()"
+					>
+						Reset Review</button
+					><button
+						class="btn primary"
+						:disabled="$store.g.awaitingAgent"
+						@click="$store.g.confirmSend()"
+					>
+						<span
+							x-text="$store.g.awaitingAgent ? 'Waiting for Agent…' : 'Send to Agent'"
+							>Send to Agent</span
+						>
+						<kbd>⇧S</kbd>
+					</button>
+				</div>
+				<div
+					class="top-progress"
+					id="progressStrip"
+					style="display: none"
+				>
+					<i id="progressFill"></i>
+				</div>
+			</header>
+			<main class="main">
+				<aside
+					class="tree"
+					:class="{'drawer-open': $store.g.treeDrawerOpen}"
+				>
+					<div
+						class="tree-tabs"
+						x-show="$store.g.hasGuide && $store.g.hasGuide()"
+						x-cloak
+					>
+						<!-- The w hint sits on the INACTIVE tab — the one pressing w switches to. -->
+						<button
+							:class="{active: $store.g.sidebarTab==='tree'}"
+							@click="$store.g.sidebarTab='tree'"
+						>
+							Tree
+							<kbd x-show="$store.g.sidebarTab!=='tree'">w</kbd>
+						</button>
+						<button
+							:class="{active: $store.g.sidebarTab==='walkthrough'}"
+							@click="$store.g.sidebarTab='walkthrough'"
+						>
+							Walkthrough
+							<kbd x-show="$store.g.sidebarTab==='tree'">w</kbd>
+						</button>
+					</div>
+					<div
+						class="label tree-title"
+						x-show="!($store.g.hasGuide && $store.g.hasGuide()) || $store.g.sidebarTab==='tree'"
+					>
+						<span>Files</span>
+						<button
+							class="tree-toggle"
+							@click="$store.g.toggleAllDirs()"
+							:title="$store.g.treeAnyOpen && $store.g.treeAnyOpen() ? 'Collapse all' : 'Expand all'"
+						>
+							<svg
+								class="ic"
+								x-show="$store.g.treeAnyOpen && $store.g.treeAnyOpen()"
+							>
+								<use href="#gly-collapse-all"></use>
+							</svg>
+							<svg
+								class="ic"
+								x-show="!($store.g.treeAnyOpen && $store.g.treeAnyOpen())"
+							>
+								<use href="#gly-expand-all"></use>
+							</svg>
+						</button>
+					</div>
+					<div
+						id="files"
+						x-show="!($store.g.hasGuide && $store.g.hasGuide()) || $store.g.sidebarTab==='tree'"
+					>
+						<template x-for="r in $store.g.treeRows()" :key="r.key">
+							<div
+								class="node"
+								:data-key="r.key"
+								:class="[r.cls, r.kind==='skimgrp' ? 'skimgrp' : '']"
+								:style="r.style"
+								@click="$store.g.rowClick(r)"
+							>
+								<svg
+									class="ic chev"
+									:class="{open: r.open}"
+									x-show="r.kind==='dir' || r.kind==='skimgrp'"
+								>
+									<use href="#gly-chevron"></use>
+								</svg>
+								<svg class="ic folder" x-show="r.kind==='dir'">
+									<use href="#gly-folder"></use>
+								</svg>
+								<span
+									class="chev-spacer"
+									x-show="r.kind==='file' || r.kind==='test'"
+								></span>
+								<svg
+									class="ic file"
+									:class="r.changeType"
+									x-show="r.kind==='file' || r.kind==='test'"
+								>
+									<use href="#gly-file"></use>
+								</svg>
+								<span
+									class="nm"
+									x-show="r.kind!=='skimgrp'"
+									x-text="r.name"
+								></span>
+								<span
+									class="moved-from"
+									x-show="r.movedFrom"
+									x-text="'← '+r.movedFrom"
+									:title="'moved from '+r.movedFrom"
+								></span>
+								<span
+									class="nm skimgrp-name"
+									x-show="r.kind==='skimgrp'"
+									>Skimmed</span
+								>
+								<span
+									class="skimgrp-count"
+									x-show="r.kind==='skimgrp'"
+									x-text="r.count + (r.count===1 ? ' file' : ' files')"
+								></span>
+								<svg
+									class="ic skim"
+									x-show="(r.kind==='file' || r.kind==='test') && r.skim"
+									title="Skimmed"
+								>
+									<use href="#gly-collapse-all"></use>
+								</svg>
+								<span
+									class="testcaret"
+									x-show="r.testToggle"
+									@click.stop="$store.g.toggleTestDir(r.testKey)"
+								>
+									<svg
+										class="ic chev"
+										:class="{open: r.testCaret==='▾'}"
+									>
+										<use href="#gly-chevron"></use></svg
+								></span>
+								<span class="status-pack" x-show="r.state">
+									<svg
+										class="ic badge pending"
+										x-show="r.state==='pending'"
+										title="Pending review"
+									>
+										<use href="#gly-dot"></use>
+									</svg>
+									<svg
+										class="ic badge approved"
+										x-show="r.state==='approved'"
+										title="Approved"
+									>
+										<use href="#gly-check"></use>
+									</svg>
+									<svg
+										class="ic badge changes"
+										x-show="r.state==='changes-requested'"
+										title="Changes requested"
+									>
+										<use href="#gly-flag"></use>
+									</svg>
+								</span>
+							</div>
+						</template>
+					</div>
+					<div
+						id="walk"
+						x-show="$store.g.hasGuide && $store.g.hasGuide() && $store.g.sidebarTab==='walkthrough'"
+						x-cloak
+					>
+						<template
+							x-for="r in $store.g.walkthroughRows()"
+							:key="r.key"
+						>
+							<div
+								class="node"
+								:data-key="r.key"
+								:class="[r.kind==='cat' ? 'walk-cat' : r.cls, r.kind==='cat' && r.skimmed ? 'walk-skim' : '']"
+								:style="r.kind==='cat' ? '' : r.style"
+								@click="r.kind!=='cat' ? $store.g.selectFile(r.fileIndex) : (r.skimmed ? $store.g.toggleSkimGroup() : $store.g.selectFile(r.jumpIndex))"
+							>
+								<svg
+									class="ic chev"
+									:class="{open: r.open}"
+									x-show="r.kind==='cat' && r.skimmed"
+								>
+									<use href="#gly-chevron"></use>
+								</svg>
+								<span
+									class="nm walk-cat-name"
+									x-show="r.kind==='cat'"
+									x-text="r.category"
+									:title="r.category"
+								></span>
+								<span
+									class="walk-skim-count"
+									x-show="r.kind==='cat' && r.skimmed"
+									x-text="r.total + (r.total===1 ? ' file' : ' files')"
+								></span>
+								<!-- File status leads the row (empty circle = to do); ± stay flush right below. -->
+								<svg
+									class="ic st pending"
+									x-show="r.kind==='file' && r.state==='pending'"
+									title="Pending review"
+								>
+									<use href="#gly-circle"></use>
+								</svg>
+								<svg
+									class="ic st approved"
+									x-show="r.kind==='file' && r.state==='approved'"
+									title="Approved"
+								>
+									<use href="#gly-check"></use>
+								</svg>
+								<svg
+									class="ic st changes"
+									x-show="r.kind==='file' && r.state==='changes-requested'"
+									title="Changes requested"
+								>
+									<use href="#gly-circle-alert"></use>
+								</svg>
+								<span
+									class="nm"
+									x-show="r.kind==='file'"
+									x-text="r.name"
+									:title="r.path"
+								></span>
+								<span
+									class="moved-from"
+									x-show="r.kind==='file' && r.movedFrom"
+									x-text="'← '+r.movedFrom"
+									:title="'moved from '+r.movedFrom"
+								></span>
+								<svg
+									class="ic crit"
+									x-show="r.kind==='file' && r.flag"
+									:title="r.flag"
+								>
+									<use href="#gly-flag"></use>
+								</svg>
+								<svg
+									class="ic skim"
+									x-show="r.kind==='file' && r.skim"
+									title="Skimmed"
+								>
+									<use href="#gly-collapse-all"></use>
+								</svg>
+								<!-- Hidden on cat rows: an empty status-pack still carries margin-left:auto, and two
                    auto margins would split the free space and strand the skim-group count mid-row. -->
-              <span class="status-pack" x-show="r.kind==='file'">
-                <i class="add" x-show="r.kind==='file' && r.added" x-text="'+'+r.added"></i>
-                <i class="del" x-show="r.kind==='file' && r.removed" x-text="'−'+r.removed"></i>
-              </span>
-            </div>
-          </template>
-        </div>
-        <button class="tree-settings" @click="$store.g.openSettings()"><svg class="ic"><use href="#gly-settings"></use></svg><span>Settings</span><kbd>⇧,</kbd></button>
-      </aside>
-      <!-- Narrow-width only (CSS-gated): dims the diff behind the open file drawer; tap to close. -->
-      <div class="tree-backdrop" :class="{open: $store.g.treeDrawerOpen}" @click="$store.g.treeDrawerOpen=false"></div>
-      <div class="resizer" data-resize="left"></div>
-      <section class="center">
-        <div class="guidebar" x-show="$store.g.showGuideBar && $store.g.showGuideBar()" x-cloak>
-          <div class="gb-acts">
-            <button class="gb-home" @click="$store.g.openOverview()" data-tip="Overview (o)"><svg class="ic"><use href="#gly-home"></use></svg></button>
-            <button class="gb-nav" @click="$store.g.guidePrev()"
-              :disabled="$store.g.guideAtStart && $store.g.guideAtStart()" data-tip="Previous file (⇧←)"><svg class="ic"><use href="#gly-arrow-left"></use></svg></button>
-            <button class="gb-nav" @click="$store.g.guideNext()"
-              :disabled="$store.g.guideAtLast && $store.g.guideAtLast()" data-tip="Next file (⇧→)"><svg class="ic"><use href="#gly-arrow-right"></use></svg></button>
-          </div>
-          <span class="gb-stale" x-show="$store.g.guideStale && $store.g.guideStale()"
-            title="Guide generated for an earlier diff — regenerate and restart with --guide to refresh"><svg class="ic"><use href="#gly-warn"></use></svg> Guide Stale</span>
-          <span class="gb-fill"></span>
-        </div>
-        <div class="diff-area">
-          <div id="diff" x-ignore></div>
-          <div class="ovr" id="ovr" x-ignore></div>
-          <div class="diff-rendering" x-show="$store.g.rendering" x-cloak><span>Rendering…</span></div>
-          <button class="diff-fab" x-cloak
-            x-show="$store.g.fabState && $store.g.diffScrolled && $store.g.fabState()"
-            :class="{warn: $store.g.fabState && $store.g.fabState()==='changes'}"
-            @click="$store.g.approveFile && $store.g.approveFile()"><span
-              x-text="$store.g.fabState && $store.g.fabState()==='changes' ? 'Mark Reviewed' : 'Approve'">Approve</span> <kbd>⇧A</kbd></button>
-        </div>
-      </section>
-      <div class="modal-backdrop" id="settingsModal" :class="{show: $store.g.settingsOpen}"
-        @click.self="$store.g.closeSettings()">
-        <div class="modal settings">
-          <div class="set-tabs">
-            <button :class="{active: $store.g.settingsTab==='settings'}" @click="$store.g.settingsTab='settings'">Settings</button>
-            <button :class="{active: $store.g.settingsTab==='shortcuts'}" @click="$store.g.settingsTab='shortcuts'">Shortcuts</button>
-          </div>
-          <div class="set-pane" x-show="$store.g.settingsTab==='settings'">
-          <div class="set-section">Diff</div>
-          <div class="set-grid"><label>Layout<select :value="$store.g.diffStyle"
-                @change="$store.g.setStyle($event.target.value)">
-                <option value="split">Split</option>
-                <option value="unified">Unified</option>
-              </select></label><label>Intra-line<select x-model="$store.g.settings.lineDiffType"
-                @change="$store.g.applySettings()">
-                <option value="word-alt">Word</option>
-                <option value="char">Character</option>
-                <option value="none">None</option>
-              </select></label><label>Change indicators<select x-model="$store.g.settings.diffIndicators"
-                @change="$store.g.applySettings()">
-                <option value="bars">Bars</option>
-                <option value="classic">Classic</option>
-                <option value="none">None</option>
-              </select></label><label>Hunk separators<select x-model="$store.g.settings.hunkSeparators"
-                @change="$store.g.applySettings()">
-                <option value="line-info">Line info</option>
-                <option value="simple">Simple</option>
-                <option value="metadata">Metadata</option>
-              </select></label><label>Line wrapping<select x-model="$store.g.settings.overflow"
-                @change="$store.g.applySettings()">
-                <option value="scroll">Scroll</option>
-                <option value="wrap">Wrap</option>
-              </select></label><label>Line highlight<select x-model="$store.g.settings.lineHighlight"
-                @change="$store.g.applySettings()">
-                <option value="full">Full</option>
-                <option value="subtle">Subtle</option>
-                <option value="off">Off (word only)</option>
-              </select></label><label>Unchanged lines<select x-model="$store.g.settings.unchangedLines"
-                @change="$store.g.applySettings()">
-                <option value="collapse">Collapse</option>
-                <option value="expand">Expand all</option>
-              </select></label></div>
-          <div class="set-section">Appearance</div>
-          <div class="set-grid"><label>Theme<select x-model="$store.g.settings.appearance"
-                @change="$store.g.applySettings()">
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-              </select></label><label>Code theme<select x-model="$store.g.settings.theme"
-                @change="$store.g.applySettings()">
-                <optgroup label="Dark">
-                  <option value="material-theme-palenight">Palenight</option>
-                  <option value="material-theme-darker">Material Darker</option>
-                  <option value="github-dark">GitHub Dark</option>
-                  <option value="dracula">Dracula</option>
-                  <option value="ayu-dark">Ayu Dark</option>
-                  <option value="gruvbox-dark-medium">Gruvbox</option>
-                  <option value="everforest-dark">Everforest</option>
-                  <option value="dark-plus">Dark+ (VS Code)</option>
-                </optgroup>
-                <optgroup label="Light">
-                  <option value="github-light">GitHub Light</option>
-                  <option value="one-light">One Light</option>
-                  <option value="vitesse-light">Vitesse Light</option>
-                  <option value="catppuccin-latte">Catppuccin Latte</option>
-                  <option value="everforest-light">Everforest Light</option>
-                  <option value="light-plus">Light+ (VS Code)</option>
-                </optgroup>
-                <optgroup label="Diff only">
-                  <option value="pierre-dark">Pierre Dark</option>
-                  <option value="pierre-dark-soft">Pierre Dark Soft</option>
-                  <option value="pierre-light">Pierre Light</option>
-                </optgroup>
-              </select></label><label>Code font<select x-model="$store.g.settings.font" @change="$store.g.applySettings()">
-                <option value="jetbrains-mono">JetBrains Mono</option>
-                <option value="geist-mono">Geist Mono</option>
-                <option value="fira-code">Fira Code</option>
-                <option value="ibm-plex-mono">IBM Plex Mono</option>
-                <option value="source-code-pro">Source Code Pro</option>
-                <option value="roboto-mono">Roboto Mono</option>
-              </select></label><label>UI font<select x-model="$store.g.settings.uiFont" @change="$store.g.applySettings()">
-                <option value="inter">Inter</option>
-                <option value="geist">Geist</option>
-                <option value="ibm-plex-sans">IBM Plex Sans</option>
-                <option value="system">System</option>
-              </select></label><label>Code size<input type="number" min="11" max="16" step="0.5"
-                x-model.number="$store.g.settings.fontSize" @change="$store.g.applySettings()"></label><label>Tab size<select
-                x-model.number="$store.g.settings.tabSize" @change="$store.g.applySettings()">
-                <option value="2">2</option>
-                <option value="4">4</option>
-                <option value="8">8</option>
-              </select></label></div>
-          <div class="set-section">File tree</div>
-          <div class="set-grid"><label>Unchanged files<select
-                @change="$store.g.settings.showUnchanged = $event.target.value === 'show'; $store.g.applySettings()">
-                <option value="show" :selected="$store.g.settings.showUnchanged">Show</option>
-                <option value="hide" :selected="!$store.g.settings.showUnchanged">Hide</option>
-              </select></label><label>Guided sidebar opens<select x-model="$store.g.settings.sidebarDefault"
-                @change="$store.g.applySettings()">
-                <option value="tree">Tree</option>
-                <option value="walkthrough">Walkthrough</option>
-              </select></label></div>
-          <div class="set-section">Behavior</div>
-          <div class="set-grid"><label>Track progress by<select x-model="$store.g.settings.progressBy"
-                @change="$store.g.applySettings()">
-                <option value="lines">Diff lines</option>
-                <option value="files">Files</option>
-              </select></label><label>Markdown files<select x-model="$store.g.settings.markdownView"
-                @change="$store.g.applySettings()">
-                <option value="auto">Auto</option>
-                <option value="rendered">Rendered</option>
-                <option value="source">Source</option>
-              </select></label><label>Approve<select
-                @change="$store.g.settings.stageOnAccept = $event.target.value === 'stage'; $store.g.applySettings()">
-                <option value="stage" :selected="$store.g.settings.stageOnAccept">Stages file</option>
-                <option value="verdict" :selected="!$store.g.settings.stageOnAccept">Verdict only</option>
-              </select></label><label>Editor command<input type="text" placeholder="code -g {file}:{line}"
-                x-model="$store.g.settings.editorCommand" @change="$store.g.applySettings()"></label></div>
-          </div>
-          <div class="set-pane help-grid" x-show="$store.g.settingsTab==='shortcuts'" x-cloak>
-            <template x-for="grp in $store.g.helpGroups()" :key="grp.group">
-              <div class="help-col">
-                <div class="help-h" x-text="grp.group"></div>
-                <template x-for="it in grp.items" :key="it.combo">
-                  <div class="help-row"><kbd x-text="it.combo"></kbd><span x-text="it.desc"></span></div>
-                </template>
-              </div>
-            </template>
-          </div>
-          <div class="modal-actions"><button class="btn primary" @click="$store.g.closeSettings()">Done</button></div>
-        </div>
-      </div>
-      <div class="modal-backdrop" id="confirmModal" :class="{show: $store.g.confirmMsg}" @click.self="$store.g.confirmNo()">
-        <div class="modal confirm">
-          <p x-text="$store.g.confirmMsg"></p>
-          <div class="modal-actions"><button class="btn" @click="$store.g.confirmNo()">Cancel <kbd>Esc</kbd></button><button
-              class="btn primary" @click="$store.g.confirmYes()">Confirm <kbd>↵</kbd></button></div>
-        </div>
-      </div>
-      <div class="modal-backdrop" id="sendModal" :class="{show: $store.g.sendOpen}" @click.self="$store.g.sendCancel()">
-        <div class="modal send">
-          <p x-text="$store.g.sendMsg"></p>
-          <textarea id="sendNote" x-model="$store.g.sendNote"
-            placeholder="Overall note (optional) — an overall remark, or what to do after applying"></textarea>
-          <div class="modal-actions"><button class="btn" @click="$store.g.sendCancel()">Cancel <kbd>Esc</kbd></button><button
-              class="btn primary" @click="$store.g.sendConfirm()">Send <kbd>⌘↵</kbd></button></div>
-        </div>
-      </div>
-      <div class="toast" id="toast" :class="{show: $store.g.toastMsg}" x-text="$store.g.toastMsg">saved</div>
-      <div class="goline" :class="{show: $store.g.golineBuffer}">Go to line&nbsp;<b
-          x-text="$store.g.golineBuffer"></b><span class="goline-hint"><kbd>↵</kbd> Jump · <kbd>esc</kbd>
-          Cancel</span></div>
-    </main>
-  </div>
-  <script type="module" src="/ui.js"></script>
-</body>
-
+								<span
+									class="status-pack"
+									x-show="r.kind==='file'"
+								>
+									<i
+										class="add"
+										x-show="r.kind==='file' && r.added"
+										x-text="'+'+r.added"
+									></i>
+									<i
+										class="del"
+										x-show="r.kind==='file' && r.removed"
+										x-text="'−'+r.removed"
+									></i>
+								</span>
+							</div>
+						</template>
+					</div>
+					<button
+						class="tree-settings"
+						@click="$store.g.openSettings()"
+					>
+						<svg class="ic"><use href="#gly-settings"></use></svg
+						><span>Settings</span><kbd>⇧,</kbd>
+					</button>
+				</aside>
+				<!-- Narrow-width only (CSS-gated): dims the diff behind the open file drawer; tap to close. -->
+				<div
+					class="tree-backdrop"
+					:class="{open: $store.g.treeDrawerOpen}"
+					@click="$store.g.treeDrawerOpen=false"
+				></div>
+				<div class="resizer" data-resize="left"></div>
+				<section class="center">
+					<div
+						class="guidebar"
+						x-show="$store.g.showGuideBar && $store.g.showGuideBar()"
+						x-cloak
+					>
+						<div class="gb-acts">
+							<button
+								class="gb-home"
+								@click="$store.g.openOverview()"
+								data-tip="Overview (o)"
+							>
+								<svg class="ic">
+									<use href="#gly-home"></use>
+								</svg>
+							</button>
+							<button
+								class="gb-nav"
+								@click="$store.g.guidePrev()"
+								:disabled="$store.g.guideAtStart && $store.g.guideAtStart()"
+								data-tip="Previous file (⇧←)"
+							>
+								<svg class="ic">
+									<use href="#gly-arrow-left"></use>
+								</svg>
+							</button>
+							<button
+								class="gb-nav"
+								@click="$store.g.guideNext()"
+								:disabled="$store.g.guideAtLast && $store.g.guideAtLast()"
+								data-tip="Next file (⇧→)"
+							>
+								<svg class="ic">
+									<use href="#gly-arrow-right"></use>
+								</svg>
+							</button>
+						</div>
+						<span
+							class="gb-stale"
+							x-show="$store.g.guideStale && $store.g.guideStale()"
+							title="Guide generated for an earlier diff — regenerate and restart with --guide to refresh"
+							><svg class="ic"><use href="#gly-warn"></use></svg>
+							Guide Stale</span
+						>
+						<span class="gb-fill"></span>
+					</div>
+					<div class="diff-area">
+						<div id="diff" x-ignore></div>
+						<div class="ovr" id="ovr" x-ignore></div>
+						<div
+							class="diff-rendering"
+							x-show="$store.g.rendering"
+							x-cloak
+						>
+							<span>Rendering…</span>
+						</div>
+						<button
+							class="diff-fab"
+							x-cloak
+							x-show="$store.g.fabState && $store.g.diffScrolled && $store.g.fabState()"
+							:class="{warn: $store.g.fabState && $store.g.fabState()==='changes'}"
+							@click="$store.g.approveFile && $store.g.approveFile()"
+						>
+							<span
+								x-text="$store.g.fabState && $store.g.fabState()==='changes' ? 'Mark Reviewed' : 'Approve'"
+								>Approve</span
+							>
+							<kbd>⇧A</kbd>
+						</button>
+					</div>
+				</section>
+				<div
+					class="modal-backdrop"
+					id="settingsModal"
+					:class="{show: $store.g.settingsOpen}"
+					@click.self="$store.g.closeSettings()"
+				>
+					<div class="modal settings">
+						<div class="set-tabs">
+							<button
+								:class="{active: $store.g.settingsTab==='settings'}"
+								@click="$store.g.settingsTab='settings'"
+							>
+								Settings
+							</button>
+							<button
+								:class="{active: $store.g.settingsTab==='shortcuts'}"
+								@click="$store.g.settingsTab='shortcuts'"
+							>
+								Shortcuts
+							</button>
+						</div>
+						<div
+							class="set-pane"
+							x-show="$store.g.settingsTab==='settings'"
+						>
+							<div class="set-section">Diff</div>
+							<div class="set-grid">
+								<label
+									>Layout<select
+										:value="$store.g.diffStyle"
+										@change="$store.g.setStyle($event.target.value)"
+									>
+										<option value="split">Split</option>
+										<option value="unified">Unified</option>
+									</select></label
+								><label
+									>Intra-line<select
+										x-model="$store.g.settings.lineDiffType"
+										@change="$store.g.applySettings()"
+									>
+										<option value="word-alt">Word</option>
+										<option value="char">Character</option>
+										<option value="none">None</option>
+									</select></label
+								><label
+									>Change indicators<select
+										x-model="$store.g.settings.diffIndicators"
+										@change="$store.g.applySettings()"
+									>
+										<option value="bars">Bars</option>
+										<option value="classic">Classic</option>
+										<option value="none">None</option>
+									</select></label
+								><label
+									>Hunk separators<select
+										x-model="$store.g.settings.hunkSeparators"
+										@change="$store.g.applySettings()"
+									>
+										<option value="line-info">
+											Line info
+										</option>
+										<option value="simple">Simple</option>
+										<option value="metadata">
+											Metadata
+										</option>
+									</select></label
+								><label
+									>Line wrapping<select
+										x-model="$store.g.settings.overflow"
+										@change="$store.g.applySettings()"
+									>
+										<option value="scroll">Scroll</option>
+										<option value="wrap">Wrap</option>
+									</select></label
+								><label
+									>Line highlight<select
+										x-model="$store.g.settings.lineHighlight"
+										@change="$store.g.applySettings()"
+									>
+										<option value="full">Full</option>
+										<option value="subtle">Subtle</option>
+										<option value="off">
+											Off (word only)
+										</option>
+									</select></label
+								><label
+									>Unchanged lines<select
+										x-model="$store.g.settings.unchangedLines"
+										@change="$store.g.applySettings()"
+									>
+										<option value="collapse">
+											Collapse
+										</option>
+										<option value="expand">
+											Expand all
+										</option>
+									</select></label
+								>
+							</div>
+							<div class="set-section">Appearance</div>
+							<div class="set-grid">
+								<label
+									>Theme<select
+										x-model="$store.g.settings.appearance"
+										@change="$store.g.applySettings()"
+									>
+										<option value="dark">Dark</option>
+										<option value="light">Light</option>
+									</select></label
+								><label
+									>Code theme<select
+										x-model="$store.g.settings.theme"
+										@change="$store.g.applySettings()"
+									>
+										<optgroup label="Dark">
+											<option
+												value="material-theme-palenight"
+											>
+												Palenight
+											</option>
+											<option
+												value="material-theme-darker"
+											>
+												Material Darker
+											</option>
+											<option value="github-dark">
+												GitHub Dark
+											</option>
+											<option value="dracula">
+												Dracula
+											</option>
+											<option value="ayu-dark">
+												Ayu Dark
+											</option>
+											<option value="gruvbox-dark-medium">
+												Gruvbox
+											</option>
+											<option value="everforest-dark">
+												Everforest
+											</option>
+											<option value="dark-plus">
+												Dark+ (VS Code)
+											</option>
+										</optgroup>
+										<optgroup label="Light">
+											<option value="github-light">
+												GitHub Light
+											</option>
+											<option value="one-light">
+												One Light
+											</option>
+											<option value="vitesse-light">
+												Vitesse Light
+											</option>
+											<option value="catppuccin-latte">
+												Catppuccin Latte
+											</option>
+											<option value="everforest-light">
+												Everforest Light
+											</option>
+											<option value="light-plus">
+												Light+ (VS Code)
+											</option>
+										</optgroup>
+										<optgroup label="Diff only">
+											<option value="pierre-dark">
+												Pierre Dark
+											</option>
+											<option value="pierre-dark-soft">
+												Pierre Dark Soft
+											</option>
+											<option value="pierre-light">
+												Pierre Light
+											</option>
+										</optgroup>
+									</select></label
+								><label
+									>Code font<select
+										x-model="$store.g.settings.font"
+										@change="$store.g.applySettings()"
+									>
+										<option value="jetbrains-mono">
+											JetBrains Mono
+										</option>
+										<option value="geist-mono">
+											Geist Mono
+										</option>
+										<option value="fira-code">
+											Fira Code
+										</option>
+										<option value="ibm-plex-mono">
+											IBM Plex Mono
+										</option>
+										<option value="source-code-pro">
+											Source Code Pro
+										</option>
+										<option value="roboto-mono">
+											Roboto Mono
+										</option>
+									</select></label
+								><label
+									>UI font<select
+										x-model="$store.g.settings.uiFont"
+										@change="$store.g.applySettings()"
+									>
+										<option value="inter">Inter</option>
+										<option value="geist">Geist</option>
+										<option value="ibm-plex-sans">
+											IBM Plex Sans
+										</option>
+										<option value="system">System</option>
+									</select></label
+								><label
+									>Code size<input
+										type="number"
+										min="11"
+										max="16"
+										step="0.5"
+										x-model.number="$store.g.settings.fontSize"
+										@change="$store.g.applySettings()" /></label
+								><label
+									>Tab size<select
+										x-model.number="$store.g.settings.tabSize"
+										@change="$store.g.applySettings()"
+									>
+										<option value="2">2</option>
+										<option value="4">4</option>
+										<option value="8">8</option>
+									</select></label
+								>
+							</div>
+							<div class="set-section">File tree</div>
+							<div class="set-grid">
+								<label
+									>Unchanged files<select
+										@change="$store.g.settings.showUnchanged = $event.target.value === 'show'; $store.g.applySettings()"
+									>
+										<option
+											value="show"
+											:selected="$store.g.settings.showUnchanged"
+										>
+											Show
+										</option>
+										<option
+											value="hide"
+											:selected="!$store.g.settings.showUnchanged"
+										>
+											Hide
+										</option>
+									</select></label
+								><label
+									>Guided sidebar opens<select
+										x-model="$store.g.settings.sidebarDefault"
+										@change="$store.g.applySettings()"
+									>
+										<option value="tree">Tree</option>
+										<option value="walkthrough">
+											Walkthrough
+										</option>
+									</select></label
+								>
+							</div>
+							<div class="set-section">Behavior</div>
+							<div class="set-grid">
+								<label
+									>Track progress by<select
+										x-model="$store.g.settings.progressBy"
+										@change="$store.g.applySettings()"
+									>
+										<option value="lines">
+											Diff lines
+										</option>
+										<option value="files">Files</option>
+									</select></label
+								><label
+									>Markdown files<select
+										x-model="$store.g.settings.markdownView"
+										@change="$store.g.applySettings()"
+									>
+										<option value="auto">Auto</option>
+										<option value="rendered">
+											Rendered
+										</option>
+										<option value="source">Source</option>
+									</select></label
+								><label
+									>Approve<select
+										@change="$store.g.settings.stageOnAccept = $event.target.value === 'stage'; $store.g.applySettings()"
+									>
+										<option
+											value="stage"
+											:selected="$store.g.settings.stageOnAccept"
+										>
+											Stages file
+										</option>
+										<option
+											value="verdict"
+											:selected="!$store.g.settings.stageOnAccept"
+										>
+											Verdict only
+										</option>
+									</select></label
+								><label
+									>Editor command<input
+										type="text"
+										placeholder="code -g {file}:{line}"
+										x-model="$store.g.settings.editorCommand"
+										@change="$store.g.applySettings()"
+								/></label>
+							</div>
+						</div>
+						<div
+							class="set-pane help-grid"
+							x-show="$store.g.settingsTab==='shortcuts'"
+							x-cloak
+						>
+							<template
+								x-for="grp in $store.g.helpGroups()"
+								:key="grp.group"
+							>
+								<div class="help-col">
+									<div
+										class="help-h"
+										x-text="grp.group"
+									></div>
+									<template
+										x-for="it in grp.items"
+										:key="it.combo"
+									>
+										<div class="help-row">
+											<kbd x-text="it.combo"></kbd
+											><span x-text="it.desc"></span>
+										</div>
+									</template>
+								</div>
+							</template>
+						</div>
+						<div class="modal-actions">
+							<button
+								class="btn primary"
+								@click="$store.g.closeSettings()"
+							>
+								Done
+							</button>
+						</div>
+					</div>
+				</div>
+				<div
+					class="modal-backdrop"
+					id="confirmModal"
+					:class="{show: $store.g.confirmMsg}"
+					@click.self="$store.g.confirmNo()"
+				>
+					<div class="modal confirm">
+						<p x-text="$store.g.confirmMsg"></p>
+						<div class="modal-actions">
+							<button class="btn" @click="$store.g.confirmNo()">
+								Cancel <kbd>Esc</kbd></button
+							><button
+								class="btn primary"
+								@click="$store.g.confirmYes()"
+							>
+								Confirm <kbd>↵</kbd>
+							</button>
+						</div>
+					</div>
+				</div>
+				<div
+					class="modal-backdrop"
+					id="sendModal"
+					:class="{show: $store.g.sendOpen}"
+					@click.self="$store.g.sendCancel()"
+				>
+					<div class="modal send">
+						<p x-text="$store.g.sendMsg"></p>
+						<textarea
+							id="sendNote"
+							x-model="$store.g.sendNote"
+							placeholder="Overall note (optional) — an overall remark, or what to do after applying"
+						></textarea>
+						<div class="modal-actions">
+							<button class="btn" @click="$store.g.sendCancel()">
+								Cancel <kbd>Esc</kbd></button
+							><button
+								class="btn primary"
+								@click="$store.g.sendConfirm()"
+							>
+								Send <kbd>⌘↵</kbd>
+							</button>
+						</div>
+					</div>
+				</div>
+				<div
+					class="toast"
+					id="toast"
+					:class="{show: $store.g.toastMsg}"
+					x-text="$store.g.toastMsg"
+				>
+					saved
+				</div>
+				<div class="goline" :class="{show: $store.g.golineBuffer}">
+					Go to line&nbsp;<b x-text="$store.g.golineBuffer"></b
+					><span class="goline-hint"
+						><kbd>↵</kbd> Jump · <kbd>esc</kbd> Cancel</span
+					>
+				</div>
+			</main>
+		</div>
+		<script type="module" src="/ui.js"></script>
+	</body>
 </html>

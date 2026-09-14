@@ -27,6 +27,12 @@
   "engines": {
     "node": ">=22"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24"
+    }
+  },
   "pi": {
     "extensions": [
       "extensions"
@@ -54,18 +60,21 @@
     "dev": "node scripts/build-ui.mjs --watch & tsx src/cli.ts",
     "build": "tsc && tsc -p tsconfig.ui.json && node scripts/build-ui.mjs && cp src/ui/index.html dist/index.html",
     "start": "node dist/cli.js",
-    "check": "tsc --noEmit && tsc -p tsconfig.ui.json && tsc -p tsconfig.extensions.json",
-    "lint": "oxlint src scripts extensions && oxfmt --check src scripts extensions",
-    "lint:fix": "oxlint src scripts extensions --fix && oxfmt src scripts extensions",
+    "check": "tsc --noEmit && tsc -p tsconfig.ui.json && tsc -p tsconfig.extensions.json && tsc -p tsconfig.test.json && tsc -p tsconfig.ui-test.json && tsc -p tsconfig.tooling.json",
+    "lint": "oxlint --deny-warnings",
+    "lint:types": "oxlint --type-aware --deny-warnings",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "smoke": "node scripts/smoke.mjs",
     "perf-smoke": "node scripts/perf-smoke.mjs",
     "prepack": "pnpm build",
-    "release": "pnpm lint && pnpm check && pnpm test && pnpm build && pnpm smoke && changelogen --release --push",
+    "release": "pnpm lint && pnpm lint:types && pnpm format:check && pnpm check && pnpm test && pnpm build && changelogen --release --push",
     "postinstall": "pnpm build"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",
+    "@nextnode-solutions/standards": "1.24.0",
     "@types/alpinejs": "^3.13.11",
     "@types/alpinejs__persist": "^3.13.4",
     "@types/markdown-it": "^14.1.2",
@@ -73,8 +82,9 @@
     "@types/node": "latest",
     "changelogen": "^0.6.2",
     "esbuild": "^0.28.0",
-    "oxfmt": "^0.53.0",
-    "oxlint": "^1.68.0",
+    "oxfmt": "0.67.0",
+    "oxlint": "1.82.0",
+    "oxlint-tsgolint": "7.0.2001",
     "tsx": "latest",
     "typescript": "latest"
   },

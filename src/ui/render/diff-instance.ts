@@ -1,0 +1,254 @@
+import { FileDiff, parseDiffFromFile } from '@pierre/diffs'
+
+import { annotations, renderAnnotation } from '../annotations'
+import {
+	currentSplittable,
+	ensureChangesFromFileDiff,
+	replayDecisions,
+	syncDisplayAnchors,
+} from '../changes'
+import { cur } from '../contents'
+import { cursorResync, invalidateCursorRows } from '../cursor'
+import { revealThreadLines } from '../expand'
+import { currentGuideEntry } from '../guide'
+import {
+	attachDiffSelectionHandlers,
+	handleDiffSelection,
+	handleLineNumberClick,
+} from '../selection'
+import { applySkimCollapse } from '../skim'
+import { $, D, S } from '../store'
+
+import { createDiffHeader, headerActions } from './file-header'
+import { renderOverviewRuler } from './overview-ruler'
+
+import type { FileDiffMetadata, FileDiffOptions } from '@pierre/diffs'
+import type { AnnotationMeta, ReviewState } from '../types'
+
+type ReviewFile = ReviewState['files'][number]
+type DiffEntry = { wrapper: HTMLElement; inst: FileDiff<AnnotationMeta> }
+
+// The view flags every render step shares: `isPreviewing` for a read-only one-sided preview of an
+// unchanged file, `isExpandedUnchanged` for the diff's "expand unchanged lines" setting.
+export type DiffView = { isPreviewing: boolean; isExpandedUnchanged: boolean }
+
+// The @pierre/diffs island: parse the current file's contents into the diff the reviewer sees
+// (decisions replayed), mount it into a cached wrapper, then run the work that needs committed rows.
+
+// How many rendered file instances to keep warm (each holds DOM + @pierre's highlight cache).
+// Cheap now that the state itself is lean (issue 04 removed embedded contents), so we keep ~30
+// files warm - returning to any recently viewed file re-mounts its cached wrapper without
+// re-tokenizing, matching the per-file contents LRU's cap (contents.ts).
+const DIFF_CACHE_CAP = 30
+// FNV-1a over a string, base36: a cheap stable hash used as @pierre cacheKeys for the old side
+// (the new side reuses the server's contentHash). Same content -> same key -> cache hit.
+const FNV_OFFSET_BASIS = 2166136261
+const FNV_PRIME = 16777619
+const HASH_RADIX = 36
+// The cacheKey for the empty side of a view-only diff (a preview reads as one-sided content).
+const EMPTY_SIDE_KEY = '∅'
+
+function ckey(s: string): string {
+	let hash = FNV_OFFSET_BASIS
+	for (let i = 0; i < s.length; i++) {
+		hash ^= s.charCodeAt(i)
+		hash = Math.imul(hash, FNV_PRIME)
+	}
+	return (hash >>> 0).toString(HASH_RADIX)
+}
+
+// Identity of a rendered diff for the LRU cache: the current file + every option that changes
+// what @pierre renders. deferRender uses this to tell if re-opening a file will be a fast cache
+// hit (-> skip the "Rendering…" indicator). Reads currentSplittable(), so call after fileIndex is set.
+export function diffKey(file: ReviewFile, view: DiffView): string {
+	return JSON.stringify([
+		file.path,
+		view.isPreviewing,
+		currentSplittable() ? S.diffStyle : 'unified',
+		view.isExpandedUnchanged,
+		view.isPreviewing ? 'none' : S.settings.diffIndicators,
+		S.settings.overflow,
+		S.settings.hunkSeparators,
+		S.settings.lineDiffType,
+		S.settings.theme,
+		// appearance flips @pierre's themeType, so a cached diff must invalidate on it
+		S.settings.appearance,
+		!!currentGuideEntry(),
+	])
+}
+
+// Preview reads as a plain file: remap @pierre's addition styling to its CONTEXT (unchanged)
+// styling - row tint, gutter cell bg, and gutter number color all to the neutral context values -
+// so a one-sided render of an unchanged file isn't all-green. These must be set INSIDE @pierre's
+// shadow (via unsafeCSS below): the context vars they reference only exist there, so a host-level
+// override referencing them is invalid and silently reverts.
+const PREVIEW_CSS =
+	'[data-code]{--diffs-bg-addition-override:var(--diffs-bg-context);--diffs-bg-addition-emphasis-override:var(--diffs-bg-context);--diffs-bg-addition-number-override:var(--diffs-bg-context-gutter);--diffs-fg-number-addition-override:var(--diffs-fg-number)}'
+
+// @pierre renders nothing for a zero-change diff, so a whole-file view (a new file, or a preview -
+// an unchanged file the reviewer opened) is shown as the file's content on one side.
+function isViewOnly(isPreviewing: boolean): boolean {
+	if (isPreviewing) return true
+	if (S.state?.mode !== 'file') return false
+	return cur.oldContents === '' || cur.oldContents === cur.newContents
+}
+
+// The parsed diff @pierre renders, carrying the reviewer's decisions. Changes (identity, raw
+// anchors) derive from the raw diff; the rendered diff is the decision-replayed one, so display
+// anchors must be re-read from it (resolutions renumber lines - see linemap.ts).
+function buildDiffMetadata(file: ReviewFile, view: DiffView): FileDiffMetadata {
+	// Old/new display names carry rename info to @pierre (distinct paths -> rename coloring);
+	// they're metadata (oldPath/newPath), not contents, so they stay independent of the bytes.
+	const newName = file.newPath ?? file.path
+	// cacheKey lets @pierre reuse its highlighted token AST for the same content across renders (and
+	// instances), so re-rendering after a decision - or re-opening a file - doesn't re-tokenize.
+	const newSide = {
+		name: newName,
+		contents: cur.newContents,
+		cacheKey: file.contentHash || ckey(cur.newContents),
+	}
+	if (isViewOnly(view.isPreviewing)) {
+		D.lineMap = null
+		return parseDiffFromFile(
+			{ name: newName, contents: '', cacheKey: EMPTY_SIDE_KEY },
+			newSide,
+		)
+	}
+	const oldSide = {
+		name: file.oldPath ?? file.path,
+		contents: cur.oldContents,
+		cacheKey: ckey(cur.oldContents),
+	}
+	const raw = parseDiffFromFile(oldSide, newSide)
+	ensureChangesFromFileDiff(raw)
+	const replayed = replayDecisions(raw)
+	syncDisplayAnchors(replayed)
+	return replayed
+}
+
+// The @pierre render options for one instance. `renderHeaderMetadata` and `renderCustomHeader`
+// are our own header builders (see file-header.ts).
+function diffOptions(view: DiffView): FileDiffOptions<AnnotationMeta> {
+	const { isPreviewing, isExpandedUnchanged } = view
+	return {
+		// The code theme is the user's pick regardless of appearance (the settings dropdown groups
+		// dark and light themes; mixing is allowed). Both slots get it - themeType only decides
+		// which slot @pierre reads plus its own chrome colors, which follow the appearance.
+		theme: { dark: S.settings.theme, light: S.settings.theme },
+		themeType: S.settings.appearance === 'light' ? 'light' : 'dark',
+		diffStyle: currentSplittable() ? S.diffStyle : 'unified',
+		diffIndicators: isPreviewing ? 'none' : S.settings.diffIndicators,
+		expandUnchanged: isExpandedUnchanged,
+		overflow: S.settings.overflow,
+		hunkSeparators: S.settings.hunkSeparators,
+		lineDiffType: S.settings.lineDiffType,
+		enableLineSelection: true,
+		renderAnnotation,
+		onLineNumberClick: handleLineNumberClick,
+		onLineSelectionStart: handleDiffSelection,
+		onLineSelectionChange: handleDiffSelection,
+		onLineSelected: handleDiffSelection,
+		onLineSelectionEnd: handleDiffSelection,
+		renderHeaderMetadata: headerActions,
+		// @pierre's own post-render signal - fires once the diff rows are committed to the shadow
+		// DOM (mount and every update). This is where skim collapse must run: on a COLD mount the
+		// render() promise resolves before the rows are queryable, so the afterRender pass finds
+		// nothing; onPostRender fires when they exist. (afterRender still runs it too, for the
+		// warm/cached path where rows are already present - both are idempotent.)
+		onPostRender: (_node, _instance, phase) => {
+			// The rendered rows just changed (mount, update, or @pierre's own expandHunk rerender -
+			// which never routes through our render()), so the cursor's cached row list is stale.
+			invalidateCursorRows()
+			if (phase !== 'unmount') applySkimCollapse()
+		},
+		// @pierre reserves a right-side gutter via `scrollbar-gutter: stable` on the code grid (for
+		// a vertical scrollbar it hides) - drop it so rows fill the full width. PREVIEW_CSS (empty
+		// unless previewing) neutralizes addition styling to context, in-shadow.
+		unsafeCSS: `[data-code]{scrollbar-gutter:auto}${isPreviewing ? PREVIEW_CSS : ''}`,
+		renderCustomHeader: createDiffHeader(isPreviewing),
+	}
+}
+
+// The cached instance for `key`, created on first use. Re-inserting moves it to the most-recently-
+// used end; only the wrapper of the active instance is mounted in #diff, the others stay detached
+// but referenced, so their DOM + @pierre highlight cache survive.
+function acquireEntry(key: string, view: DiffView): DiffEntry {
+	const cached = D.diffCache.get(key)
+	if (cached) {
+		D.diffCache.delete(key)
+		D.diffCache.set(key, cached)
+		return cached
+	}
+	const wrapper = document.createElement('div')
+	wrapper.className = 'diff-wrap'
+	const entry: DiffEntry = {
+		wrapper,
+		inst: new FileDiff(diffOptions(view)),
+	}
+	D.diffCache.set(key, entry)
+	return entry
+}
+
+// Mount the entry's wrapper as #diff's only child. A same-file re-render skips the replace: it
+// would detach and re-attach the wrapper, resetting scroll for no reason.
+function mountEntry(host: HTMLElement, entry: DiffEntry): boolean {
+	const isNewMount =
+		host.firstElementChild !== entry.wrapper || host.childElementCount !== 1
+	if (isNewMount) host.replaceChildren(entry.wrapper)
+	return isNewMount
+}
+
+// Evict least-recently-used instances beyond the cap, keeping the active one.
+function evictEntries(active: DiffEntry): void {
+	while (D.diffCache.size > DIFF_CACHE_CAP) {
+		const oldest = D.diffCache.keys().next()
+		if (oldest.done) return
+		const evicted = D.diffCache.get(oldest.value)
+		D.diffCache.delete(oldest.value)
+		if (evicted && evicted !== active) {
+			evicted.inst.cleanUp()
+			evicted.wrapper.remove()
+		}
+	}
+}
+
+// Work that needs the rows to exist. Skim collapse runs synchronously (before paint) so there is
+// no expand-then-collapse flash; the rest waits for a frame so the rows have laid out.
+function afterRender(key: string, view: DiffView): void {
+	const { isPreviewing, isExpandedUnchanged } = view
+	if (!isPreviewing) {
+		applySkimCollapse()
+		// Unfold collapsed regions hiding an open comment thread (once per rendered diff).
+		revealThreadLines(key)
+	}
+	setTimeout(() => attachDiffSelectionHandlers(), 0)
+	// The overview ruler only makes sense when the whole file is shown (expand mode) and there are
+	// real changes (not a preview).
+	if (!isPreviewing && isExpandedUnchanged)
+		requestAnimationFrame(() => renderOverviewRuler())
+	// Repaint the keyboard line cursor once rows have laid out (init to first change on a fresh
+	// file, else keep the same logical line).
+	requestAnimationFrame(() => cursorResync())
+}
+
+export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
+	const metadata = buildDiffMetadata(file, view)
+	D.fileDiff = metadata
+	const key = diffKey(file, view)
+	const entry = acquireEntry(key, view)
+	D.instance = entry.inst
+	const host = $('diff')
+	const mountedNew = mountEntry(host, entry)
+	entry.inst.setLineAnnotations(annotations())
+	entry.inst.render({
+		fileDiff: metadata,
+		containerWrapper: entry.wrapper,
+		lineAnnotations: annotations(),
+	})
+	// A genuine file/view switch starts at the top. #diff is the persistent scroll container, so
+	// replaceChildren preserves its previous scrollTop - a tall next file would otherwise open
+	// mid-scroll. A same-file re-render (a decision applied) skips this and keeps its scroll.
+	if (mountedNew) host.scrollTop = 0
+	afterRender(key, view)
+	evictEntries(entry)
+}

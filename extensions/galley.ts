@@ -10,87 +10,97 @@
  * - registers a `/galley` status command for quick health checks.
  *
  * The desk process itself is started by the agent via the CLI (`galley … &`),
- * per upstream galley's own contract — no background resources are started
+ * per upstream galley's own contract - no background resources are started
  * here (see pi extension rules: factories must not spawn long-lived stuff).
  */
-import { execFileSync } from "node:child_process";
-import { mkdirSync, existsSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { execFileSync } from 'node:child_process'
+import {
+	mkdirSync,
+	existsSync,
+	readFileSync,
+	writeFileSync,
+	chmodSync,
+} from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const CLI = join(PACKAGE_ROOT, "dist", "cli.js");
-const BIN_DIR = join(homedir(), ".pi", "agent", "bin");
-const SHIM = join(BIN_DIR, "galley");
+import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
+
+const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
+const CLI = join(PACKAGE_ROOT, 'dist', 'cli.js')
+const BIN_DIR = join(homedir(), '.pi', 'agent', 'bin')
+const SHIM = join(BIN_DIR, 'galley')
+// Both the create mode and the explicit chmod need the shim to stay executable.
+const SHIM_MODE = 0o755
 
 function shimBody(): string {
-  return [
-    "#!/bin/sh",
-    "# galley — pi package shim; owned by the galley pi extension (idempotent).",
-    `exec node ${JSON.stringify(CLI)} "$@"`,
-    "",
-  ].join("\n");
+	return [
+		'#!/bin/sh',
+		'# galley - pi package shim; owned by the galley pi extension (idempotent).',
+		`exec node ${JSON.stringify(CLI)} "$@"`,
+		'',
+	].join('\n')
 }
 
-function writeShim(): "created" | "updated" | "current" {
-  let before: string | null = null;
-  try {
-    before = readFileSync(SHIM, "utf8");
-  } catch {
-    before = null;
-  }
-  const body = shimBody();
-  if (before === body) return "current";
-  mkdirSync(BIN_DIR, { recursive: true });
-  writeFileSync(SHIM, body, { mode: 0o755 });
-  chmodSync(SHIM, 0o755); // writeFileSync mode only applies on create
-  return before === null ? "created" : "updated";
+function writeShim(): 'created' | 'updated' | 'current' {
+	let before: string | null = null
+	try {
+		before = readFileSync(SHIM, 'utf8')
+	} catch {
+		before = null
+	}
+	const body = shimBody()
+	if (before === body) return 'current'
+	mkdirSync(BIN_DIR, { recursive: true })
+	writeFileSync(SHIM, body, { mode: SHIM_MODE })
+	chmodSync(SHIM, SHIM_MODE) // writeFileSync mode only applies on create
+	return before === null ? 'created' : 'updated'
 }
 
 function ensureCli(): void {
-  if (existsSync(CLI)) return;
-  // One-shot, bounded: the package was cloned/updated without a build step
-  // (e.g. scripts disabled during install). Rebuild with the pinned pnpm.
-  execFileSync("pnpm", ["build"], { cwd: PACKAGE_ROOT, stdio: "ignore" });
-  if (!existsSync(CLI)) throw new Error(`build ran but ${CLI} is still missing`);
+	if (existsSync(CLI)) return
+	// One-shot, bounded: the package was cloned/updated without a build step
+	// (e.g. scripts disabled during install). Rebuild with the pinned pnpm.
+	execFileSync('pnpm', ['build'], { cwd: PACKAGE_ROOT, stdio: 'ignore' })
+	if (!existsSync(CLI))
+		throw new Error(`build ran but ${CLI} is still missing`)
 }
 
 interface Report {
-  version: string;
-  shim: "created" | "updated" | "current";
-  cli: string;
+	version: string
+	shim: 'created' | 'updated' | 'current'
+	cli: string
 }
 
 function setup(): Report {
-  ensureCli();
-  const shim = writeShim();
-  const version = execFileSync("node", [CLI, "--version"], { encoding: "utf8" }).trim();
-  return { version, shim, cli: CLI };
+	ensureCli()
+	const shim = writeShim()
+	const version = execFileSync('node', [CLI, '--version'], {
+		encoding: 'utf8',
+	}).trim()
+	return { version, shim, cli: CLI }
 }
 
 export default function registerGalleyExtension(pi: ExtensionAPI): void {
-  let report: Report | undefined;
-  try {
-    report = setup();
-  } catch (error) {
-    console.error(
-      `[galley-pi] setup failed: ${error instanceof Error ? error.message : String(error)} — ` +
-        `the /review and /plan prompts still work; they fall back to "pnpm add -g galley-diff".`,
-    );
-  }
-  if (pi) {
-    pi.registerCommand("galley", {
-      description: "Galley review desk status — CLI, shim, package paths",
-      handler: async (_args, ctx) => {
-        ctx.ui.notify(
-          report
-            ? `galley v${report.version} — shim: ${SHIM} (${report.shim}) — cli: ${report.cli}`
-            : "galley setup failed — see pi startup stderr",
-          report ? "info" : "warning",
-        );
-      },
-    });
-  }
+	let report: Report | undefined
+	try {
+		report = setup()
+	} catch (error) {
+		process.stderr.write(
+			`[galley-pi] setup failed: ${error instanceof Error ? error.message : String(error)} - ` +
+				`the /review and /plan prompts still work; they fall back to "pnpm add -g galley-diff".\n`,
+		)
+	}
+	pi.registerCommand('galley', {
+		description: 'Galley review desk status - CLI, shim, package paths',
+		handler: async (_args, ctx) => {
+			ctx.ui.notify(
+				report
+					? `galley v${report.version} - shim: ${SHIM} (${report.shim}) - cli: ${report.cli}`
+					: 'galley setup failed - see pi startup stderr',
+				report ? 'info' : 'warning',
+			)
+		},
+	})
 }

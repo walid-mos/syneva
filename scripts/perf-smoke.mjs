@@ -1,232 +1,292 @@
+import assert from 'node:assert/strict'
 // Perf regression gate: generates a throwaway ~1,000-file git repo (every file edited in
 // the working tree, plus one oversized generated file), starts a real desk against dist/,
 // and asserts the PRD's budgets with CI-safe margins. The point is catching order-of-magnitude
-// regressions — the 170 MB payload / ~2,550 sequential-spawn kind — not millisecond drift.
+// regressions - the 170 MB payload / ~2,550 sequential-spawn kind - not millisecond drift.
 // Run: pnpm build && pnpm perf-smoke
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn } from 'node:child_process'
 import {
-  mkdtempSync,
-  writeFileSync,
-  readFileSync,
-  statSync,
-  rmSync,
-  mkdirSync,
-  readdirSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import assert from "node:assert/strict";
+	mkdtempSync,
+	writeFileSync,
+	readFileSync,
+	statSync,
+	rmSync,
+	mkdirSync,
+	readdirSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 
-const ID = "perf-smoke";
-const CLI = path.join(process.cwd(), "dist", "cli.js");
-const UI_BUNDLE = path.join(process.cwd(), "dist", "ui.js");
-// Bound lazily from the desk's startup line once it launches — see waitForDeskUrl. The desk
+const ID = 'perf-smoke'
+const CLI = path.join(process.cwd(), 'dist', 'cli.js')
+const UI_BUNDLE = path.join(process.cwd(), 'dist', 'ui.js')
+const FILE_COUNT = 1000
+const DESK_URL_TIMEOUT_MS = 30_000
+const POLL_ATTEMPTS = 150
+const POLL_INTERVAL_MS = 100
+const JSON_INDENT = 2
+// Bound lazily from the desk's startup line once it launches - see waitForDeskUrl. The desk
 // silently falls back to a random port when a fixed one is taken, so assuming a port here made
 // every fetch fail confusingly on a busy machine; we read the port it actually bound instead.
-let BASE;
-const FILE_COUNT = 1000;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let BASE
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+// The oversized generated fixture: >5000 changed lines, shared by the committed + working writes.
+const bigLines = tag =>
+	`${Array.from({ length: 6000 }, (_, i) => `${tag} line ${i}`).join('\n')}\n`
 
 // The desk prints `Galley <session>: http://127.0.0.1:<port>/` to stderr once it's listening.
-// Read that line (accumulating chunks — it can arrive split) and return the origin without the
+// Read that line (accumulating chunks - it can arrive split) and return the origin without the
 // trailing slash, so BASE + "/api/..." is well-formed.
-const waitForDeskUrl = (child) =>
-  new Promise((resolve, reject) => {
-    let buf = "";
-    const timer = setTimeout(() => {
-      cleanupListeners();
-      reject(new Error("timed out waiting for the desk to print its URL"));
-    }, 30_000);
-    const onData = (d) => {
-      buf += d;
-      const m = buf.match(/http:\/\/127\.0\.0\.1:\d+/);
-      if (m) {
-        cleanupListeners();
-        resolve(m[0]);
-      }
-    };
-    const onExit = () => {
-      cleanupListeners();
-      reject(new Error("desk exited before printing its URL"));
-    };
-    const cleanupListeners = () => {
-      clearTimeout(timer);
-      child.stderr.off("data", onData);
-      child.off("exit", onExit);
-    };
-    child.stderr.on("data", onData);
-    child.once("exit", onExit);
-  });
-const cli = (...args) => execFileSync("node", [CLI, ...args], { encoding: "utf8" }).trim();
-const getText = async (p) => (await fetch(BASE + p)).text();
+const waitForDeskUrl = child =>
+	new Promise((resolve, reject) => {
+		let buf = ''
+		const timer = setTimeout(() => {
+			cleanupListeners()
+			reject(new Error('timed out waiting for the desk to print its URL'))
+		}, DESK_URL_TIMEOUT_MS)
+		const onData = d => {
+			buf += d
+			const m = buf.match(/http:\/\/127\.0\.0\.1:\d+/)
+			if (m) {
+				cleanupListeners()
+				resolve(m[0])
+			}
+		}
+		const onExit = () => {
+			cleanupListeners()
+			reject(new Error('desk exited before printing its URL'))
+		}
+		const cleanupListeners = () => {
+			clearTimeout(timer)
+			child.stderr.off('data', onData)
+			child.off('exit', onExit)
+		}
+		child.stderr.on('data', onData)
+		child.once('exit', onExit)
+	})
+const cli = (...args) =>
+	execFileSync('node', [CLI, ...args], { encoding: 'utf8' }).trim()
+const getText = async p => (await fetch(BASE + p)).text()
 
 // Budgets: generous CI margins over local reality (noted per-assert below).
-const BUDGET_STARTUP_MS = 15_000; // local ~2s
-const BUDGET_STATE_BYTES = 10 * 1024 * 1024;
-const BUDGET_PERSISTED_BYTES = 10 * 1024 * 1024;
-const BUDGET_BUNDLE_BYTES = 3.2 * 1024 * 1024;
-const BUDGET_RELOAD_MS = 10_000; // local ~280ms
+const BYTES_PER_KIB = 1024
+const MIB = BYTES_PER_KIB * BYTES_PER_KIB
+const BUDGET_STARTUP_MS = 15_000 // local ~2s
+const STATE_BUDGET_MIB = 10
+const PERSISTED_BUDGET_MIB = 10
+const BUNDLE_BUDGET_MIB = 3.2
+const BUDGET_STATE_BYTES = STATE_BUDGET_MIB * MIB
+const BUDGET_PERSISTED_BYTES = PERSISTED_BUDGET_MIB * MIB
+const BUDGET_BUNDLE_BYTES = BUNDLE_BUDGET_MIB * MIB
+const BUDGET_RELOAD_MS = 10_000 // local ~280ms
 
-let desk, tmp, homeDir;
-const oldHome = process.env.HOME;
+let desk, tmp, homeDir
+const oldHome = process.env.HOME
 const cleanup = () => {
-  try {
-    desk?.kill();
-  } catch {
-    /**/
-  }
-  try {
-    if (tmp) rmSync(tmp, { recursive: true, force: true });
-  } catch {
-    /**/
-  }
-  try {
-    if (homeDir) rmSync(homeDir, { recursive: true, force: true });
-  } catch {
-    /**/
-  }
-  process.env.HOME = oldHome;
-};
-process.on("exit", cleanup);
+	try {
+		desk?.kill()
+	} catch {
+		/**/
+	}
+	try {
+		if (tmp) rmSync(tmp, { recursive: true, force: true })
+	} catch {
+		/**/
+	}
+	try {
+		if (homeDir) rmSync(homeDir, { recursive: true, force: true })
+	} catch {
+		/**/
+	}
+	process.env.HOME = oldHome
+}
+process.on('exit', cleanup)
 
-function budget(name, actual, limit, unit, note) {
-  const ok = actual < limit;
-  console.log(`  ${ok ? "✓" : "✗"} ${name}: ${actual}${unit} (budget < ${limit}${unit}) ${note}`);
-  if (!ok)
-    throw new Error(`perf budget violated: ${name} = ${actual}${unit} (budget < ${limit}${unit})`);
+function budget({ name, actual, limit, unit, note }) {
+	const ok = actual < limit
+	process.stdout.write(
+		`  ${ok ? '✓' : '✗'} ${name}: ${actual}${unit} (budget < ${limit}${unit}) ${note}\n`,
+	)
+	if (!ok)
+		throw new Error(
+			`perf budget violated: ${name} = ${actual}${unit} (budget < ${limit}${unit})`,
+		)
+}
+
+// Poll /api/poll until the desk answers. Sequential by design (each probe depends on the
+// previous), so it recurses instead of awaiting inside a loop.
+async function waitForPoll(base, attemptsLeft) {
+	try {
+		const res = await fetch(`${base}/api/poll`)
+		if (res.ok) return true
+	} catch {
+		// Not listening yet.
+	}
+	if (attemptsLeft <= 0) return false
+	await sleep(POLL_INTERVAL_MS)
+	return waitForPoll(base, attemptsLeft - 1)
 }
 
 try {
-  // Point HOME at a throwaway dir so the persisted review file lands somewhere we control and
-  // clean up, hermetic like src/server.test.ts.
-  homeDir = mkdtempSync(path.join(tmpdir(), "galley-perf-home-"));
-  process.env.HOME = homeDir;
+	// Point HOME at a throwaway dir so the persisted review file lands somewhere we control and
+	// clean up, hermetic like src/server.test.ts.
+	homeDir = mkdtempSync(path.join(tmpdir(), 'galley-perf-home-'))
+	process.env.HOME = homeDir
 
-  // Throwaway ~1,000-file repo: committed base, then every file edited in the working tree,
-  // plus one oversized generated file (>5000 changed lines) — mirrors scripts/smoke.mjs and
-  // the buildDiffSource oversized-stamp fixture in src/state.test.ts.
-  tmp = mkdtempSync(path.join(tmpdir(), "galley-perf-repo-"));
-  const git = (...a) => execFileSync("git", a, { cwd: tmp, stdio: "ignore" });
-  git("init", "-q");
-  git("config", "user.email", "s@s.dev");
-  git("config", "user.name", "perf-smoke");
+	// Throwaway ~1,000-file repo: committed base, then every file edited in the working tree,
+	// plus one oversized generated file (>5000 changed lines), as covered by
+	// the buildDiffSource fixtures in src/diffsource.test.ts.
+	tmp = mkdtempSync(path.join(tmpdir(), 'galley-perf-repo-'))
+	const git = (...a) => execFileSync('git', a, { cwd: tmp, stdio: 'ignore' })
+	git('init', '-q')
+	git('config', 'user.email', 's@s.dev')
+	git('config', 'user.name', 'perf-smoke')
 
-  const dirA = path.join(tmp, "src");
-  mkdirSync(dirA, { recursive: true });
-  for (let i = 0; i < FILE_COUNT; i++) {
-    writeFileSync(
-      path.join(dirA, `file-${i}.txt`),
-      `line one ${i}\nline two ${i}\nline three ${i}\n`,
-    );
-  }
-  const bigLines = (tag) =>
-    Array.from({ length: 6000 }, (_, i) => `${tag} line ${i}`).join("\n") + "\n";
-  writeFileSync(path.join(tmp, "generated-bundle.txt"), bigLines("orig"));
-  git("add", "-A");
-  git("commit", "-q", "-m", "init");
+	const dirA = path.join(tmp, 'src')
+	mkdirSync(dirA, { recursive: true })
+	for (let i = 0; i < FILE_COUNT; i++) {
+		writeFileSync(
+			path.join(dirA, `file-${i}.txt`),
+			`line one ${i}\nline two ${i}\nline three ${i}\n`,
+		)
+	}
+	writeFileSync(path.join(tmp, 'generated-bundle.txt'), bigLines('orig'))
+	git('add', '-A')
+	git('commit', '-q', '-m', 'init')
 
-  for (let i = 0; i < FILE_COUNT; i++) {
-    writeFileSync(
-      path.join(dirA, `file-${i}.txt`),
-      `line one ${i} CHANGED\nline two ${i}\nline three ${i}\n`,
-    );
-  }
-  writeFileSync(path.join(tmp, "generated-bundle.txt"), bigLines("edited"));
+	for (let i = 0; i < FILE_COUNT; i++) {
+		writeFileSync(
+			path.join(dirA, `file-${i}.txt`),
+			`line one ${i} CHANGED\nline two ${i}\nline three ${i}\n`,
+		)
+	}
+	writeFileSync(path.join(tmp, 'generated-bundle.txt'), bigLines('edited'))
 
-  const startedAt = Date.now();
-  desk = spawn("node", [CLI, "--repo", tmp, "--session", ID, "--port", "0", "--no-open"], {
-    // stderr piped so we can read the bound URL; stdout ignored.
-    stdio: ["ignore", "ignore", "pipe"],
-    env: { ...process.env, GALLEY_NO_UPDATE_CHECK: "1" },
-  });
-  BASE = await waitForDeskUrl(desk);
-  let up = false;
-  for (let i = 0; i < 150; i++) {
-    try {
-      const res = await fetch(BASE + "/api/poll");
-      if (res.ok) {
-        up = true;
-        break;
-      }
-    } catch {
-      /**/
-    }
-    await sleep(100);
-  }
-  const startupMs = Date.now() - startedAt;
-  assert.ok(up, "desk answered /api/poll before the poll loop gave up");
-  budget(
-    "startup",
-    startupMs,
-    BUDGET_STARTUP_MS,
-    "ms",
-    "(desk start → first successful /api/poll)",
-  );
+	const startedAt = Date.now()
+	desk = spawn(
+		'node',
+		[CLI, '--repo', tmp, '--session', ID, '--port', '0', '--no-open'],
+		{
+			// stderr piped so we can read the bound URL; stdout ignored.
+			stdio: ['ignore', 'ignore', 'pipe'],
+			env: { ...process.env, GALLEY_NO_UPDATE_CHECK: '1' },
+		},
+	)
+	BASE = await waitForDeskUrl(desk)
+	const isUp = await waitForPoll(BASE, POLL_ATTEMPTS)
+	const startupMs = Date.now() - startedAt
+	assert.ok(isUp, 'desk answered /api/poll before the poll loop gave up')
+	budget({
+		name: 'startup',
+		actual: startupMs,
+		limit: BUDGET_STARTUP_MS,
+		unit: 'ms',
+		note: '(desk start → first successful /api/poll)',
+	})
 
-  const stateText = await getText("/api/state");
-  const state = JSON.parse(stateText);
-  assert.equal(state.mode, "repo");
-  assert.ok(state.changes.length >= FILE_COUNT, `desk has ${FILE_COUNT}+ changes to review`);
-  const stateBytes = Buffer.byteLength(stateText, "utf8");
-  budget("/api/state size", stateBytes, BUDGET_STATE_BYTES, " bytes", "");
-  assert.ok(
-    state.files.every((f) => !("oldFile" in f) && !("newFile" in f)),
-    "no file contents ride /api/state",
-  );
-  assert.ok(!stateText.includes('"contents"'), "state has no contents field");
-  console.log("  ✓ /api/state has no oldFile/newFile/contents fields");
-  const oversized = state.files.find((f) => f.path === "generated-bundle.txt");
-  assert.equal(oversized?.oversized, true, "the oversized generated file is stamped");
-  assert.ok(
-    state.files.every((f) => typeof f.changeKind === "string"),
-    "every file carries a changeKind stamp",
-  );
-  console.log("  ✓ oversized + changeKind stamps present");
+	const stateText = await getText('/api/state')
+	const state = JSON.parse(stateText)
+	assert.equal(state.mode, 'repo')
+	assert.ok(
+		state.changes.length >= FILE_COUNT,
+		`desk has ${FILE_COUNT}+ changes to review`,
+	)
+	const stateBytes = Buffer.byteLength(stateText, 'utf8')
+	budget({
+		name: '/api/state size',
+		actual: stateBytes,
+		limit: BUDGET_STATE_BYTES,
+		unit: ' bytes',
+		note: '',
+	})
+	assert.ok(
+		state.files.every(f => !('oldFile' in f) && !('newFile' in f)),
+		'no file contents ride /api/state',
+	)
+	assert.ok(!stateText.includes('"contents"'), 'state has no contents field')
+	process.stdout.write(
+		'  ✓ /api/state has no oldFile/newFile/contents fields\n',
+	)
+	const oversized = state.files.find(f => f.path === 'generated-bundle.txt')
+	assert.equal(
+		oversized?.oversized,
+		true,
+		'the oversized generated file is stamped',
+	)
+	assert.ok(
+		state.files.every(f => typeof f.changeKind === 'string'),
+		'every file carries a changeKind stamp',
+	)
+	process.stdout.write('  ✓ oversized + changeKind stamps present\n')
 
-  // The persisted review file under $HOME/.galley — same content-free bar as /api/state.
-  const repoHashDir = readdirSync(path.join(homeDir, ".galley"))[0];
-  const sessionDir = path.join(homeDir, ".galley", repoHashDir, ID);
-  const persistedName = readdirSync(sessionDir).find((n) => n.endsWith(".json"));
-  assert.ok(persistedName, "a persisted review file exists under ~/.galley");
-  const persistedPath = path.join(sessionDir, persistedName);
-  const persistedBytes = statSync(persistedPath).size;
-  budget("persisted review file size", persistedBytes, BUDGET_PERSISTED_BYTES, " bytes", "");
-  const persistedText = readFileSync(persistedPath, "utf8");
-  assert.ok(!persistedText.includes('"oldFile"'), "persisted file has no oldFile field");
-  assert.ok(!persistedText.includes('"newFile"'), "persisted file has no newFile field");
-  assert.ok(!persistedText.includes('"contents"'), "persisted file has no contents field");
-  console.log("  ✓ persisted review file is content-free");
+	// The persisted review file under $HOME/.galley - same content-free bar as /api/state.
+	const [repoHashDir] = readdirSync(path.join(homeDir, '.galley'))
+	const sessionDir = path.join(homeDir, '.galley', repoHashDir, ID)
+	const persistedName = readdirSync(sessionDir).find(n => n.endsWith('.json'))
+	assert.ok(persistedName, 'a persisted review file exists under ~/.galley')
+	const persistedPath = path.join(sessionDir, persistedName)
+	const persistedBytes = statSync(persistedPath).size
+	budget({
+		name: 'persisted review file size',
+		actual: persistedBytes,
+		limit: BUDGET_PERSISTED_BYTES,
+		unit: ' bytes',
+		note: '',
+	})
+	const persistedText = readFileSync(persistedPath, 'utf8')
+	assert.ok(
+		!persistedText.includes('"oldFile"'),
+		'persisted file has no oldFile field',
+	)
+	assert.ok(
+		!persistedText.includes('"newFile"'),
+		'persisted file has no newFile field',
+	)
+	assert.ok(
+		!persistedText.includes('"contents"'),
+		'persisted file has no contents field',
+	)
+	process.stdout.write('  ✓ persisted review file is content-free\n')
 
-  const bundleBytes = statSync(UI_BUNDLE).size;
-  budget(
-    "dist/ui.js size",
-    bundleBytes,
-    BUDGET_BUNDLE_BYTES,
-    " bytes",
-    "(belt-and-suspenders with the build gate)",
-  );
+	const bundleBytes = statSync(UI_BUNDLE).size
+	budget({
+		name: 'dist/ui.js size',
+		actual: bundleBytes,
+		limit: BUDGET_BUNDLE_BYTES,
+		unit: ' bytes',
+		note: '(belt-and-suspenders with the build gate)',
+	})
 
-  // `galley reload` after a working-tree touch.
-  writeFileSync(
-    path.join(dirA, "file-0.txt"),
-    `line one 0 CHANGED AGAIN\nline two 0\nline three 0\n`,
-  );
-  const reloadStart = Date.now();
-  const reloaded = JSON.parse(cli("reload", "--repo", tmp, "--session", ID));
-  const reloadMs = Date.now() - reloadStart;
-  assert.ok(reloaded.ok, "reload accepted");
-  budget("reload", reloadMs, BUDGET_RELOAD_MS, "ms", "");
+	// `galley reload` after a working-tree touch.
+	writeFileSync(
+		path.join(dirA, 'file-0.txt'),
+		`line one 0 CHANGED AGAIN\nline two 0\nline three 0\n`,
+	)
+	const reloadStart = Date.now()
+	const reloaded = JSON.parse(cli('reload', '--repo', tmp, '--session', ID))
+	const reloadMs = Date.now() - reloadStart
+	assert.ok(reloaded.ok, 'reload accepted')
+	budget({
+		name: 'reload',
+		actual: reloadMs,
+		limit: BUDGET_RELOAD_MS,
+		unit: 'ms',
+		note: '',
+	})
 
-  const stop = JSON.parse(cli("stop", "--repo", tmp, "--session", ID));
-  assert.ok(stop.ok, "stop acked");
+	const stop = JSON.parse(cli('stop', '--repo', tmp, '--session', ID))
+	assert.ok(stop.ok, 'stop acked')
 
-  console.log("\nPERF SMOKE PASS");
-  console.log(
-    JSON.stringify({ startupMs, stateBytes, persistedBytes, bundleBytes, reloadMs }, null, 2),
-  );
+	process.stdout.write('\nPERF SMOKE PASS\n')
+	process.stdout.write(
+		`${JSON.stringify({ startupMs, stateBytes, persistedBytes, bundleBytes, reloadMs }, null, JSON_INDENT)}\n`,
+	)
 } catch (error) {
-  console.error("\nPERF SMOKE FAIL:", error instanceof Error ? error.message : error);
-  process.exitCode = 1;
+	process.stderr.write(
+		`\nPERF SMOKE FAIL: ${error instanceof Error ? error.message : String(error)}\n`,
+	)
+	process.exitCode = 1
 } finally {
-  cleanup();
+	cleanup()
 }
