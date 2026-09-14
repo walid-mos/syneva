@@ -1,51 +1,24 @@
-import type { DiffHunk, GuideFile } from '../types'
+import type { BrowserReviewFile, GuideFile } from '../types'
 import type { FileReviewState } from './types'
 
 // Pure data for the Walkthrough sidebar tab and the Overview file list - no store import
 // (these are parameterized like linemap.ts so they stay testable under node:test).
 
 export type LineStat = { added: number; removed: number }
-type FileLike = {
-	path: string
-	hunks?: DiffHunk[]
-	// The lean builder's +added/-removed stamps (issue 04), including a hunk-less full-file add's
-	// whole-content count. Preferred when present; falls back to summing hunks (test fixtures).
-	added?: number
-	removed?: number
-	// Distinct on a git rename (issue 01) - drives the "← old path" arrow on a pure-rename row.
-	oldPath?: string
-	newPath?: string
-}
+type FileLike = Pick<
+	BrowserReviewFile,
+	'path' | 'added' | 'removed' | 'oldPath' | 'newPath'
+>
 
-function hunkLineStat(hunk: DiffHunk): LineStat {
-	const stat: LineStat = { added: 0, removed: 0 }
-	for (const line of hunk.lines) {
-		if (line.kind === 'add') stat.added++
-		else if (line.kind === 'delete') stat.removed++
-	}
-	return stat
-}
-
-// Per-file +added/-removed. Reads the lean builder's stamps (issue 04) - which already count a
-// hunk-less full-file add's whole content - and falls back to summing the parsed hunks when a
-// fixture supplies none. Distinct from guide.ts's progress weighting (one min-1 count): display numbers.
+// Counts are stamped by the server, including hunkless full-file additions. The browser never
+// needs backend hunks to draw the sidebar or overview; @pierre's rendered hunks stay separate.
 export function lineStats(files: FileLike[]): Map<string, LineStat> {
-	const stats = new Map<string, LineStat>()
-	for (const f of files) {
-		if (typeof f.added === 'number' && typeof f.removed === 'number') {
-			stats.set(f.path, { added: f.added, removed: f.removed })
-			continue
-		}
-		let added = 0
-		let removed = 0
-		for (const hunk of f.hunks ?? []) {
-			const stat = hunkLineStat(hunk)
-			added += stat.added
-			removed += stat.removed
-		}
-		stats.set(f.path, { added, removed })
-	}
-	return stats
+	return new Map(
+		files.map(file => [
+			file.path,
+			{ added: file.added, removed: file.removed },
+		]),
+	)
 }
 
 export type WalkFile = {

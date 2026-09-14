@@ -200,14 +200,18 @@ try {
 		unit: ' bytes',
 		note: '',
 	})
+	assert.equal('rawDiff' in state, false, 'rawDiff stays backend-only')
 	assert.ok(
-		state.files.every(f => !('oldFile' in f) && !('newFile' in f)),
-		'no file contents ride /api/state',
+		state.files.every(
+			f => !('hunks' in f) && !('oldFile' in f) && !('newFile' in f),
+		),
+		'no diff bodies ride /api/state',
+	)
+	assert.ok(
+		state.files.every(f => typeof f.hasHunks === 'boolean'),
+		'every file has a hunk-presence summary',
 	)
 	assert.ok(!stateText.includes('"contents"'), 'state has no contents field')
-	process.stdout.write(
-		'  ✓ /api/state has no oldFile/newFile/contents fields\n',
-	)
 	const oversized = state.files.find(f => f.path === 'generated-bundle.txt')
 	assert.equal(
 		oversized?.oversized,
@@ -218,7 +222,6 @@ try {
 		state.files.every(f => typeof f.changeKind === 'string'),
 		'every file carries a changeKind stamp',
 	)
-	process.stdout.write('  ✓ oversized + changeKind stamps present\n')
 
 	// The persisted review file under $HOME/.galley - same content-free bar as /api/state.
 	const [repoHashDir] = readdirSync(path.join(homeDir, '.galley'))

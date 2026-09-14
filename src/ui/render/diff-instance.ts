@@ -329,7 +329,7 @@ export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
 			status: c.status,
 			skimCollapsed: isBlockSkimCollapsed(c),
 		})),
-		currentComments(),
+		{ comments: currentComments(), composer: S },
 	)
 	const host = $('diff')
 	const stillMounted =

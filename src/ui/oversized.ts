@@ -158,7 +158,7 @@ function statsSection(file: ReviewFile): HTMLElement {
 	}
 	const counts = document.createElement('span')
 	counts.className = 'ovsz-counts'
-	counts.innerHTML = `<span class="a">+${file.added ?? 0}</span><span class="d">-${file.removed ?? 0}</span>`
+	counts.innerHTML = `<span class="a">+${file.added}</span><span class="d">-${file.removed}</span>`
 	stats.appendChild(counts)
 	return stats
 }

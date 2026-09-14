@@ -4,6 +4,7 @@ import { api, D, S, saver, toast } from './store'
 
 import type {
 	DeskStatus,
+	BrowserRefreshEvent,
 	PollPayload,
 	ReviewComment,
 	ReviewState,
@@ -11,12 +12,23 @@ import type {
 
 // A server payload with the transient DeskStatus fields still attached. `Partial` because the
 // desk's own routes may answer without them (there is nothing live to report).
-export type StateWithStatus = ReviewState & Partial<DeskStatus>
+export type StateWithStatus = ReviewState &
+	Partial<DeskStatus> & { serverInstanceId?: string }
 export type PollWithStatus = PollPayload & Partial<DeskStatus>
 
 // How often the tab polls the desk. The tick carries liveness, the guide, the comments and the
 // diff's hash - everything small enough to re-read continuously.
 export const POLL_INTERVAL_MS = 1500
+
+let serverInstanceId: string | undefined
+
+// Check every response that can replace browser state, including Reset. A notification is safer
+// than automatic navigation: stage/unstage/Send can still be in flight after their dialogs close.
+export function isCurrentDesk(instance: string | undefined): boolean {
+	if (!serverInstanceId || instance === serverInstanceId) return true
+	S.isRefreshRequired = true
+	return false
+}
 
 // Move the transient DeskStatus fields off a server payload into the store. They must never enter
 // S.state: persist() posts S.state back to /api/save, and the persisted review must not carry desk
@@ -34,8 +46,10 @@ export function adoptDeskStatus(payload: StateWithStatus): ReviewState {
 		agentListening,
 		queuedQuestions,
 		queuedReviews,
+		serverInstanceId: instance,
 		...review
 	} = payload
+	serverInstanceId ??= instance
 	adoptLiveness({
 		agentActivity,
 		agentListening,
@@ -64,9 +78,19 @@ function adoptPollStatus(payload: PollWithStatus): PollPayload {
 
 // One poll tick's payload, with liveness already adopted and patched into the waiting indicators.
 // null when the desk is unreachable or answered something that isn't a poll payload.
-async function pollOnce(): Promise<PollPayload | null> {
+async function pollOnce(): Promise<PollPayload | BrowserRefreshEvent | null> {
 	try {
-		const payload = await api<PollWithStatus>('/api/poll')
+		const query = serverInstanceId
+			? `?instance=${encodeURIComponent(serverInstanceId)}`
+			: ''
+		const payload = await api<
+			PollWithStatus | (BrowserRefreshEvent & Partial<DeskStatus>)
+		>(`/api/poll${query}`)
+		if ('kind' in payload) {
+			adoptLiveness(payload)
+			updateAwaitingDom()
+			return payload
+		}
 		if (!Array.isArray(payload.comments)) return null
 		const lite = adoptPollStatus(payload)
 		// Activity/presence changes alone don't warrant a render - patch the waiting indicators in
@@ -78,11 +102,12 @@ async function pollOnce(): Promise<PollPayload | null> {
 	}
 }
 
-// The full review, liveness stripped. The tab fetches this (rather than every tick) because a
-// big review is tens of MB to serialize and re-parse.
+// Fetch the browser projection only when the diff changes, not on every heartbeat.
 async function loadReviewState(): Promise<ReviewState | null> {
 	try {
-		const server = adoptDeskStatus(await api<StateWithStatus>('/api/state'))
+		const payload = await api<StateWithStatus>('/api/state')
+		if (!isCurrentDesk(payload.serverInstanceId)) return null
+		const server = adoptDeskStatus(payload)
 		if (!Array.isArray(server.comments)) return null
 		return server
 	} catch {
@@ -160,13 +185,15 @@ async function adoptReload(): Promise<void> {
 	toast('Diff updated')
 }
 
-// The 1.5s tick hits /api/poll - a slice of hash + guide + comments + liveness. The
-// full ReviewState (file contents for the whole diff; >100 MB on a big monorepo PR)
-// is fetched from /api/state only when baseDiffHash moves: polling it every tick kept
-// the desk process pinned serializing it and the tab pinned re-parsing it.
+// The heartbeat carries hash + guide + comments + liveness, or a refresh event after a restart.
+// Fetch the browser review only when baseDiffHash moves; never poll its file/change arrays.
 export async function pollState(): Promise<void> {
 	const lite = await pollOnce()
 	if (!lite) return
+	if ('kind' in lite) {
+		S.isRefreshRequired = true
+		return
+	}
 	if (lite.baseDiffHash !== S.lastBaseDiffHash) {
 		// The reload branch replaces S.state wholesale and re-renders, which would clobber local
 		// decisions/comments not yet persisted and rebuild the diff DOM out from under an open

@@ -1,7 +1,7 @@
 import { prefetchContents } from '../contents'
 import { cursorReset } from '../cursor'
+import { defaultFileView } from '../file-summary'
 import { hasGuide, nextFileIndex, nextWrapIndex, prevWrapIndex } from '../guide'
-import { defaultFileView } from '../mdfile'
 import { deferRender, render } from '../render'
 import { api, D, S, toast } from '../store'
 import { applyActiveRow } from '../tree'
@@ -30,7 +30,7 @@ function installFileSelection(): void {
 		S.preview = null
 		S.diffScrolled = false // the new file renders at the top (see render.ts) - hide the floating action
 		S.fileIndex = i
-		S.fileView = defaultFileView(state.files[i])
+		S.fileView = defaultFileView(state.files[i], S.settings.markdownView)
 		D.fileDiff = null
 		cursorReset() // re-init the line cursor to the new file's first change
 		// Move the sidebar highlight in place - switching files no longer rebuilds the row lists
@@ -115,7 +115,7 @@ async function readPreviewFile(path: string): Promise<PreviewFile | null> {
 		}
 		return {
 			path,
-			hunks: [],
+			hasHunks: false,
 			contentHash: '',
 			changeKind: 'modified',
 			added: 0,

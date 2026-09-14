@@ -1,11 +1,7 @@
 import { flowIndex } from './changes'
+import { reviewLineCount } from './file-summary'
 import { guideProgress } from './guide'
 import { S, $ } from './store'
-
-import type { ReviewState } from './types'
-
-type ReviewFile = ReviewState['files'][number]
-type ReviewHunk = ReviewFile['hunks'][number]
 
 // Persistent review-progress chrome: a full-width fill strip along the bottom edge of the
 // topbar plus a "% reviewed" label beside the actions, visible with or without a guide (the
@@ -81,18 +77,6 @@ export function updateProgress(): void {
 	shownPct = pct
 }
 
-function hunkChangedLines(hunk: ReviewHunk): number {
-	let count = 0
-	for (const line of hunk.lines) if (line.kind !== 'context') count++
-	return count
-}
-
-function fileChangedLines(file: ReviewFile): number {
-	let total = 0
-	for (const hunk of file.hunks) total += hunkChangedLines(hunk)
-	return total
-}
-
 // Whole-review numbers for the completion prompt - a small receipt of the work done.
 export function reviewStats(): {
 	files: number
@@ -106,7 +90,7 @@ export function reviewStats(): {
 	const { outOfFlow } = flowIndex()
 	const scope = (S.state?.files ?? []).filter(f => !outOfFlow.has(f.path))
 	let lines = 0
-	for (const f of scope) lines += fileChangedLines(f)
+	for (const f of scope) lines += reviewLineCount(f)
 	return {
 		files: scope.length,
 		lines,

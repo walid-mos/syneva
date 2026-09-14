@@ -66,14 +66,70 @@ function digest(over: {
 		skimCollapsed: boolean
 	}[]
 	comments?: ReviewComment[]
+	composer?: {
+		composerOpen: boolean
+		editingCommentId: string | null
+		selected: {
+			side: 'additions' | 'deletions'
+			lineNumber: number
+			endLine?: number
+		}
+	}
 }): string {
 	return renderSignature(
 		{ ...FILE, ...over.file },
 		{ ...VIEW, ...over.view },
 		over.changes ?? [],
-		over.comments ?? [],
+		{
+			comments: over.comments ?? [],
+			composer: over.composer ?? {
+				composerOpen: false,
+				editingCommentId: null,
+				selected: { side: 'additions', lineNumber: 1 },
+			},
+		},
 	)
 }
+
+void test('opening, moving, editing and closing a composer repaint without changing comments', () => {
+	const comments = [comment({})]
+	const composer = {
+		composerOpen: true,
+		editingCommentId: null,
+		selected: { side: 'additions' as const, lineNumber: 12 },
+	}
+	const closed = digest({ comments })
+	const opened = digest({ comments, composer })
+	assert.notEqual(opened, closed)
+	assert.notEqual(
+		digest({
+			comments,
+			composer: {
+				...composer,
+				selected: { side: 'deletions', lineNumber: 12 },
+			},
+		}),
+		opened,
+	)
+	assert.notEqual(
+		digest({
+			comments,
+			composer: {
+				...composer,
+				selected: { side: 'additions', lineNumber: 20 },
+			},
+		}),
+		opened,
+	)
+	assert.notEqual(
+		digest({ comments, composer: { ...composer, editingCommentId: 't1' } }),
+		opened,
+	)
+	assert.deepEqual(
+		digest({ comments, composer: { ...composer, composerOpen: false } }),
+		closed,
+	)
+})
 
 void test('equal data digests identically', () => {
 	const first = digest({

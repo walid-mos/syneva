@@ -249,6 +249,22 @@
 				grid-template-rows: 48px 1fr;
 			}
 
+			.app.refresh-required {
+				grid-template-rows: minmax(48px, max-content) auto minmax(
+						0,
+						1fr
+					);
+			}
+
+			.refresh-notice {
+				max-width: 100vw;
+				padding: 10px 16px;
+				border-bottom: 1px solid var(--amber);
+				background: var(--panel);
+				color: var(--ink);
+				font-size: var(--text-sm);
+			}
+
 			.top,
 			.bottom {
 				display: grid;
@@ -3130,7 +3146,11 @@
 	</head>
 
 	<body>
-		<div class="app" x-data>
+		<div
+			class="app"
+			x-data
+			:class="{ 'refresh-required': $store.g.isRefreshRequired }"
+		>
 			<header class="top">
 				<div class="brand">
 					<button
@@ -3306,6 +3326,15 @@
 					<i id="progressFill"></i>
 				</div>
 			</header>
+			<div
+				class="refresh-notice"
+				x-cloak
+				x-show="$store.g.isRefreshRequired"
+				role="status"
+			>
+				<strong>Desk restarted.</strong> Finish pending actions and copy
+				any unsaved text, then refresh this tab to reconnect.
+			</div>
 			<main class="main">
 				<aside
 					class="tree"

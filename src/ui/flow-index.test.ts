@@ -41,7 +41,14 @@ function comment(
 type IndexedFile = ReviewState['files'][number]
 
 function file(path: string, over: Partial<IndexedFile> = {}): IndexedFile {
-	return { path, hunks: [], contentHash: `H-${path}`, ...over }
+	return {
+		path,
+		hasHunks: false,
+		added: 0,
+		removed: 0,
+		contentHash: `H-${path}`,
+		...over,
+	}
 }
 
 const state = {

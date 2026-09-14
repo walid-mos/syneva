@@ -4,40 +4,20 @@ import { isDeepStrictEqual } from 'node:util'
 
 import { lineStats, walkthroughGroups, walkRows } from './walkthrough.js'
 
-import type { DiffHunk, GuideFile } from '../types.js'
+import type { GuideFile } from '../types.js'
 import type { FileReviewState } from './types.js'
-
-// Hand-built fixtures (only the fields the helpers read are meaningful). A hunk is spelled
-// as a kind string - "aadc" = add, add, delete, context.
-type LineKind = DiffHunk['lines'][number]['kind']
-
-function lineKind(kind: string): LineKind {
-	if (kind === 'a') return 'add'
-	if (kind === 'd') return 'delete'
-	return 'context'
-}
-
-function hunk(kinds: string): DiffHunk {
-	return {
-		header: '',
-		oldStart: 1,
-		oldCount: 1,
-		newStart: 1,
-		newCount: 1,
-		lines: kinds.split('').map((kind, i) => ({
-			kind: lineKind(kind),
-			text: '',
-			diffPosition: i,
-			hunkHeader: '',
-		})),
-	}
-}
 
 // The file shape the helpers read - named off the helper itself so the fixture cannot drift.
 type FileFixture = Parameters<typeof lineStats>[0][number]
 
-function file(path: string, ...hunkKinds: string[]): FileFixture {
-	return { path, hunks: hunkKinds.map(hunk) }
+// Compact fixture notation: "aadc" supplies the metadata for two additions and one removal.
+function file(path: string, ...lineKinds: string[]): FileFixture {
+	const kinds = lineKinds.join('').split('')
+	return {
+		path,
+		added: kinds.filter(kind => kind === 'a').length,
+		removed: kinds.filter(kind => kind === 'd').length,
+	}
 }
 
 function guideFile(
@@ -50,7 +30,7 @@ function guideFile(
 
 const allPending = (): FileReviewState => 'pending'
 
-void test('lineStats counts adds and deletes per file, across hunks', () => {
+void test('lineStats reads per-file counts without parsed hunks', () => {
 	const stats = lineStats([
 		file('a.ts', 'aacd', 'ad'),
 		file('b.ts', 'ccc'),
@@ -64,8 +44,8 @@ void test('lineStats counts adds and deletes per file, across hunks', () => {
 void test("lineStats reads the builder's +/- stamps for a hunk-less file (full-file add)", () => {
 	// A hunk-less full-file add has no hunk to sum; the lean builder stamps its whole-content +count.
 	const stats = lineStats([
-		{ path: 'new.ts', hunks: [], added: 3, removed: 0 },
-		{ path: 'empty.ts', hunks: [], added: 0, removed: 0 },
+		{ path: 'new.ts', added: 3, removed: 0 },
+		{ path: 'empty.ts', added: 0, removed: 0 },
 	])
 	assert.deepEqual(stats.get('new.ts'), { added: 3, removed: 0 })
 	assert.deepEqual(stats.get('empty.ts'), { added: 0, removed: 0 })
@@ -295,7 +275,8 @@ void test('walkthroughGroups: a pure rename gets movedFrom and folds into the Sk
 		file('core/a.ts', 'aa'),
 		{
 			path: 'lib/new.ts',
-			hunks: [],
+			added: 0,
+			removed: 0,
 			oldPath: 'lib/old.ts',
 			newPath: 'lib/new.ts',
 		},

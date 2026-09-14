@@ -1,16 +1,26 @@
 import { listProjectTree } from '../../git/repo.js'
 import { readGlobalSettings, writeGlobalSettings } from '../../state/desk.js'
 import { readStagedSnapshot } from '../../state/reconcile.js'
+import { browserState } from '../browser-state.js'
 import { readBody, json, HTTP_OK } from '../http.js'
 
-import type { PollPayload } from '../../types.js'
+import type { BrowserRefreshEvent, PollPayload } from '../../types.js'
 import type { RouteRequest } from '../router.js'
 
-export async function servePoll({ ctx, res }: RouteRequest): Promise<void> {
-	// The tab's 1.5s heartbeat. Deliberately tiny and git-free: the full ReviewState carries the
-	// contents of every file in the diff (>100 MB on a big monorepo PR), and re-serializing it every
-	// tick pegged both the desk process and the tab. Ship only what pollState diffs - hash, guide,
-	// comments, liveness; the tab fetches /api/state exactly once per baseDiffHash change.
+export async function servePoll({
+	ctx,
+	res,
+	url,
+}: RouteRequest): Promise<void> {
+	// A restarted desk may ship a different state contract. Tell an already-loaded tab to refresh
+	// its bundle first; legacy clients without an instance token still receive the normal heartbeat.
+	const instance = url.searchParams.get('instance')
+	if (instance && instance !== ctx.instanceId) {
+		const event: BrowserRefreshEvent = { kind: 'refresh' }
+		json(res, HTTP_OK, { ...event, ...ctx.status() })
+		return
+	}
+	// Keep the 1.5s heartbeat tiny and git-free; file summaries and changes only ride /api/state.
 	const poll: PollPayload = {
 		baseDiffHash: ctx.state.baseDiffHash,
 		guide: ctx.state.guide,
@@ -21,7 +31,11 @@ export async function servePoll({ ctx, res }: RouteRequest): Promise<void> {
 
 export async function serveState({ ctx, res }: RouteRequest): Promise<void> {
 	Object.assign(ctx.state, await readStagedSnapshot(ctx.state))
-	json(res, HTTP_OK, { ...ctx.state, ...ctx.status() })
+	json(res, HTTP_OK, {
+		...browserState(ctx.state),
+		...ctx.status(),
+		serverInstanceId: ctx.instanceId,
+	})
 }
 
 export async function serveTree({ ctx, res }: RouteRequest): Promise<void> {

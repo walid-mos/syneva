@@ -7,11 +7,12 @@
  * - keeps a `galley` shim in `~/.pi/agent/bin` (first directory on PATH)
  *   pointing at this checkout, so prompts, skills, shells, and terminals
  *   can all invoke plain `galley`.
- * - registers a `/galley` status command for quick health checks.
+ * - registers a `/galley` status command for quick health checks,
+ * - registers galley_agent: a session-owned listener that wakes this Pi session
+ *   for questions and completed reviews without a one-shot waiting child.
  *
- * The desk process itself is started by the agent via the CLI (`galley … &`),
- * per upstream galley's own contract - no background resources are started
- * here (see pi extension rules: factories must not spawn long-lived stuff).
+ * Desks still start via the CLI. Listener resources start only on explicit
+ * attachment or restoration and close on session_shutdown, never agent_end.
  */
 import { execFileSync } from 'node:child_process'
 import {
@@ -24,6 +25,8 @@ import {
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { registerDeskBridge } from '../src/agent/pi-bridge.js'
 
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 
@@ -83,6 +86,7 @@ function setup(): Report {
 }
 
 export default function registerGalleyExtension(pi: ExtensionAPI): void {
+	registerDeskBridge(pi)
 	let report: Report | undefined
 	try {
 		report = setup()

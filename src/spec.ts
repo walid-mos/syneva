@@ -194,6 +194,20 @@ naming the offending field.
   to the same origin and the open tab self-heals within seconds - don't tell the reviewer to
   switch tabs. Pass explicit --session/--port only to run a second, separate desk.
 
+## Browser state & refresh
+- GET /api/state returns BrowserReviewState plus transient desk status and serverInstanceId, not
+  the persisted ReviewState. POST /api/reset returns the same browser projection in its state field
+  plus serverInstanceId outside it. The tab checks the instance on both state-adoption paths.
+  rawDiff, per-file hunks, and backend-only metadata never ride these responses. Files carry
+  hasHunks and added/removed counts; contents still load separately via /api/file-contents.
+- GET /api/poll?instance=<serverInstanceId> normally carries hash, guide, comments and liveness.
+  After a desk restart, a mismatched instance receives {kind:"refresh",…liveness} instead. The tab
+  shows a persistent refresh-required notice, never automatic navigation, and stops adopting the
+  restarted desk's state. Finish pending actions and copy unsaved text before manually refreshing.
+  The normal heartbeat without an instance stays compatible.
+- Tabs predating this refresh mechanism need one manual page refresh on their first upgrade.
+  This browser-only event does not alter galley await, ReviewResult, or legacy save-body tolerance.
+
 ## Settings & errors
 - The human's display prefs live in a desk panel (persisted to ~/.galley/settings.json) - you
   don't set them. Note: with "Approve stages file" OFF, approving is verdict-only and stagedFiles

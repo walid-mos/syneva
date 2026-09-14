@@ -13,7 +13,7 @@ import { writeGlobalSettings } from './state/desk.js'
 import { hash } from './state/identity.js'
 
 import type { AwaitEvent } from './types.js'
-import type { ReviewState } from './types.js'
+import type { BrowserReviewState, ReviewState } from './types.js'
 
 function state(root: string): ReviewState {
 	return {
@@ -228,7 +228,7 @@ void test('the static routes serve the page and the bundle, and answer the favic
 	})
 })
 
-type StatePayload = ReviewState & {
+type StatePayload = BrowserReviewState & {
 	agentActivity: { body: string; at: string } | null
 	agentListening: boolean
 	queuedQuestions: number
@@ -1104,10 +1104,11 @@ const MUTEX_ROUNDS = 20
 // Fire the two mutating routes concurrently, then re-read the desk. The queue's FIFO/non-poisoning
 // contract is unit-tested in mutex.test.ts; here we assert the end-to-end invariant it exists to
 // protect - that a reload's Object.assign never lands mid-save to stitch a half-applied snapshot.
-// After every round the desk stays internally consistent: baseDiffHash is exactly the hash of the
-// rawDiff it reports, never a value carried over from a different reload's diff.
+// After every round the backend hash still matches its rawDiff, and the browser projection agrees.
+// rawDiff stays backend-only; removing it from the wire must not weaken this concurrency invariant.
 async function reloadAndSaveTogether(
 	url: string,
+	backendState: ReviewState,
 	round: number,
 ): Promise<void> {
 	const [reloadRes, saveRes] = await Promise.all([
@@ -1118,15 +1119,26 @@ async function reloadAndSaveTogether(
 	assert.equal(saveRes.status, 200, `save ${round} ok`)
 	const snapshot = await getState(url)
 	assert.ok(
-		Object.is(snapshot.baseDiffHash, hash(snapshot.rawDiff)),
-		`baseDiffHash matches rawDiff (round ${round})`,
+		isDeepStrictEqual(
+			backendState.baseDiffHash,
+			hash(backendState.rawDiff),
+		),
+		`backend hash matches rawDiff (round ${round})`,
+	)
+	assert.ok(
+		isDeepStrictEqual(snapshot.baseDiffHash, backendState.baseDiffHash),
+		`browser hash matches backend (round ${round})`,
 	)
 }
 
-async function runMutexRounds(url: string, round: number): Promise<void> {
+async function runMutexRounds(
+	url: string,
+	backendState: ReviewState,
+	round: number,
+): Promise<void> {
 	if (round > MUTEX_ROUNDS) return
-	await reloadAndSaveTogether(url, round)
-	return runMutexRounds(url, round + 1)
+	await reloadAndSaveTogether(url, backendState, round)
+	return runMutexRounds(url, backendState, round + 1)
 }
 
 void test('concurrent /api/reload and /api/save leave the desk internally consistent (issue 05)', async () => {
@@ -1151,7 +1163,7 @@ void test('concurrent /api/reload and /api/save leave the desk internally consis
 		idleTimeoutMs: 0,
 	})
 	try {
-		await runMutexRounds(handle.url, 1)
+		await runMutexRounds(handle.url, st, 1)
 	} finally {
 		handle.server.close()
 		process.env.HOME = oldHome

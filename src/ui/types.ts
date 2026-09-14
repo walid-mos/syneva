@@ -3,8 +3,10 @@ import type {
 	FileDiff,
 	FileDiffMetadata,
 } from '@pierre/diffs'
+// UI-local names always refer to the browser projection, never the persisted backend state.
 import type {
-	ReviewState,
+	BrowserReviewState as ReviewState,
+	BrowserRefreshEvent,
 	ReviewComment,
 	ChangeState,
 	Decision,
@@ -12,7 +14,7 @@ import type {
 	FileContentsPayload,
 	GuideFile,
 	PollPayload,
-	ReviewFile,
+	BrowserReviewFile as ReviewFile,
 	ReviewerSave,
 } from '../types'
 import type { LineMap } from './linemap'
@@ -230,6 +232,8 @@ export interface Store {
 	queuedQuestions: number
 	queuedReviews: number
 	lastBaseDiffHash: string | null
+	// Persistent, non-destructive notice: a restarted desk may require a different UI bundle.
+	isRefreshRequired: boolean
 	selected: Selection
 	// An inline composer (new / reply / edit) is open. Exactly one at a time; the composer's
 	// text lives in composerBody so it survives the diff DOM rebuild (see composer.ts).
@@ -341,5 +345,6 @@ export type {
 	FileContentsPayload,
 	GuideFile,
 	PollPayload,
+	BrowserRefreshEvent,
 	ReviewerSave,
 }

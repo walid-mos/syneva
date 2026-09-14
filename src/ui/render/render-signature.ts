@@ -1,4 +1,4 @@
-import type { ReviewComment, ReviewState } from '../types'
+import type { ReviewComment, ReviewState, Store } from '../types'
 import type { DiffView } from './diff-instance'
 
 // The identity of a rendered diff OUTCOME: the same file (identity, paths, content), the same
@@ -52,7 +52,13 @@ export function renderSignature(
 	file: SignedFile,
 	view: DiffView,
 	changes: ChangeRecord[],
-	comments: ReviewComment[],
+	{
+		comments,
+		composer,
+	}: {
+		comments: ReviewComment[]
+		composer: Pick<Store, 'composerOpen' | 'editingCommentId' | 'selected'>
+	},
 ): string {
 	return [
 		file.path,
@@ -65,5 +71,11 @@ export function renderSignature(
 		changes.map(changeSignature).join(RECORD),
 		GROUP,
 		comments.map(commentSignature).join(RECORD),
+		GROUP,
+		// Opening/replying/editing changes annotations without changing persisted comments.
+		// Closed selections and draft keystrokes do not change the mounted editor structure.
+		composer.composerOpen
+			? JSON.stringify([composer.editingCommentId, composer.selected])
+			: '',
 	].join(FIELD)
 }

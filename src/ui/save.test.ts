@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from 'node:util'
 
 import { createSaver, reviewerSlice } from './save'
 
-import type { ReviewState } from './types'
+import type { ReviewState } from '../types'
 
 void test('reviewerSlice carries only reviewer-owned fields - no rawDiff, no file contents', () => {
 	// A full state with the heavy server-owned fields the save must NOT ship.

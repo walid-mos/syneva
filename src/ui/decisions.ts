@@ -3,7 +3,7 @@ import { nextUnreviewedFileIndex, guideProgress } from './guide'
 import { render, deferRender } from './render'
 import { api, persist, requireState, S, toast } from './store'
 
-import type { ReviewFile } from '../types'
+import type { BrowserReviewFile as ReviewFile } from '../types'
 import type { ChangeState, Decision } from './types'
 
 // The explicit decision record is the source of truth for accept/reject (decoupled

@@ -7,26 +7,6 @@ import { S, $ } from './store'
 
 import type { ReviewComment } from './types'
 
-export function isMarkdownPath(path: string): boolean {
-	return /\.(md|markdown|mdx)$/i.test(path)
-}
-
-// In file mode, a new/unchanged markdown file opens rendered (read the plan); a changed
-// one opens as source so you see the diff first. The toolbar toggle overrides per file.
-export function defaultFileView(
-	f: ReturnType<typeof currentFile>,
-): 'rendered' | 'source' {
-	if (!isMarkdownPath(f.path)) return 'source'
-	// An explicit preference wins; "auto" (the default) keeps the smart rule below.
-	const pref = S.settings.markdownView
-	if (pref === 'rendered' || pref === 'source') return pref
-	// "Changed" ≡ the file has a parsed diff (hunks) - derived from metadata, not contents, so this
-	// runs at file-select time before the per-file contents fetch. A new/unchanged markdown file
-	// (no hunks) opens rendered; a changed one opens as source so the diff shows first.
-	const changed = f.hunks.length > 0
-	return changed ? 'source' : 'rendered'
-}
-
 // A markdown-block line has no display/raw split (D.lineMap is null here), so the source
 // line is the anchor directly. The composer renders inline via renderMarkdownFile below.
 function openComposerAt(lineNumber: number): void {

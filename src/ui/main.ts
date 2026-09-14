@@ -7,11 +7,11 @@ import { installGuideBindings } from './bindings/guide-bar'
 import { installNavigationBindings } from './bindings/navigate'
 import { installProjectTreeBindings } from './bindings/project-tree'
 import { invalidateCursorRows } from './cursor'
+import { defaultFileView } from './file-summary'
 import { hasGuide } from './guide'
 import { ensureIcons } from './icons'
 import { installKeys } from './keys'
 import { setMarkdownTheme } from './markdown'
-import { defaultFileView } from './mdfile'
 import { adoptDeskStatus, POLL_INTERVAL_MS, pollState } from './poll'
 import { setBaseTitle } from './progress'
 import { render } from './render'
@@ -19,6 +19,7 @@ import { installPaneResizers } from './resizer'
 import { applyAppearance, DEFAULT_SETTINGS } from './settings'
 import { api, $, S } from './store'
 
+import type { StateWithStatus } from './poll'
 import type { DiffStyle, ReviewState, Settings } from './types'
 
 // The tab's bootstrap: store bindings, Alpine start, the initial fetch, and the few document-level
@@ -57,7 +58,7 @@ ensureIcons() // file-tree icon sprite (folder/file/badges/stage)
 // random, so it can't hold them). Fold the file over the defaults before first paint.
 const [prefs, state, tree] = await Promise.all([
 	loadPrefs(),
-	api<ReviewState>('/api/state'),
+	api<StateWithStatus>('/api/state'),
 	api<{ files?: string[] }>('/api/tree'),
 ])
 S.settings = { ...DEFAULT_SETTINGS, ...prefs.settings }
@@ -78,7 +79,7 @@ S.selected = {
 	lineNumber: S.state.changes[0]?.lineNumber ?? 1,
 }
 const firstFile = S.state.files.at(S.fileIndex)
-if (firstFile) S.fileView = defaultFileView(firstFile)
+if (firstFile) S.fileView = defaultFileView(firstFile, S.settings.markdownView)
 // With a guide attached, land on the Overview page (the guided entry point) and open the sidebar on
 // the user's preferred pane (`w` toggles it per-session from there).
 if (hasGuide()) {

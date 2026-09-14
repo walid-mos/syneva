@@ -63,6 +63,16 @@ const ANCHORS = [
 	'galley stop',
 	'auto-exits',
 	'--idle-timeout',
+	// Browser projection and restart notification must stay distinct from the agent event stream.
+	'Browser state & refresh',
+	'BrowserReviewState',
+	'hasHunks',
+	'GET /api/poll?instance=<serverInstanceId>',
+	'{kind:"refresh",…liveness}',
+	'persistent refresh-required notice',
+	'never automatic navigation',
+	'instance on both state-adoption paths',
+	'one manual page refresh',
 	// the rest of the operational contract
 	'reload vs restart',
 	'desk.lock',

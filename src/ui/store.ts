@@ -36,6 +36,7 @@ export const S: Store = AlpineJS.reactive<Store>({
 	queuedQuestions: 0,
 	queuedReviews: 0,
 	lastBaseDiffHash: null,
+	isRefreshRequired: false,
 	selected: { side: 'additions', lineNumber: 1 },
 	// chrome UI flags (templates bind to these)
 	composerOpen: false,

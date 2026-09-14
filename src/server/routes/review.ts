@@ -1,9 +1,11 @@
 import { reviewerSavePatch } from '../../state/persistence.js'
 import { appendLiveComment, parseCommentRequest } from '../add-comment.js'
+import { browserState } from '../browser-state.js'
 import { HTTP_OK, HTTP_UNPROCESSABLE, readBody, json, fail } from '../http.js'
 import { resetReviewPatch, unstageReviewedFiles } from '../reset-review.js'
 import { sendReview } from '../send-review.js'
 
+import type { BrowserResetResponse } from '../../types.js'
 import type { RouteRequest } from '../router.js'
 
 export async function saveReview({
@@ -75,6 +77,11 @@ export async function resetDesk({ ctx, res }: RouteRequest): Promise<void> {
 		await unstageReviewedFiles(ctx.state)
 		Object.assign(ctx.state, resetReviewPatch(ctx.state))
 		await ctx.persist()
-		json(res, HTTP_OK, { ok: true, state: ctx.state })
+		const response: BrowserResetResponse = {
+			ok: true,
+			state: browserState(ctx.state),
+			serverInstanceId: ctx.instanceId,
+		}
+		json(res, HTTP_OK, response)
 	})
 }

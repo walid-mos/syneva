@@ -1,12 +1,13 @@
 import { confirmNo, confirmYes } from '../confirm'
 import { walkthroughRows } from '../guide'
 import { helpGroups } from '../keys'
+import { isCurrentDesk } from '../poll'
 import { reviewStats } from '../progress'
 import { render } from '../render'
 import { reviewerSlice } from '../save'
 import { $, api, D, requireState, S, toast } from '../store'
 
-import type { ReviewState } from '../types'
+import type { BrowserResetResponse } from '../../types'
 
 // The modal bindings: the Send receipt (a glance at what is about to go, one-way), the
 // review-complete prompt, Reset, and the keyboard-help + confirm dialogs.
@@ -83,10 +84,11 @@ function installSendBindings(): void {
 
 function installResetBinding(): void {
 	S.reset = async () => {
-		const body = await api<{ state?: ReviewState }>('/api/reset', {
+		const body = await api<Partial<BrowserResetResponse>>('/api/reset', {
 			method: 'POST',
 		})
 		if (body.state) {
+			if (!isCurrentDesk(body.serverInstanceId)) return
 			S.state = body.state
 			D.fileDiff = null
 			void render()

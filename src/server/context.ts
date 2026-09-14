@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import { createSerializer } from '../mutex.js'
 import { persistReview } from '../state/persistence.js'
 
@@ -13,6 +15,7 @@ import type { IdleWatchdog } from './shutdown.js'
 // origin guard's authority set, the liveness collaborators, and the two operations every mutating
 // route shares (persist, and serialize through the mutation mutex).
 export type DeskContext = {
+	instanceId: string
 	state: ReviewState
 	options: ServerOptions
 	binding: Binding
@@ -39,6 +42,7 @@ export function createDeskContext(
 ): DeskContext {
 	const { binding, events, activity, watchdog, shutdown } = collaborators
 	return {
+		instanceId: randomUUID(),
 		state,
 		options,
 		binding,

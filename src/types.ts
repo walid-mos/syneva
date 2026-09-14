@@ -224,6 +224,49 @@ export type ReviewState = {
 	persistFile?: string
 }
 
+// The browser receives metadata, not the backend's diff bodies. Explicit Picks keep newly added
+// backend fields private by default. The renderer builds its own hunks from /api/file-contents.
+export type BrowserReviewFile = Pick<
+	ReviewFile,
+	| 'path'
+	| 'oldPath'
+	| 'newPath'
+	| 'contentHash'
+	| 'changeKind'
+	| 'renamePure'
+	| 'oversized'
+	| 'size'
+> &
+	Required<Pick<ReviewFile, 'added' | 'removed'>> & { hasHunks: boolean }
+
+export type BrowserReviewState = Pick<
+	ReviewState,
+	| 'root'
+	| 'session'
+	| 'mode'
+	| 'target'
+	| 'staged'
+	| 'baseDiffHash'
+	| 'changes'
+	| 'comments'
+	| 'decisions'
+	| 'guide'
+	| 'reviewedFiles'
+	| 'reviewedFileHashes'
+	| 'stagedFiles'
+	| 'stagedChangeKeys'
+	| 'decisionFiles'
+> & { files: BrowserReviewFile[] }
+
+// A process change asks the tab to refresh its bundle before adopting another server's state.
+// This is a browser heartbeat event, not an agent-facing AwaitEvent.
+export type BrowserRefreshEvent = { kind: 'refresh' }
+export type BrowserResetResponse = {
+	ok: true
+	state: BrowserReviewState
+	serverInstanceId: string
+}
+
 // The reviewer-owned slice the browser posts to /api/save. Only these fields are mutated
 // from the tab; everything else on ReviewState (rawDiff, file contents, changes, guide,
 // mode params, hashes) is server/agent-owned and stays authoritative on the server - so
@@ -241,10 +284,8 @@ export type ReviewerSave = Pick<
 	| 'decisionFiles'
 >
 
-// Transient desk-liveness fields injected into the /api/state response alongside
-// ReviewState. Deliberately NOT on ReviewState: anything on state is persisted by
-// persistReview and echoed back by the UI via /api/save, while these only describe
-// the live desk process.
+// Transient desk-liveness fields alongside BrowserReviewState. Never persist these or include
+// them in ReviewerSave: they describe the live desk process, not the durable review.
 export type AgentActivity = { body: string; at: string }
 export type DeskStatus = {
 	// Latest `galley status` line, or null when none posted or stale (past the TTL).
@@ -271,10 +312,9 @@ export type FileContentsPayload = {
 	newOid: string
 }
 
-// The tab's 1.5s heartbeat (GET /api/poll): just enough to detect change. Even lean, the full
-// ReviewState (hunks + rawDiff for every file) is far heavier than a heartbeat needs, so it must
-// never ride the poll; the tab fetches /api/state exactly once per baseDiffHash change and diffs
-// guide/comments off this slice in between. DeskStatus is merged into the response alongside these.
+// The tab's 1.5s heartbeat (GET /api/poll): just enough to detect change. File summaries and change
+// records belong on /api/state, fetched on baseDiffHash changes, not on every tick. A mismatched
+// ?instance= from an older desk process receives BrowserRefreshEvent instead. DeskStatus rides both.
 export type PollPayload = Pick<
 	ReviewState,
 	'baseDiffHash' | 'guide' | 'comments'
