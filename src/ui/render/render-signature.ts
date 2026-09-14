@@ -1,0 +1,69 @@
+import type { ReviewComment, ReviewState } from '../types'
+import type { DiffView } from './diff-instance'
+
+// The identity of a rendered diff OUTCOME: the same file (identity, paths, content), the same
+// reviewer decisions and skim collapses, and the same comment threads encode the exact same
+// #diff paint. Pure over the store-projected inputs (see renderDiffInstance) - structural on
+// DiffView, no cycle back from diff-instance, and Node tests run it without a DOM.
+// The file slice is the member set the digest reads, not ReviewFile wholesale.
+type SignedFile = {
+	path: string
+	contentHash: string
+	oldPath?: string | null
+	newPath?: string | null
+}
+
+// Field separator inside a record: not a valid id/side/status value, so records can't collide
+// across boundary shifts; the records within one group keep their joined order (the state's
+// own insertion order, which the desk preserves between saves).
+const FIELD = '\u001f'
+const RECORD = '\u0000'
+const GROUP = '\u0001'
+
+// Change digest. `skimCollapsed` is the isBlockSkimCollapsed outcome (the per-session toggles
+// + file-skim default the rows visibly fold) - projected by the caller, because skim state is
+// store-side and this fn is pure.
+type ChangeRecord = {
+	id: string
+	status: ReviewState['changes'][number]['status']
+	skimCollapsed: boolean
+}
+
+function changeSignature(change: ChangeRecord): string {
+	return [change.id, change.status, String(change.skimCollapsed)].join(FIELD)
+}
+
+// updatedAt covers in-place body edits; ids/status/position cover set membership and thread
+// placement. Bodies aren't digested: a hash per body costs more than the rebuild it prevents.
+function commentSignature(comment: ReviewComment): string {
+	return [
+		comment.id,
+		comment.status,
+		comment.side,
+		String(comment.lineNumber),
+		comment.updatedAt,
+	].join(FIELD)
+}
+
+// Digest of everything renderDiffInstance paints. A caller pairs it with diffKey: diffKey owns
+// the rendering options (settings, split style, guide), this owns the data - only a full pair
+// match proves "the next inst.render() would paint identically to what's mounted".
+export function renderSignature(
+	file: SignedFile,
+	view: DiffView,
+	changes: ChangeRecord[],
+	comments: ReviewComment[],
+): string {
+	return [
+		file.path,
+		file.contentHash,
+		file.oldPath ?? '',
+		file.newPath ?? '',
+		String(view.isPreviewing),
+		String(view.isExpandedUnchanged),
+		GROUP,
+		changes.map(changeSignature).join(RECORD),
+		GROUP,
+		comments.map(commentSignature).join(RECORD),
+	].join(FIELD)
+}

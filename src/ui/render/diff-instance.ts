@@ -2,6 +2,8 @@ import { FileDiff, parseDiffFromFile } from '@pierre/diffs'
 
 import { annotations, renderAnnotation } from '../annotations'
 import {
+	currentChanges,
+	currentComments,
 	currentSplittable,
 	ensureChangesFromFileDiff,
 	replayDecisions,
@@ -16,11 +18,12 @@ import {
 	handleDiffSelection,
 	handleLineNumberClick,
 } from '../selection'
-import { applySkimCollapse } from '../skim'
+import { applySkimCollapse, isBlockSkimCollapsed } from '../skim'
 import { $, D, S } from '../store'
 
 import { createDiffHeader, headerActions } from './file-header'
 import { renderOverviewRuler } from './overview-ruler'
+import { renderSignature } from './render-signature'
 import { diffWorkerPool, syncPoolRenderOptions } from './worker-pool'
 
 import type { FileDiffMetadata, FileDiffOptions } from '@pierre/diffs'
@@ -203,6 +206,12 @@ function mountEntry(host: HTMLElement, entry: DiffEntry): boolean {
 	return isNewMount
 }
 
+// The last pass that fully painted a diff (see the no-op guard in renderDiffInstance). The
+// guard self-corrects on detach: it also requires the recorded instance's wrapper to still be
+// mounted, so overview/markdown/replacement detours bust it without bookkeeping here.
+let lastRenderedKey: string | null = null
+let lastRenderedSignature: string | null = null
+
 // Evict least-recently-used instances beyond the cap, keeping the active one.
 function evictEntries(active: DiffEntry): void {
 	while (D.diffCache.size > DIFF_CACHE_CAP) {
@@ -239,12 +248,36 @@ function afterRender(key: string, view: DiffView): void {
 export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
 	// The pool requires current token settings (the worker bakes them into the returned tokens).
 	syncPoolRenderOptions()
+	const key = diffKey(file, view)
+	// No-op guard: a data+options pair identical to the last painted pass re-renders the same
+	// rows (every poll tick with merged agent comments, or a re-derived change list). Skip the
+	// parse/replay/inst.render entirely - calling render() again must stay cheap and SHOULD
+	// converge. Poll/selection renders pass through here; real decisions never hit the guard
+	// (they change the signature).
+	const signature = renderSignature(
+		file,
+		view,
+		// Pure-digest projection: the store side effects (current* filters, the skim outcome)
+		// stay here; the signature itself is data-in data-out.
+		currentChanges().map(c => ({
+			id: c.id,
+			status: c.status,
+			skimCollapsed: isBlockSkimCollapsed(c),
+		})),
+		currentComments(),
+	)
+	const host = $('diff')
+	const stillMounted =
+		key === lastRenderedKey &&
+		signature === lastRenderedSignature &&
+		// And the painted rows are actually the ones on screen: a replacement view (overview,
+		// markdown, ...) or detach may have emptied #diff in between - re-render then.
+		D.diffCache.get(key)?.wrapper === host.firstElementChild
+	if (stillMounted) return
 	const metadata = buildDiffMetadata(file, view)
 	D.fileDiff = metadata
-	const key = diffKey(file, view)
 	const entry = acquireEntry(key, view)
 	D.instance = entry.inst
-	const host = $('diff')
 	const mountedNew = mountEntry(host, entry)
 	entry.inst.setLineAnnotations(annotations())
 	entry.inst.render({
@@ -258,4 +291,8 @@ export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
 	if (mountedNew) host.scrollTop = 0
 	afterRender(key, view)
 	evictEntries(entry)
+	// Recorded only after the render landed: a mid-pass throw leaves the guard unaware, so the
+	// next pass re-renders instead of trusting half-finished state.
+	lastRenderedKey = key
+	lastRenderedSignature = signature
 }
