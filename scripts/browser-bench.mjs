@@ -252,6 +252,9 @@ async function benchRepo(name) {
 	// Network + parse census for the state payload (large desks: one sample only - refetching
 	// a >40MB payload three times would blow the tab's heap).
 	const cold = await page.evaluate(async () => {
+		// payload executes in the tab (performance/resource entries live there) - the
+		// scoping rule cannot see the evaluate boundary.
+		// oxlint-disable-next-line unicorn/consistent-function-scoping
 		const payload = async p => {
 			const s = performance.now()
 			const r = await fetch(p)
@@ -274,15 +277,13 @@ async function benchRepo(name) {
 						await payload('/api/state'),
 						await payload('/api/state'),
 					]
-		const state = samples.toSorted((a, b) => a.ms - b.ms)[0]
+		const [state] = samples.toSorted((a, b) => a.ms - b.ms)
 		const fc = performance
 			.getEntriesByType('resource')
-			.filter(e => e.name.includes('file-contents'))
-			.at(-1)
+			.findLast(e => e.name.includes('file-contents'))
 		const ui = performance
 			.getEntriesByType('resource')
-			.filter(e => e.name.includes('ui.js'))
-			.at(-1)
+			.findLast(e => e.name.includes('ui.js'))
 		return {
 			stateMs: state.ms,
 			stateBytes: state.bytes,

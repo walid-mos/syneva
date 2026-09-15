@@ -9,8 +9,6 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-const EXT = 'ts'
-
 // One realistic TS file body: nested objects so shiki has work to do per line.
 const body = (n, tag) =>
 	Array.from(
@@ -77,9 +75,9 @@ export function buildFixtures(root) {
 			writeFileSync(path.join(dir, name), text)
 		}
 		if (spec.special === 'bigfile') {
-			for (const [name, lines, share] of [
-				['src/giant-surface.ts', 8000, 0.25],
-				['src/giant-list.ts', 16000, 60 / 16000],
+			for (const [name, lines] of [
+				['src/giant-surface.ts', 8000],
+				['src/giant-list.ts', 16000],
 			]) {
 				names.push(name)
 				writeFileSync(

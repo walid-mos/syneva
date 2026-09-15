@@ -25,9 +25,8 @@ export default defineConfig({
 			// instance; DOM libs also lack DedicatedWorkerGlobalScope so the worker scope needs a
 			// narrow view. Every assertion lives next to its seam and is documented there.
 			// Token-pool files also log failures (an unhighlighted desk must show WHY, not stay
-			// silent), post worker messages without target-origin (workers post by identity, the
-			// rule targets window contexts), and pass slot objects as parameters by design
-			// (fleet/board share one transport object).
+			// silent), and post worker messages without target-origin (workers post by identity,
+			// the rule targets window contexts).
 			files: [
 				'src/ui/render/worker-pool.ts',
 				'src/ui/worker/diff-token-worker.ts',
@@ -40,7 +39,6 @@ export default defineConfig({
 				'typescript/no-unsafe-type-assertion': 'off',
 				'unicorn/require-post-message-target-origin': 'off',
 				'eslint/no-console': 'off',
-				'eslint/prefer-destructuring': 'off',
 			},
 		},
 		{
@@ -62,7 +60,6 @@ export default defineConfig({
 				'eslint/max-lines': 'off',
 				'eslint/max-lines-per-function': 'off',
 				'eslint/max-depth': 'off',
-				'eslint/no-unused-vars': 'off',
 				'nextnode/no-nullish-ternary-return': 'off',
 				// The bench instruments (a page-side __bench projector, fetch/Worker hooks,
 				// measured-and-sequenced key presses) are inherently serialized and
@@ -72,9 +69,6 @@ export default defineConfig({
 				// change the thing being measured.
 				'eslint/no-underscore-dangle': 'off',
 				'eslint/no-await-in-loop': 'off',
-				'unicorn/consistent-function-scoping': 'off',
-				'eslint/prefer-destructuring': 'off',
-				'unicorn/prefer-array-find': 'off',
 			},
 		},
 		{
