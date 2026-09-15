@@ -1,5 +1,6 @@
 import { currentComments, currentFileOrNull, toDisplayLine } from './changes'
-import { S, D } from './store'
+import { D } from './store'
+import { revealThreads } from './thread-reveals'
 import { isUnanchored } from './unanchored'
 
 import type { FileDiffMetadata } from '@pierre/diffs'
@@ -19,7 +20,6 @@ import type { Side } from './types'
 // re-renders for as long as the instance is cached.
 
 const REVEAL_CONTEXT = 3 // extra lines past the target so the thread has some code around it
-const MAX_REMEMBERED_DIFFS = 24 // guard map bound: forget the oldest keyed diff
 
 type Loc =
 	| { kind: 'visible' }
@@ -92,7 +92,7 @@ export function locateDisplayLine(
 
 // Expand the collapsed region containing this RAW line (no-op if it already renders).
 export function revealLine(side: Side, rawLine: number): void {
-	if (S.settings.unchangedLines === 'expand') return // everything renders already
+	if (D.instance?.options.expandUnchanged) return // the actual view, including the expand cap
 	const fd = D.fileDiff
 	const inst = D.instance
 	if (!fd || !inst) return
@@ -106,38 +106,12 @@ export function revealLine(side: Side, rawLine: number): void {
 	)
 }
 
-// Once-per-rendered-diff guard: expandHunk triggers its own rerender, and our render()
-// runs again on every decision - without this each pass would re-expand cumulatively.
-const revealed = new Map<string, Set<string>>()
-
-// Drop the oldest remembered diff once the guard map hits its bound.
-function forgetOldestDiff(): void {
-	const oldest = revealed.keys().next().value
-	if (!oldest) return
-	revealed.delete(oldest)
-}
-
-function doneFor(diffKey: string): Set<string> {
-	const existing = revealed.get(diffKey)
-	if (existing) return existing
-	const done = new Set<string>()
-	revealed.set(diffKey, done)
-	// Keep the guard map from growing unboundedly across many files/option changes.
-	if (revealed.size > MAX_REMEMBERED_DIFFS) forgetOldestDiff()
-	return done
-}
-
-export function revealThreadLines(diffKey: string): void {
+export function revealThreadLines(): void {
 	const file = currentFileOrNull()
-	if (!file) return
-	const done = doneFor(diffKey)
-	const seen = new Set<string>()
-	for (const c of currentComments()) {
-		if (c.status !== 'open' || isUnanchored(c, file)) continue
-		const key = `${c.side}:${c.lineNumber}`
-		if (seen.has(key) || done.has(key)) continue
-		seen.add(key)
-		done.add(key)
-		revealLine(c.side, c.lineNumber)
-	}
+	const { instance } = D
+	if (!file || !instance) return
+	const threads = currentComments().filter(
+		comment => comment.status === 'open' && !isUnanchored(comment, file),
+	)
+	revealThreads(instance, threads, revealLine)
 }

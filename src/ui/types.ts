@@ -193,10 +193,8 @@ export type AnnotationInput = DiffLineAnnotation<AnnotationMeta>
 export type DiffHolder = {
 	// FileDiff is generic over its annotation metadata - ours is AnnotationMeta.
 	instance: FileDiff<AnnotationMeta> | null
-	// LRU of rendered diffs keyed by file + view options (see diffKey). Each instance lives in
-	// its own wrapper element; only the active wrapper is mounted in #diff, the rest stay
-	// detached (held here) with their DOM + @pierre highlight cache intact - so re-opening a
-	// visited file re-mounts instantly without re-tokenizing.
+	// One active rendered diff keyed by file + view options (see diffKey). Metadata and worker
+	// tokens have their own bounded caches; detached row DOM is discarded on a file switch.
 	diffCache: Map<
 		string,
 		{ wrapper: HTMLElement; inst: FileDiff<AnnotationMeta> }

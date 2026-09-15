@@ -3,6 +3,7 @@ import { mergeRows } from './cursor-rows'
 import { acceptChange } from './decisions'
 import { diffShadowRoot } from './diff-dom'
 import { render } from './render'
+import { activeViewport } from './render/viewport'
 import { openCommentComposer } from './selection'
 import { S, D, $, toast, persist } from './store'
 
@@ -50,6 +51,8 @@ function lineSide(type: string, column: Element | null): Side {
 // [data-deletions] column (split) - that gives us side + number + row element. Context lines show
 // in both split columns at the same y; mergeRows() folds those twins into one row.
 function rows(): Row[] {
+	const viewport = activeViewport()
+	if (viewport) return viewport.rows()
 	if (cached) return cached
 	const shadow = diffShadowRoot()
 	if (!shadow) return [] // shadow not mounted yet - don't cache, retry on the next call
@@ -113,7 +116,9 @@ function landOn(r: Row | undefined, shouldScroll = true): void {
 	if (!r) return
 	cur = { side: r.side, line: r.line }
 	paint(r)
-	if (shouldScroll) r.el.scrollIntoView({ block: 'nearest' })
+	if (!shouldScroll) return
+	if (activeViewport()?.reveal(r.side, r.line, 'nearest')) return
+	r.el?.scrollIntoView({ block: 'nearest' })
 }
 
 // Adopt a pointer-made selection as the cursor position, so the arrows continue from the
@@ -170,7 +175,8 @@ function landAt(side: Side, line: number): boolean {
 	if (!r) return false
 	cur = { side: r.side, line: r.line }
 	paint(r)
-	r.el.scrollIntoView({ block: 'center' })
+	if (!activeViewport()?.reveal(r.side, r.line, 'center'))
+		r.el?.scrollIntoView({ block: 'center' })
 	return true
 }
 

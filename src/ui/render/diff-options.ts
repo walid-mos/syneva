@@ -1,0 +1,71 @@
+import { renderAnnotation } from '../annotations'
+import { currentSplittable } from '../changes'
+import { restorePendingComposerFocus } from '../composer'
+import { invalidateCursorRows } from '../cursor'
+import { handleDiffSelection, handleLineNumberClick } from '../selection'
+import { applySkimCollapse } from '../skim'
+import { D, S } from '../store'
+
+import { createDiffHeader, headerActions } from './file-header'
+import { scheduleOverviewRuler } from './overview-ruler'
+import { activeViewport } from './viewport'
+
+import type { FileDiffOptions } from '@pierre/diffs'
+import type { AnnotationMeta } from '../types'
+import type { DiffView } from './diff-key'
+
+// Preview reads as a plain file: remap @pierre's addition styling to its CONTEXT (unchanged)
+// styling - row tint, gutter cell bg, and gutter number color all to the neutral context values -
+// so a one-sided render of an unchanged file isn't all-green. These must be set INSIDE @pierre's
+// shadow (via unsafeCSS below): the context vars they reference only exist there, so a host-level
+// override referencing them is invalid and silently reverts.
+const PREVIEW_CSS =
+	'[data-code]{--diffs-bg-addition-override:var(--diffs-bg-context);--diffs-bg-addition-emphasis-override:var(--diffs-bg-context);--diffs-bg-addition-number-override:var(--diffs-bg-context-gutter);--diffs-fg-number-addition-override:var(--diffs-fg-number)}'
+
+// The @pierre render options for one instance. `renderHeaderMetadata` and `renderCustomHeader`
+// are our own header builders (see file-header.ts).
+export function diffOptions(view: DiffView): FileDiffOptions<AnnotationMeta> {
+	const { isPreviewing, isExpandedUnchanged } = view
+	return {
+		// The code theme is the user's pick regardless of appearance (the settings dropdown groups
+		// dark and light themes; mixing is allowed). Both slots get it - themeType only decides
+		// which slot @pierre reads plus its own chrome colors, which follow the appearance.
+		theme: { dark: S.settings.theme, light: S.settings.theme },
+		themeType: S.settings.appearance === 'light' ? 'light' : 'dark',
+		diffStyle: currentSplittable() ? S.diffStyle : 'unified',
+		diffIndicators: isPreviewing ? 'none' : S.settings.diffIndicators,
+		expandUnchanged: isExpandedUnchanged,
+		overflow: S.settings.overflow,
+		hunkSeparators: S.settings.hunkSeparators,
+		lineDiffType: S.settings.lineDiffType,
+		enableLineSelection: true,
+		renderAnnotation,
+		onLineNumberClick: handleLineNumberClick,
+		onLineSelectionStart: handleDiffSelection,
+		onLineSelectionChange: handleDiffSelection,
+		onLineSelected: handleDiffSelection,
+		onLineSelectionEnd: handleDiffSelection,
+		renderHeaderMetadata: headerActions,
+		// @pierre's own post-render signal - fires once the diff rows are committed to the shadow
+		// DOM (mount and every update). This is where skim collapse must run: on a COLD mount the
+		// render() promise resolves before the rows are queryable, so the afterRender pass finds
+		// nothing; onPostRender fires when they exist. (afterRender still runs it too, for the
+		// warm/cached path where rows are already present - both are idempotent.)
+		onPostRender: (_node, instance, phase) => {
+			if (instance !== D.instance) return
+			// The rendered rows just changed (mount, update, or @pierre's own expandHunk rerender -
+			// which never routes through our render()), so the cursor's cached row list is stale.
+			invalidateCursorRows()
+			if (phase === 'unmount') return
+			applySkimCollapse()
+			activeViewport()?.afterPaint()
+			requestAnimationFrame(restorePendingComposerFocus)
+			if (!isPreviewing && isExpandedUnchanged) scheduleOverviewRuler()
+		},
+		// @pierre reserves a right-side gutter via `scrollbar-gutter: stable` on the code grid (for
+		// a vertical scrollbar it hides) - drop it so rows fill the full width. PREVIEW_CSS (empty
+		// unless previewing) neutralizes addition styling to context, in-shadow.
+		unsafeCSS: `[data-code]{scrollbar-gutter:auto}${isPreviewing ? PREVIEW_CSS : ''}`,
+		renderCustomHeader: createDiffHeader(isPreviewing),
+	}
+}

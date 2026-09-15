@@ -18,7 +18,9 @@ const workerEntry = fileURLToPath(
 // regression is +9 MB) or the oniguruma wasm (+600 KB). Reaching "hundreds of KB" would require
 // lazy-loading grammar chunks (a code-split + a server route to serve them) - out of scope here.
 // 3.2 → 3.3 MB when light mode added six curated light themes (~170 KB of theme JSON).
-const SIZE_LIMIT = 3_300_000
+// 3.3 → 3.4 MB for the virtualized renderer - headroom until the chunk split
+// retires this whole-file cap for a budgeted lazy graph.
+const SIZE_LIMIT = 3_400_000
 // dist/worker.js carries the same curated grammars plus @pierre's worker engine, so its floor is
 // comparable; the gate is a regression tripwire (a wasm/fat-barrel leak), generous rather than
 // tight to avoid false CI failures across @pierre releases.

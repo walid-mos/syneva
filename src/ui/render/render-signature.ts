@@ -1,5 +1,5 @@
 import type { ReviewComment, ReviewState, Store } from '../types'
-import type { DiffView } from './diff-instance'
+import type { DiffView } from './diff-key'
 
 // The identity of a rendered diff OUTCOME: the same file (identity, paths, content), the same
 // reviewer decisions and skim collapses, and the same comment threads encode the exact same

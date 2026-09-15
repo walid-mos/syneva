@@ -7,7 +7,7 @@ import { hasGuide, renderOverview } from './guide'
 import { renderMarkdownFile } from './mdfile'
 import { isOversizedPlaceholder, renderOversizedCard } from './oversized'
 import { updateProgress } from './progress'
-import { diffKey, renderDiffInstance } from './render/diff-instance'
+import { diffKey } from './render/diff-key'
 import { isExpandCapped, newLines } from './render/expand-cap'
 import { clearOverviewRuler } from './render/overview-ruler'
 import {
@@ -19,10 +19,12 @@ import {
 import { $, D, esc, S } from './store'
 import { applyActiveRow, applyLayoutClasses } from './tree'
 
-import type { DiffView } from './render/diff-instance'
+import type * as DiffIsland from './render/diff-instance'
+import type { DiffView } from './render/diff-key'
 import type { ReviewState } from './types'
 
 type ReviewFile = ReviewState['files'][number]
+let renderSequence = 0
 
 // The current render's view flags, read from the store (see DiffView). The expand-unchanged
 // preference is respected only under the whole-file paint cap: past EXPAND_LINES_MAX the diff
@@ -76,9 +78,10 @@ export function deferRender(isForcedIfBig = false): void {
 	)
 }
 
-// Detach the active diff instance - its cached wrapper survives in D.diffCache, so returning to
-// the file re-mounts it - and drop the display line map. A replacement view owns #diff from here.
+// Drop the active handle and line map before a replacement view owns #diff. Window callbacks
+// ignore inactive instances; the next diff mount disposes the detached entry.
 function detachDiffInstance(): void {
+	clearOverviewRuler()
 	D.instance = null
 	D.lineMap = null
 }
@@ -158,8 +161,7 @@ function renderReplacementView(
 	return true
 }
 
-async function renderCenter(): Promise<void> {
-	clearOverviewRuler()
+async function renderCenter(sequence: number): Promise<void> {
 	if (renderGuideOverview()) return
 	const file = currentFileOrNull()
 	// Nothing to show: the pre-init window (main.ts hasn't adopted the first fetch yet), or a reload
@@ -182,14 +184,36 @@ async function renderCenter(): Promise<void> {
 	// file. An "error" means the contents can't be fetched (git object gone after a rebase); show an
 	// error card naming the file so navigation to other files keeps working.
 	const contentsStatus = await loadCurrentContents()
-	if (contentsStatus === 'stale') return
+	if (contentsStatus === 'stale' || sequence !== renderSequence) return
 	if (contentsStatus === 'error') {
 		renderContentsError(file.path)
 		return
 	}
 	if (renderReplacementView(file, isPreviewing)) return
+	await renderDiffIsland(file, sequence)
+}
+
+async function renderDiffIsland(
+	file: ReviewFile,
+	sequence: number,
+): Promise<void> {
+	let island: typeof DiffIsland
+	try {
+		island = await import('./render/diff-instance')
+	} catch {
+		if (sequence !== renderSequence || file !== currentFileOrNull()) return
+		detachDiffInstance()
+		const message = document.createElement('div')
+		message.className = 'file-skim'
+		message.textContent =
+			'The diff renderer could not load. Refresh this tab to retry.'
+		$('diff').replaceChildren(message)
+		return
+	}
+	// Loading the island yields to navigation, reset, and newer render requests.
+	if (sequence !== renderSequence || file !== currentFileOrNull()) return
 	applyLayoutClasses()
-	renderDiffInstance(file, currentView())
+	island.renderDiffInstance(file, currentView())
 }
 
 // Every progress-moving mutation (decision, approval, reset, reload) funnels through render,
@@ -199,8 +223,9 @@ async function renderCenter(): Promise<void> {
 // started before (or during) that frame lands already-finished, i.e. no visible motion. The
 // double rAF puts the width change on the first idle frame after that paint.
 export async function render(): Promise<void> {
+	const sequence = ++renderSequence
 	try {
-		await renderCenter()
+		await renderCenter(sequence)
 	} finally {
 		// The diff DOM (and any inline composer inside it) was just rebuilt from scratch - re-focus
 		// the open composer and restore its caret from the store, so typing survives a render

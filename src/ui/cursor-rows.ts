@@ -16,7 +16,7 @@ export type MeasuredRow = {
 
 // A measured row plus what only the cursor itself uses: the element to paint and its height.
 export type Row = MeasuredRow & {
-	el: HTMLElement
+	el?: HTMLElement
 	height: number
 	change: boolean
 }

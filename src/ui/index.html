@@ -863,6 +863,8 @@
 			}
 
 			#diff {
+				/* The virtualizer preserves the visible line while buffers/row heights change. */
+				overflow-anchor: none;
 				flex: 1;
 				min-height: 0;
 				overflow: auto;

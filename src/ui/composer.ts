@@ -1,6 +1,7 @@
 import { fromDisplayLine } from './changes'
 import { render } from './render'
-import { S } from './store'
+import { activeViewport } from './render/viewport'
+import { $, S } from './store'
 
 import type { Side } from './types'
 
@@ -17,6 +18,7 @@ const SETTLE_TIMEOUT_MS = 200
 // Caret offset in the open composer, kept alongside S.composerBody so a rebuild can restore
 // the insertion point, not just the text. Reset whenever a composer opens.
 let composerCaret = 0
+let needsWindowFocus = false
 
 // Sync the store from the live textarea on every keystroke - the store is the source of
 // truth a re-render re-mounts from.
@@ -112,6 +114,8 @@ export function openComposer(): void {
 	S.composerBody = ''
 	S.editingCommentId = null
 	S.composerOpen = true
+	needsWindowFocus = true
+	activeViewport()?.reveal(S.selected.side, S.selected.lineNumber, 'center')
 	void render()
 }
 
@@ -127,6 +131,7 @@ export function openComposer(): void {
 // another line), the render simply draws it - state is untouched here.
 export function closeComposer(isDeferred = false): void {
 	S.composerOpen = false
+	needsWindowFocus = false
 	S.editingCommentId = null
 	if (!isDeferred) {
 		void render()
@@ -144,12 +149,27 @@ export function closeComposer(isDeferred = false): void {
 
 // After every render the diff DOM (and any composer inside it) is rebuilt from scratch, so
 // re-focus the open composer and restore its caret from the store. No-op when none is open.
+export function restorePendingComposerFocus(): void {
+	if (needsWindowFocus) restoreComposerFocus()
+}
+
 export function restoreComposerFocus(): void {
 	if (!S.composerOpen) return
 	const ta = document.querySelector<HTMLTextAreaElement>('.js-composer-focus')
-	if (!ta) return
+	if (!ta?.getClientRects().length) {
+		needsWindowFocus = true
+		return
+	}
+	needsWindowFocus = false
 	if (ta.value !== S.composerBody) ta.value = S.composerBody
-	ta.focus()
+	ta.focus({ preventScroll: true })
+	// Focus only scrolls the diff pane, never the outer page. Unslotted offscreen
+	// composers wait for their window to mount before attempting to focus.
+	const pane = $('diff').getBoundingClientRect()
+	const box = ta.getBoundingClientRect()
+	if (box.top < pane.top) $('diff').scrollTop += box.top - pane.top
+	else if (box.bottom > pane.bottom)
+		$('diff').scrollTop += box.bottom - pane.bottom
 	const pos = Math.min(composerCaret, ta.value.length)
 	ta.setSelectionRange(pos, pos)
 }
