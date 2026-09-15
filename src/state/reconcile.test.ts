@@ -600,7 +600,11 @@ void test('readStagedSnapshot keeps only reviewed files that are staged, and pru
 		})
 		const snapshot = await readStagedSnapshot(live)
 		assert.ok(isDeepStrictEqual(snapshot.stagedFiles, ['a.ts'])) // staged AND reviewed
-		assert.deepEqual(snapshot.stagedChangeKeys, ['a.ts:additions:1:0:1']) // b.ts/c.ts no longer staged
+		assert.ok(
+			isDeepStrictEqual(snapshot.stagedChangeKeys, [
+				'a.ts:additions:1:0:1',
+			]),
+		) // b.ts/c.ts no longer staged
 		// The snapshot is returned, never applied: the live state's own fields are untouched.
 		assert.deepEqual(live.stagedFiles, [])
 		assert.equal(live.stagedChangeKeys?.length, 3)

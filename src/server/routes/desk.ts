@@ -2,9 +2,10 @@ import { listProjectTree } from '../../git/repo.js'
 import { readGlobalSettings, writeGlobalSettings } from '../../state/desk.js'
 import { readStagedSnapshot } from '../../state/reconcile.js'
 import { browserState } from '../browser-state.js'
-import { readBody, json, HTTP_OK } from '../http.js'
+import { readBody, json, jsonBody, HTTP_OK } from '../http.js'
 
 import type { BrowserRefreshEvent, PollPayload } from '../../types.js'
+import type { DeskContext } from '../context.js'
 import type { RouteRequest } from '../router.js'
 
 export async function servePoll({
@@ -30,17 +31,47 @@ export async function servePoll({
 }
 
 export async function serveState({ ctx, res }: RouteRequest): Promise<void> {
-	Object.assign(ctx.state, await readStagedSnapshot(ctx.state))
-	json(res, HTTP_OK, {
-		...browserState(ctx.state),
-		...ctx.status(),
-		serverInstanceId: ctx.instanceId,
-	})
+	await refreshStagedState(ctx)
+	// The response is the browser projection plus the transient desk status. Only the projection is
+	// expensive to build, and only the status can move between two reads of the same review, so key
+	// the cached body on both: the cache's own revision covers the review, this key the process.
+	const status = ctx.status()
+	const body = ctx.stateBodyCache.body(
+		JSON.stringify({ ...status, serverInstanceId: ctx.instanceId }),
+		() =>
+			JSON.stringify({
+				...browserState(ctx.state),
+				...status,
+				serverInstanceId: ctx.instanceId,
+			}),
+	)
+	jsonBody(res, HTTP_OK, body)
 }
 
 export async function serveTree({ ctx, res }: RouteRequest): Promise<void> {
-	Object.assign(ctx.state, await readStagedSnapshot(ctx.state))
+	await refreshStagedState(ctx)
 	json(res, HTTP_OK, { files: await listProjectTree(ctx.state.root) })
+}
+
+// Reflect the live git index onto the review before serving it: an external `git add` must show up
+// without a reload, so the snapshot is read from git on every request. A snapshot that did not move
+// must not invalidate the cached body though, or every tab poll would re-render the review.
+async function refreshStagedState(ctx: DeskContext): Promise<void> {
+	const snapshot = await readStagedSnapshot(ctx.state)
+	const moved =
+		!samePaths(ctx.state.stagedFiles, snapshot.stagedFiles) ||
+		!samePaths(ctx.state.stagedChangeKeys ?? [], snapshot.stagedChangeKeys)
+	Object.assign(ctx.state, snapshot)
+	if (moved) ctx.stateBodyCache.invalidate()
+}
+
+// Both arrays come from the same git output in the same order on every read, so a positional
+// compare is exact - and unlike a set compare it would still catch a genuine reorder.
+function samePaths(current: string[], next: string[]): boolean {
+	return (
+		current.length === next.length &&
+		current.every((path, index) => path === next[index])
+	)
 }
 
 // Display preferences, stored globally in ~/.galley/settings.json - the desk's random port makes

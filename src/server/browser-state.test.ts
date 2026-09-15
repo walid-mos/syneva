@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
@@ -19,6 +19,37 @@ type StateResponse = BrowserReviewState & { serverInstanceId: string }
 
 async function readJson<T>(response: Response): Promise<T> {
 	return JSON.parse(await response.text())
+}
+
+function post(
+	url: string,
+	pathname: string,
+	payload: unknown,
+): Promise<Response> {
+	return fetch(`${url}${pathname}`, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify(payload),
+	})
+}
+
+const REVIEWER_COMMENT = {
+	id: 'c1',
+	path: 'a.ts',
+	side: 'additions',
+	lineNumber: 1,
+	body: 'why?',
+	createdAt: 't',
+	updatedAt: 't',
+	status: 'open',
+	intent: 'action',
+	role: 'user',
+} as const
+
+async function stateBody(url: string): Promise<string> {
+	const response = await fetch(`${url}api/state`)
+	assert.equal(response.status, 200)
+	return await response.text()
 }
 
 const DIFF_SENTINEL = 'SERVER_ONLY_DIFF'.repeat(10_000)
@@ -208,6 +239,129 @@ void test('hunkless files and an empty reload remain representable without diff 
 		)
 		assert.deepEqual(empty.files, [])
 		assert.equal(empty.baseDiffHash, 'e3b0c44298fc1c14')
+	})
+})
+
+void test('GET /api/state reuses its serialized body while no mutation runs', async () => {
+	await withDesk(async (url, state) => {
+		const first = await stateBody(url)
+		// The probe: a write that bypassed every route. A fresh render would carry it, the reused body
+		// cannot - so an identical second response proves the body was not rebuilt.
+		state.comments.push({ ...REVIEWER_COMMENT })
+		assert.ok(isDeepStrictEqual(await stateBody(url), first))
+	})
+})
+
+void test('POST /api/save invalidates the cached state body', async () => {
+	await withDesk(async url => {
+		const before = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.deepEqual(before.comments, [])
+		const saved = await post(url, 'api/save', {
+			comments: [{ ...REVIEWER_COMMENT }],
+		})
+		assert.equal(saved.status, 200)
+		const after = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.equal(after.comments.length, 1)
+	})
+})
+
+void test('POST /api/comment invalidates the cached state body', async () => {
+	await withDesk(async url => {
+		const before = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.deepEqual(before.comments, [])
+		const posted = await post(url, 'api/comment', {
+			path: 'a.ts',
+			lineNumber: 1,
+			body: 'why?',
+			role: 'user',
+		})
+		assert.equal(posted.status, 200)
+		const after = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.equal(after.comments.length, 1)
+	})
+})
+
+void test('POST /api/reset invalidates the cached state body', async () => {
+	await withDesk(async url => {
+		await post(url, 'api/save', {
+			decisions: [
+				{
+					key: 'a.ts:k',
+					status: 'accepted',
+					path: 'a.ts',
+					lineNumber: 1,
+					side: 'additions',
+					title: 'Add',
+				},
+			],
+		})
+		const before = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.equal(before.decisions?.length, 1)
+		const reset = await fetch(`${url}api/reset`, { method: 'POST' })
+		assert.equal(reset.status, 200)
+		const after = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.deepEqual(after.decisions, [])
+	})
+})
+
+void test('POST /api/reload invalidates the cached state body', async () => {
+	await withDesk(async url => {
+		const before = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.equal(before.files.length, 1)
+		const reload = await fetch(`${url}api/reload`, {
+			method: 'POST',
+			body: '{}',
+		})
+		assert.equal(reload.status, 200)
+		const after = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.deepEqual(after.files, [])
+	})
+})
+
+void test('the cached state body follows the transient desk status', async () => {
+	await withDesk(async url => {
+		const before = await readJson<{
+			agentActivity: { body: string } | null
+		}>(await fetch(`${url}api/state`))
+		assert.equal(before.agentActivity, null)
+		await post(url, 'api/status', { body: 'Reading a.ts…' })
+		const after = await readJson<{
+			agentActivity: { body: string } | null
+		}>(await fetch(`${url}api/state`))
+		assert.equal(after.agentActivity?.body, 'Reading a.ts…')
+	})
+})
+
+void test('an external git add lands in the next state body', async () => {
+	await withDesk(async (url, state) => {
+		const before = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.deepEqual(before.stagedFiles, [])
+		// Staged outside every route: the staged snapshot is the one part of the review the desk
+		// re-reads from git per request, so this is the mutation the cache must notice on its own.
+		await writeFile(path.join(state.root, 'a.ts'), 'one\n')
+		execFileSync('git', ['add', 'a.ts'], { cwd: state.root })
+		const after = await readJson<StateResponse>(
+			await fetch(`${url}api/state`),
+		)
+		assert.ok(isDeepStrictEqual(after.stagedFiles, ['a.ts']))
 	})
 })
 

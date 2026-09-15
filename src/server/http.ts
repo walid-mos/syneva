@@ -34,8 +34,18 @@ export async function readBody(req: IncomingMessage): Promise<string> {
 }
 
 export function json(res: ServerResponse, status: number, body: unknown): void {
+	jsonBody(res, status, JSON.stringify(body))
+}
+
+// A JSON response whose body is already serialized: /api/state hands back the string its cache
+// holds instead of stringifying the (possibly multi-MB) browser projection a second time.
+export function jsonBody(
+	res: ServerResponse,
+	status: number,
+	serialized: string,
+): void {
 	res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
-	res.end(JSON.stringify(body))
+	res.end(serialized)
 }
 
 export function fail(res: ServerResponse, failure: ApiFailure): void {

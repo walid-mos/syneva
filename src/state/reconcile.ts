@@ -224,9 +224,10 @@ async function readCommentedContents(
 	return contentsByPath
 }
 
-export type StagedSnapshot = Pick<
-	ReviewState,
-	'stagedFiles' | 'stagedChangeKeys'
+// The two index-derived collections readStagedSnapshot always hands back - both present, so a caller
+// can compare a snapshot's fields field-by-field without a `?? []` on its own side.
+export type StagedSnapshot = Required<
+	Pick<ReviewState, 'stagedFiles' | 'stagedChangeKeys'>
 >
 
 // Reflect the live index onto the review: which reviewed files are staged now, and the staged-hunk
