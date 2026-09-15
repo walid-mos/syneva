@@ -82,8 +82,9 @@ done
   see Between rounds).
 - \`galley stop [--session <id> | --all]\` - shut down this repo's live desk(s) (--all = every
   session). Idempotent, exits 0 with {stopped:[…]} whether or not a desk was running - call it
-  when the review session is over (the human said done / the task is complete) so desks don't
-  linger. All review state is persisted; a later start restores the session.
+  yourself the same turn the session settles; never ask the human whether to stop, that prices
+  an idle desk's closure at a whole LLM round-trip. All review state is persisted; a later
+  start restores the session.
 
 ## Events
 await yields exactly one:
@@ -127,7 +128,11 @@ new Send). Live questions arrive only via await, so a file-poller sees Sends but
 In pr mode the diff is committed changes: amend the branch/commits to apply the review, leaving
 approved hunks as-is (rather than editing the working tree).
 Then \`galley reload\` to surface your edits. With the Pi attachment, return control; otherwise
-run \`galley await\` for the next round.
+run \`galley await\` for the next round. When the round is fully handled and nothing needs the
+reviewer's eyes anymore (no edits awaiting re-review, no open questions - e.g. a clean
+all-approved send already committed to an empty diff), call \`galley stop\` in the same turn:
+never end a round by asking the human "say done to stop" - that buys an idle desk with one
+whole LLM round-trip for nothing.
 
 ## Guided review (optional)
 Attach with \`galley <mode> --guide <file>\`: an overview page + your files in order with per-file
