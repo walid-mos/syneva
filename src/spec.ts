@@ -35,9 +35,10 @@ ReviewResult.mode (repo|file|pr) tells you how to read verdicts.
 ## Pi attachment (preferred when galley_agent is available)
 Start the desk, then call the Pi tool \`galley_agent\` with
 \`{action:"attach", repo:"<absolute repo>", session:"<desk session>"}\` from the owning
-persistent session. Return control: questions AND completed reviews wake this same session
-via native follow-up messages, each pointing to a complete saved JSON event. Read that file,
-handle its kind as below, then return control again. Do not run the CLI wait loop while attached.
+persistent session. Return control: completed reviews, closed events, and failed question
+answers wake this same session via native follow-up messages, each pointing to a complete
+saved JSON event. Read that file, handle its kind as below, then return control again. Do
+not run the CLI wait loop while attached.
 Never delegate waiting to a one-shot subagent: its exit cannot wake an idle parent indefinitely.
 The listener survives agent turns and restores on reload/resume of the SAME Pi session; a fork
 cannot inherit it. Print/JSON sessions cannot attach. Keep the owning Pi process open.
@@ -46,20 +47,20 @@ require reattachment. Before switching desks, detach with
 \`galley_agent {action:"detach"}\` - the browser Close already does it (see closed); detach
 does not stop the desk. Use \`galley stop\` separately.
 
-### Question routing - answer in a child, never in the owner
-Every read the answering session does to answer a question stays in its context and is re-sent
-on EVERY later turn of the round, so the cost compounds. Keep the owner a router:
-- questions -> ONE read-only child per question (this package ships \`galley-answer\`), all launched
-  in a SINGLE PARALLEL call, e.g.
-  \`await runs.all([{key:"q1",agent:"galley-answer",task:"…"},…])\`; each task carries repo,
-  mode, path, lineNumber, side, body, and - when the anchor is on the deletions side - a short
-  excerpt of the hunk, because the child has no git access. Post each returned answer yourself with
-  \`galley comment\` at that question's own path/line/side, VERBATIM: the owner is the desk's only
-  writer. Children never post, never edit files, never touch the desk.
-- a question asking WHY (your intent rather than the code) -> add one line of intent to that task.
-  Never fork this session's transcript for a factual question: a fork re-sends exactly what the
-  routing exists to avoid.
-- review events -> still handled IN the owner, which holds the code context; then \`galley reload\`.
+### Question routing - the desk correspondent answers, the owner reviews
+The extension runs ONE deterministic correspondent thread per desk: a \`pi -p\` process rooted
+in the repo with a fixed session file (\`<reviewDir>/correspondent-session.jsonl\`), read-only
+tools, no extensions, no inherited listener. That thread is 1 thread = 1 agent: it resumes the
+same conversation for every question and keeps the review Q&A context THERE, not in the owner
+session, which is never asked to read for an answer. On each question event the extension
+spawns that thread with the saved event file, parses its "### q<N>" reply blocks, and posts
+each answer to the desk at the question's own path/line/side with role agent, VERBATIM - no
+owner turn, no per-question children, no runs.all fanout. The owner is woken only for review
+events (act on the feedback in the owner, which holds the code context, then \`galley reload\`),
+closed events, and a correspondent failure, in which case it answers the questions itself with
+\`galley comment\`, VERBATIM at the saved anchors. Never fork the owner transcript for a
+factual question: a fork re-sends exactly what the routing exists to avoid.
+
 For an existing unattached desk, attach the session that owns its review context, not an unrelated
 agent. If the tool is missing in an already-open Pi process, reload the Pi extensions first.
 

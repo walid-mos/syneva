@@ -27,7 +27,7 @@ function registerAttachmentTool(
 		name: 'galley_agent',
 		label: 'Galley agent connection',
 		description:
-			'Attach this persistent Pi session to a running Galley desk (action attach, explicit session, optional repo). Questions and completed reviews wake this SAME session automatically across turns. Use instead of galley await or a one-shot waiting subagent. One desk per Pi session; detach before switching. status reports the connection. Detach only when the human ends the review; it does not stop the desk. Print/JSON children cannot attach. Received events are saved as JSON files and delivered as file references, never truncated. Transport failures require reattachment; reload/resume restores the same owner, never a fork.',
+			'Attach this persistent Pi session to a running Galley desk (action attach, explicit session, optional repo). The desk answers questions itself through one dedicated correspondent thread (a `pi -p` session file in the review dir), so this session is woken only for completed reviews, closed desks, and correspondent failures - each pointing at a saved JSON event. Use instead of galley await or a one-shot waiting subagent. One desk per Pi session; detach before switching. status reports the connection. Detach only when the human ends the review; it does not stop the desk. Print/JSON children cannot attach. Received events are saved as JSON files and delivered as file references, never truncated. Transport failures require reattachment; reload/resume restores the same owner, never a fork.',
 		promptGuidelines: [
 			'After starting a Galley desk, use galley_agent to attach the owning persistent session before returning control to the human. Do not delegate waiting to a one-shot subagent.',
 		],

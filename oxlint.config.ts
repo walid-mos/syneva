@@ -59,6 +59,19 @@ export default defineConfig({
 			rules: { 'eslint/no-await-in-loop': 'off' },
 		},
 		{
+			// The question pipeline is sequential by design: the single desk correspondent
+			// thread answers one event at a time, and answers post to the desk in question
+			// order (the same class of exception as the desk-listener long-poll below).
+			files: ['src/agent/pi-attachment.ts', 'src/agent/pi-delivery.ts'],
+			rules: { 'eslint/no-await-in-loop': 'off' },
+		},
+		{
+			// The integration test polls the desk state until the skipped-owner answer
+			// appears: live polling, not parallelizable promise collection.
+			files: ['src/agent/pi-attachment.integration.test.ts'],
+			rules: { 'eslint/no-await-in-loop': 'off' },
+		},
+		{
 			// The bench fixtures encode file counts and per-file sizes by design (an 8k-line
 			// giant, a 2.4MB oversized file) and the browser bench reports with console.log
 			// like perf-smoke does. The shared preset's readability rules (magic numbers,

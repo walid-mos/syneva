@@ -1,10 +1,14 @@
+import { correspondentIo } from './correspondent.js'
 import { connectDesk, receiveDeskEvent } from './desk-connection.js'
 import { startDeskListener } from './desk-listener.js'
+import { handleQuestionEvent, wakeDeskOwner } from './pi-delivery.js'
+import { correspondentSessionFile } from './pi-thread.js'
 
 import type {
 	ExtensionAPI,
 	ExtensionContext,
 } from '@earendil-works/pi-coding-agent'
+import type { CorrespondentIo } from './correspondent.js'
 import type { DeskConnection, DeskTarget } from './desk-connection.js'
 
 const ATTACHMENT_ENTRY = 'galley-attachment'
@@ -47,34 +51,22 @@ export function savedAttachment(
 	return { repo: target.repo, session: target.session }
 }
 
-export function wakeDeskOwner(
-	pi: Pick<ExtensionAPI, 'sendMessage'>,
-	target: DeskTarget,
-	eventPath: string,
-): void {
-	pi.sendMessage(
-		{
-			customType: 'galley-event',
-			content: `Galley feedback for repo ${JSON.stringify(target.repo)}, session ${JSON.stringify(target.session)}.\nRead the complete event at ${JSON.stringify(eventPath)} and follow galley spec (read it once per session). Questions and reviews are handled differently: NEVER answer a question in this session - launch one read-only galley-answer child per question in ONE parallel subagent call, then post each answer yourself with galley comment at that question's own path/line/side VERBATIM, because this session is the desk's only writer; a question asking WHY (your intent, not the code) gets one line of intent in that child's task. Act on review events here, then galley reload. A closed event means the human ended the review in the browser: detach with galley_agent {action:'detach'} and return control - never restart the desk on your own. Always pass this repo and session to Galley CLI commands.\nThe native listener stays attached across turns. Never launch galley await or a child whose job is to wait. Return control after handling feedback; further events wake this session automatically.`,
-			display: true,
-			details: { ...target, eventPath },
-		},
-		{ triggerTurn: true, deliverAs: 'followUp' },
-	)
-}
-
 // One resource per owning Pi session, independent of agent_end. Pi alone schedules
-// model turns; this adapter never spawns a model or a waiting subprocess.
+// model turns; this adapter never spawns a model turn for itself - the only thing it
+// spawns is the desk correspondent's thread, and only after a question event.
 export class PiDeskAttachment {
 	private connection?: DeskConnection
 	private controller?: AbortController
 	private pending: Promise<void> = Promise.resolve()
+	private answerJobs: { desk: DeskConnection; eventPath: string }[] = []
+	private answerWorker?: Promise<void>
 	private failure?: string
 	private generation = 0
 	private isConnecting = false
 
 	constructor(
 		private readonly pi: Pick<ExtensionAPI, 'sendMessage' | 'appendEntry'>,
+		private readonly io: CorrespondentIo = correspondentIo,
 	) {}
 
 	isConnected(): boolean {
@@ -87,10 +79,18 @@ export class PiDeskAttachment {
 		return `Listening: ${this.connection.repo} / ${this.connection.session}`
 	}
 
+	// Exposed for verification: the correspondent thread is keyed by the desk session
+	// alone, so every answer of an attachment lands in the same conversation file.
+	threadFile(): string | undefined {
+		const desk = this.connection
+		if (!desk) return undefined
+		return correspondentSessionFile(desk)
+	}
+
 	async stop(): Promise<void> {
 		this.generation++
 		this.controller?.abort()
-		await this.pending
+		await Promise.allSettled([this.pending, this.answerWorker])
 		this.controller = undefined
 		this.connection = undefined
 	}
@@ -163,12 +163,7 @@ export class PiDeskAttachment {
 			await startDeskListener({
 				signal,
 				receive: abort => receiveDeskEvent(desk, abort),
-				deliver: event =>
-					wakeDeskOwner(
-						this.pi,
-						desk,
-						typeof event === 'string' ? event : event.eventPath,
-					),
+				deliver: event => this.deliverEvent(desk, event, signal),
 			})
 		} catch (error) {
 			this.reportFailure(error, ctx)
@@ -184,6 +179,60 @@ export class PiDeskAttachment {
 			'Galley review closed by the reviewer - attachment detached.',
 			'info',
 		)
+	}
+
+	// Questions must not block the poll loop (the desk must keep seeing an active agent),
+	// and they must run serialized so the one correspondent thread is never concurrent.
+	// They queue on a single worker instead; reviews and closed keep the synchronous wake.
+	private deliverEvent(
+		desk: DeskConnection,
+		event: string | { eventPath: string; kind: string },
+		signal: AbortSignal,
+	): void {
+		if (typeof event !== 'string' && event.kind === 'question') {
+			this.answerJobs.push({ desk, eventPath: event.eventPath })
+			this.answerWorker ??= this.workAnswers(signal)
+			return
+		}
+		wakeDeskOwner(
+			this.pi,
+			desk,
+			typeof event === 'string' ? event : event.eventPath,
+		)
+	}
+
+	private async workAnswers(signal: AbortSignal): Promise<void> {
+		try {
+			// Serialized answers are the point: one thread, one answer at a time. The
+			// drain returns false on an empty queue, which is what ends the loop.
+			let didDrain = true
+			while (didDrain) didDrain = await this.drainOneAnswer(signal)
+		} finally {
+			this.answerWorker = undefined
+		}
+	}
+
+	private async drainOneAnswer(signal: AbortSignal): Promise<boolean> {
+		const next = this.answerJobs.shift()
+		if (!next) return false
+		await this.answerOne(next.desk, next.eventPath, signal)
+		return true
+	}
+
+	private async answerOne(
+		desk: DeskConnection,
+		eventPath: string,
+		signal: AbortSignal,
+	): Promise<void> {
+		// handleQuestionEvent owns the fallback wake; a throw here only means the
+		// listener aborted mid-answer, and an aborted attachment answers nobody.
+		await handleQuestionEvent({
+			pi: this.pi,
+			desk,
+			eventPath,
+			signal,
+			io: this.io,
+		})
 	}
 
 	private reportFailure(error: unknown, ctx: AttachmentContext): void {

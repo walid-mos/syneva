@@ -20,13 +20,14 @@ const ANCHORS = [
 	// Native attachment must not send Pi agents back to a one-shot waiting child.
 	'Pi attachment',
 	'galley_agent',
-	'questions AND completed reviews wake this same session',
+	'completed reviews, closed events, and failed question',
 	'Never delegate waiting to a one-shot subagent',
 	'Print/JSON sessions cannot attach',
-	// question routing: the owner stays a router, one read-only child per question, owner posts
+	// question routing: the deterministic desk correspondent answers; the owner only reviews
 	'Question routing',
-	'galley-answer',
-	'runs.all',
+	'desk correspondent',
+	'correspondent-session.jsonl',
+	'1 thread = 1 agent',
 	'VERBATIM',
 	// the loop + events
 	'galley await',
