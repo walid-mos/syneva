@@ -1,3 +1,4 @@
+import { commentSide } from '../../state/comments.js'
 import { questionPayload } from '../../state/review-result.js'
 import {
 	HTTP_NO_CONTENT,
@@ -120,13 +121,16 @@ function parseAskRequest(payload: unknown): {
 			: ''
 	if (!filePath || !text) return null
 	const line = 'lineNumber' in payload ? payload.lineNumber : undefined
+	const lineNumber = Number(line ?? 1)
 	return {
 		path: filePath,
-		lineNumber: Number(line ?? 1),
-		side:
+		lineNumber,
+		side: commentSide(
 			'side' in payload && payload.side === 'deletions'
 				? 'deletions'
 				: 'additions',
+			lineNumber,
+		),
 		body: text,
 	}
 }

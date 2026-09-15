@@ -26,8 +26,38 @@ export type CommentInput = {
 	role: 'user' | 'agent'
 }
 
+// ── Whole-file anchor ─────────────────────────────────────────────────────────
+// A whole-file comment anchors to the file, not a diff line: lineNumber 0 is the file-level
+// slot (real lines are 1-based, so no rendered line can ever sit there). ONE rule derives
+// both the persisted `anchor` stamp and the meaningless side/anchorText placeholders, so the
+// live route, the offline agent reply, and the UI can't disagree with each other or with the
+// persisted record.
+export const FILE_LEVEL_LINE = 0
+
+// Is this comment anchored to the whole file rather than a rendered line?
+export function isFileLevelLine(lineNumber: number): boolean {
+	return lineNumber === FILE_LEVEL_LINE
+}
+
+// The persisted anchor stamp for a new comment (undefined on line comments).
+export function commentAnchor(lineNumber: number): 'file' | undefined {
+	if (!isFileLevelLine(lineNumber)) return undefined
+	return 'file'
+}
+
+// The side a comment persists with: file-level comments have no diff side, so they always
+// store the additions placeholder regardless of what a caller sent (keeps agent replies that
+// named a side by habit thread-matched with the desk's own file comments).
+export function commentSide(
+	side: 'additions' | 'deletions',
+	lineNumber: number,
+): 'additions' | 'deletions' {
+	return isFileLevelLine(lineNumber) ? 'additions' : side
+}
+
 // Append a comment to the persisted review, capturing the anchor text of the line it points at so a
-// later reload can re-anchor the thread (see reanchorComments).
+// later reload can re-anchor the thread (see reanchorComments). Whole-file comments skip the
+// content read entirely - they have no line to anchor.
 export async function appendComment(
 	root: string,
 	session: string,
@@ -38,14 +68,18 @@ export async function appendComment(
 		throw new Error(
 			`No saved review for session "${session}" in ${root}. Open the desk first.`,
 		)
-	// Fetch just this file's contents (the state embeds none) to capture the anchor line.
+	// Line comments need the file's contents to capture the anchor line (the state embeds none);
+	// a whole-file comment needs nothing read.
 	const file = saved.files.find(candidate => candidate.path === input.path)
-	const contents = file ? await readFileContents(saved, file) : undefined
+	const contents =
+		file && !isFileLevelLine(input.lineNumber)
+			? await readFileContents(saved, file)
+			: undefined
 	const now = nowIso()
 	const comment: ReviewComment = {
 		id: crypto.randomUUID(),
 		path: input.path,
-		side: input.side,
+		side: commentSide(input.side, input.lineNumber),
 		lineNumber: input.lineNumber,
 		body: input.body,
 		createdAt: now,
@@ -53,6 +87,7 @@ export async function appendComment(
 		status: 'open',
 		intent: 'note',
 		role: input.role,
+		anchor: commentAnchor(input.lineNumber),
 		anchorText: anchorTextFor(contents, input.side, input.lineNumber),
 	}
 	saved.comments.push(comment)
@@ -88,7 +123,9 @@ function reanchorComment(
 	files: { path: string }[],
 	contentsOf: (path: string) => FileContents | undefined,
 ): ReviewComment {
-	if (comment.status !== 'open') return comment
+	// Whole-file threads have no line anchor to recover - they're anchored to the path, which
+	// already matched, so they ride along untouched.
+	if (comment.status !== 'open' || comment.anchor === 'file') return comment
 	const file = files.find(candidate => candidate.path === comment.path)
 	if (!file) return comment
 	return withRecoveredAnchor(comment, contentsOf(comment.path))

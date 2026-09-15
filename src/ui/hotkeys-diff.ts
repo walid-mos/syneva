@@ -10,6 +10,7 @@ import {
 	golineDigit,
 } from './cursor'
 import { approveCurrentFile } from './decisions'
+import { fileCommentsEnabled } from './file-comments'
 import {
 	cmd,
 	cmdShift,
@@ -127,6 +128,15 @@ export const HOTKEYS_DIFF: Hotkey[] = [
 		run: () => cursorComment(),
 		hide: true,
 	}, // alias for ↵
+	{
+		combo: '⇧C',
+		desc: 'Comment on file',
+		group: 'Comment',
+		test: shift('C'),
+		// A single-file desk has no use for whole-file scope - nothing to open.
+		when: () => inDiff() && fileCommentsEnabled(),
+		run: () => S.toggleFileComposer?.(),
+	},
 	{
 		combo: 'r',
 		desc: 'Resolve / reopen thread',

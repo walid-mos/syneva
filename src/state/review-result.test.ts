@@ -178,3 +178,73 @@ void test('skim never changes approval derivations (display-only)', () => {
 	assert.equal(r.accepted.length, 1)
 	assert.ok(isDeepStrictEqual(r.approvedFiles, ['a.ts']))
 })
+
+void test('a whole-file request rides out as lineNumber 0 + anchor file, and approves-not blocks as usual', () => {
+	const s = state({
+		files: [file('a.ts', 'H'), file('b.ts', 'H')],
+		reviewedFiles: ['a.ts', 'b.ts'],
+		reviewedFileHashes: { 'a.ts': 'H', 'b.ts': 'H' },
+		comments: [
+			comment({
+				id: 'file',
+				path: 'a.ts',
+				lineNumber: 0,
+				body: 'add a module-level doc comment',
+				intent: 'action',
+				role: 'user',
+			}),
+		],
+	})
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.equal(r.requestedChanges.length, 1)
+	assert.equal(r.requestedChanges[0].lineNumber, 0)
+	assert.equal(r.requestedChanges[0].anchor, 'file')
+	// The open file request keeps its file out of approvedFiles (same rule as a line request),
+	// while the untouched b.ts stays approved.
+	assert.ok(isDeepStrictEqual(r.approvedFiles, ['b.ts']))
+})
+
+void test('an unanswered whole-file question carries anchor file and is answered by a --line 0 reply', () => {
+	const before = state({
+		session: 'sess',
+		comments: [
+			comment({
+				id: 'file-q',
+				path: 'a.ts',
+				lineNumber: 0,
+				body: 'should this module be split?',
+				intent: 'question',
+				role: 'user',
+				createdAt: '2026-01-01T00:00:00Z',
+			}),
+		],
+	})
+	const asked = buildReviewResult(before, {
+		resultJson: 'r.json',
+		sessionDir: 'd',
+	})
+	assert.equal(asked.openQuestions.length, 1)
+	assert.equal(asked.openQuestions[0].lineNumber, 0)
+	assert.equal(asked.openQuestions[0].anchor, 'file')
+
+	// A file-header reply (line 0) answers it - no more open question on the next Send.
+	const after = state({
+		session: 'sess',
+		comments: [
+			...before.comments,
+			comment({
+				id: 'reply',
+				path: 'a.ts',
+				lineNumber: 0,
+				body: 'not yet',
+				role: 'agent',
+				createdAt: '2026-01-01T00:01:00Z',
+			}),
+		],
+	})
+	assert.deepEqual(
+		buildReviewResult(after, { resultJson: 'r.json', sessionDir: 'd' })
+			.openQuestions,
+		[],
+	)
+})

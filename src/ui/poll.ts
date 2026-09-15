@@ -203,7 +203,7 @@ export async function pollState(): Promise<void> {
 		// already existed (fire-and-forget persist could lose the same way). Scoping the composer
 		// guard here (not at the top) keeps liveness/presence and the additive agent-reply comment
 		// merge running every tick while a reply box is open, so the desk never looks dead.
-		if (saver.isBusy() || S.composerOpen) return
+		if (saver.isBusy() || S.composerOpen || S.fileComposerOpen) return
 		await adoptReload()
 		return
 	}

@@ -1,4 +1,4 @@
-import { closeComposer } from './composer'
+import { closeComposer, closeFileComposer } from './composer'
 import { askConfirm } from './confirm'
 import {
 	cursorReset,
@@ -40,6 +40,11 @@ function escape(): void {
 	}
 	if (S.settingsOpen) {
 		S.settingsOpen = false
+		return
+	}
+	// The whole-file composer closes without touching the line selection (it has none).
+	if (S.fileComposerOpen) {
+		closeFileComposer()
 		return
 	}
 	if (S.composerOpen || S.editingCommentId) {

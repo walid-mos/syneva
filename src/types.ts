@@ -44,6 +44,12 @@ export type ReviewComment = {
 	// Set by re-anchoring when the anchor can't be recovered (line gone or ambiguous);
 	// the desk shows these threads in a file-level strip instead of on a diff row.
 	unanchored?: boolean
+	// "file" = a whole-file comment (addressed to the file, not a diff line; the desk hosts it
+	// from the file header). File comments carry lineNumber 0 and side 'additions' as placeholders
+	// - side/line are meaningless there, real lines are 1-based, so no line-keyed grouping can ever
+	// match them. Omitted on line comments; every construction derives it from lineNumber
+	// (commentAnchor in state/comments.ts), so the field can't disagree with lineNumber 0.
+	anchor?: 'file'
 }
 
 export type ChangeState = {
@@ -348,6 +354,9 @@ export type ReviewResult = {
 		lineNumber: number
 		side: string
 		body: string
+		// "file" on a whole-file request (the file-header comment): no line to edit - apply the
+		// remark to the file as a whole. Absent on a line-anchored request.
+		anchor?: 'file'
 	}>
 	// An optional note the reviewer attached at Send time about the whole review - an overall
 	// remark, or an afterthought instruction for what to do after applying it. Ephemeral: captured
@@ -372,6 +381,9 @@ export type QuestionPayload = {
 	lineNumber: number
 	side: 'additions' | 'deletions'
 	body: string
+	// "file" on a whole-file question (reviewer asked from the file header): reply with
+	// `galley comment --path <f> --line 0` so the answer threads into that file header.
+	anchor?: 'file'
 	mode: ReviewMode
 	session: string
 }

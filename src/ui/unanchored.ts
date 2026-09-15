@@ -1,4 +1,5 @@
-import { currentComments, currentFileOrNull } from './changes'
+import { currentComments, currentFileOrNull, isFileComment } from './changes'
+import { buildCommentThread } from './comment-thread'
 import { cur } from './contents'
 
 import type { ReviewComment, ReviewState, ThreadMeta } from './types'
@@ -10,6 +11,31 @@ type ReviewFile = ReviewState['files'][number]
 // and an open change request blocks approval, so it must stay reachable. These threads
 // are pulled out of the annotation flow and shown in a strip above the diff with the
 // normal thread actions (reply / resolve / reopen).
+
+// The strip of unanchored threads, shown as the diff's first row under the file header so
+// they stay actionable (they block approval until resolved). Built per render alongside
+// the whole-file comment section (file-comments.ts) - the two header strips.
+export function unanchoredStrip(): HTMLElement | null {
+	const orphans = unanchoredThreads()
+	if (!orphans.length) return null
+	const strip = document.createElement('div')
+	strip.className = 'unanchored-strip'
+	const head = document.createElement('div')
+	head.className = 'unanchored-head'
+	const noun = orphans.length === 1 ? 'thread' : 'threads'
+	const pronoun = orphans.length === 1 ? 'its' : 'their'
+	head.textContent = `${orphans.length} comment ${noun} lost ${pronoun} place in this diff - resolve or reply here`
+	strip.appendChild(head)
+	for (const thread of orphans) {
+		// Reuse the annotation thread styling (it's all scoped under .annotation).
+		const box = document.createElement('div')
+		box.className = 'annotation'
+		box.dataset.thread = `${thread.side}:${thread.lineNumber}` // blockers jump target
+		box.appendChild(buildCommentThread(thread))
+		strip.appendChild(box)
+	}
+	return strip
+}
 
 function sideLineCount(file: ReviewFile, side: ReviewComment['side']): number {
 	// Line counts come from the current file's fetched contents (contents.ts `cur`); this runs
@@ -28,12 +54,14 @@ export function isUnanchored(c: ReviewComment, file: ReviewFile): boolean {
 	return c.unanchored === true || c.lineNumber > sideLineCount(file, c.side)
 }
 
-// Open unanchored threads of the current file, grouped like annotations() groups them.
+// Open unanchored threads of the current file, grouped like annotations() groups them. Whole-file
+// comments never unanchor - they ride the file header (file-comments.ts), not a rendered line.
 export function unanchoredThreads(): ThreadMeta[] {
 	const file = currentFileOrNull()
 	if (!file) return []
 	const groups = new Map<string, ReviewComment[]>()
 	for (const c of currentComments()) {
+		if (isFileComment(c)) continue
 		const key = `${c.side}:${c.lineNumber}`
 		const group = groups.get(key)
 		if (group) group.push(c)

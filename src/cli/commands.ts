@@ -31,7 +31,8 @@ type CommentPayload = {
 }
 
 const COMMENT_USAGE =
-	'Usage: galley comment --path <file> --line <n> [--side additions|deletions] --body "..." [--session <id>] [--repo <path>]'
+	'Usage: galley comment --path <file> --line <n> [--side additions|deletions] --body "..."\n' +
+	'       (--line 0 replies into the file header thread; omit --side there) [--session <id>] [--repo <path>]'
 const STATUS_USAGE =
 	'Usage: galley status --body "..." [--session <id>] [--repo <path>]'
 

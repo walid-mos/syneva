@@ -7,10 +7,14 @@ import {
 	fileFinished,
 	fileObjections,
 } from '../changes'
-import { buildCommentThread } from '../comment-thread'
 import { cur } from '../contents'
 import { approveCurrentFile, resetReview } from '../decisions'
-import { currentGuideEntry } from '../guide'
+import {
+	fileCommentIconButton,
+	fileCommentSection,
+	fileCommentsEnabled,
+} from '../file-comments'
+import { currentGuideEntry, hasGuide } from '../guide'
 import { renderMarkdown } from '../markdown'
 import {
 	isFileSkim,
@@ -19,7 +23,7 @@ import {
 	toggleFileSkim,
 } from '../skim'
 import { S } from '../store'
-import { unanchoredThreads } from '../unanchored'
+import { unanchoredStrip } from '../unanchored'
 
 import { isExpandCapped, EXPAND_LINES_MAX, newLines } from './expand-cap'
 
@@ -109,6 +113,14 @@ function openEditorButton(): HTMLElement {
 	return b
 }
 
+// The whole-file comment trigger, only where a file-level scope adds something over the line
+// threads: hidden on guided desks (the guide bar owns it) and on single-file desks (every
+// comment already addresses the one file). Explicit-route fallback for unguided multi-file desks.
+export function fileCommentButton(): HTMLElement | null {
+	if (hasGuide() || !fileCommentsEnabled()) return null
+	return fileCommentIconButton()
+}
+
 // The per-file sign-off action in the diff header. Unfinished -> one context button:
 // "Approve" (clean) or "Mark reviewed" (has a rejected hunk / open requested-change), which
 // accepts pending hunks, signs off, and advances. Finished -> a state pill + Reset to undo.
@@ -155,30 +167,6 @@ export function headerActions(): HTMLElement {
 	return wrap
 }
 
-// The unanchored-comment strip: open threads whose anchor line no longer renders, shown as the
-// diff's first row so they stay actionable (they block approval until resolved).
-function unanchoredStrip(): HTMLElement | null {
-	const orphans = unanchoredThreads()
-	if (!orphans.length) return null
-	const strip = document.createElement('div')
-	strip.className = 'unanchored-strip'
-	const head = document.createElement('div')
-	head.className = 'unanchored-head'
-	const noun = orphans.length === 1 ? 'thread' : 'threads'
-	const pronoun = orphans.length === 1 ? 'its' : 'their'
-	head.textContent = `${orphans.length} comment ${noun} lost ${pronoun} place in this diff - resolve or reply here`
-	strip.appendChild(head)
-	for (const thread of orphans) {
-		// Reuse the annotation thread styling (it's all scoped under .annotation).
-		const box = document.createElement('div')
-		box.className = 'annotation'
-		box.dataset.thread = `${thread.side}:${thread.lineNumber}` // blockers jump target
-		box.appendChild(buildCommentThread(thread))
-		strip.appendChild(box)
-	}
-	return strip
-}
-
 // Row 1 of a changed file's header: icon, path, rename note, layout toggle, editor button, the
 // +/- counts and the file's actions.
 function headerRow(file: FileDiffMetadata): HTMLElement {
@@ -200,6 +188,8 @@ function headerRow(file: FileDiffMetadata): HTMLElement {
 	}
 	// Layout toggle right of the filename - only when Split actually applies (a two-sided diff).
 	if (currentSplittable()) row.appendChild(layoutToggle())
+	const fc = fileCommentButton()
+	if (fc) row.appendChild(fc)
 	row.appendChild(openEditorButton())
 	const grow = document.createElement('span')
 	grow.className = 'ghdr-grow'
@@ -265,6 +255,10 @@ function fileHeader(file: FileDiffMetadata): HTMLElement {
 	wrap.appendChild(headerRow(file))
 	const guide = guideRow()
 	if (guide) wrap.appendChild(guide)
+	// Whole-file comments sit above the unanchored strip: a file-header thread reads before the
+	// "these lost their line" warning strip underneath it.
+	const fc = fileCommentSection()
+	if (fc) wrap.appendChild(fc)
 	const strip = unanchoredStrip()
 	if (strip) wrap.appendChild(strip)
 	return wrap
@@ -272,7 +266,8 @@ function fileHeader(file: FileDiffMetadata): HTMLElement {
 
 // Preview gets its own minimal header: a neutral file icon + path + a read-only tag - no +/- counts,
 // change-type icon, or guidance (all of which would mislabel an unchanged file rendered as
-// one-sided content). The Approve / Reset actions don't apply to a preview.
+// one-sided content). The Approve / Reset actions don't apply to a preview, but a whole-file
+// comment does (the same rule the unguided changed-file header follows).
 function previewHeader(): HTMLElement {
 	const wrap = document.createElement('div')
 	wrap.className = 'ghdr'
@@ -283,6 +278,8 @@ function previewHeader(): HTMLElement {
 	name.className = 'ghdr-file'
 	name.textContent = currentFile().path
 	row.appendChild(name)
+	const fc = fileCommentButton()
+	if (fc) row.appendChild(fc)
 	row.appendChild(openEditorButton())
 	const grow = document.createElement('span')
 	grow.className = 'ghdr-grow'
@@ -292,6 +289,8 @@ function previewHeader(): HTMLElement {
 	tag.textContent = 'Unchanged'
 	row.appendChild(tag)
 	wrap.appendChild(row)
+	const section = fileCommentSection()
+	if (section) wrap.appendChild(section)
 	return wrap
 }
 

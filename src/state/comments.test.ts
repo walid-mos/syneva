@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { reanchorComments } from './comments.js'
+import {
+	commentAnchor,
+	commentSide,
+	isFileLevelLine,
+	reanchorComments,
+} from './comments.js'
 import { anchorTextFor } from './contents.js'
 import { comment } from './fixtures.js'
 
@@ -155,4 +160,35 @@ void test('reanchorComments skips resolved comments and flags legacy ones only w
 	assert.equal(stillResolved.unanchored, undefined) // untouched
 	assert.equal(legacyInRange.unanchored, false)
 	assert.equal(legacyOutOfRange.unanchored, true)
+})
+
+// ── Whole-file comments ─────────────────────────────────────────────────────
+
+void test('reanchorComments never re-anchors a whole-file comment (no unanchored flip, position kept)', () => {
+	// The whole-file thread persists lineNumber 0 - a line-based recovery pass would either
+	// flag it out of range or move it to a matched line; neither may happen: it anchors to the
+	// path, which the caller already matched.
+	const c = comment({
+		id: 'fc',
+		path: 'a.ts',
+		lineNumber: 0,
+		anchor: 'file',
+	})
+	const [kept] = reanchor(
+		[c],
+		// Contents where line 0 could never match anything anyway.
+		[withContents('a.ts', 'alpha\nbeta\ngamma')],
+	)
+	assert.equal(kept.lineNumber, 0)
+	assert.equal(kept.anchor, 'file')
+	assert.equal(kept.unanchored, undefined) // untouched - no re-anchoring ran at all
+})
+
+void test('commentAnchor and commentSide derive the whole-file placeholder pair from line 0, and only line 0', () => {
+	assert.equal(commentAnchor(0), 'file')
+	assert.equal(commentAnchor(12), undefined)
+	// The side placeholder: file-level always additions, real lines keep what the caller sent.
+	assert.equal(commentSide('deletions', 0), 'additions')
+	assert.equal(commentSide('deletions', 12), 'deletions')
+	assert.ok(!isFileLevelLine(1))
 })

@@ -6,6 +6,7 @@ import {
 	buildEditor,
 	composerTargets,
 	openComposer,
+	openFileComposer,
 } from './composer'
 import { renderCommentBody } from './markdown'
 import { render } from './render'
@@ -114,9 +115,25 @@ function setThreadStatus(
 	}
 }
 
+// A whole-file thread hosts its reply through the file composer (no line anchor to select);
+// its open state is the file composer's flag. A line thread keeps the existing check.
+function isReplyComposerOpen(thread: ThreadMeta): boolean {
+	if (thread.fileLevel)
+		return (
+			S.fileComposerOpen &&
+			!S.editingCommentId &&
+			thread.status === 'open'
+		)
+	return composerTargets(thread.side, thread.lineNumber)
+}
+
 function wireThreadActions(box: HTMLElement, thread: ThreadMeta): void {
 	const reply = box.querySelector<HTMLButtonElement>('.reply-thread')
 	reply?.addEventListener('click', () => {
+		if (thread.fileLevel) {
+			openFileComposer()
+			return
+		}
 		// S.selected is display space; the thread's anchor is raw.
 		S.selected = {
 			side: thread.side,
@@ -145,14 +162,18 @@ function wireThreadActions(box: HTMLElement, thread: ThreadMeta): void {
 			persist()
 		},
 	)
-	box.querySelector<HTMLButtonElement>(
+	for (const button of box.querySelectorAll<HTMLButtonElement>(
 		'.reopen-thread,.reopen-inline',
-	)?.addEventListener('click', () => {
-		setThreadStatus(thread, 'open')
-		void render()
-		toast('Reopened')
-		persist()
-	})
+	)) {
+		// A resolved thread renders the summary's inline Reopen AND the actions-bar Reopen -
+		// give both a listener (querySelector would bind only the first).
+		button.addEventListener('click', () => {
+			setThreadStatus(thread, 'open')
+			void render()
+			toast('Reopened')
+			persist()
+		})
+	}
 }
 
 // The comment-box element for one thread (messages + reply/resolve/reopen + per-message
@@ -160,7 +181,7 @@ function wireThreadActions(box: HTMLElement, thread: ThreadMeta): void {
 export function buildCommentThread(thread: ThreadMeta): HTMLElement {
 	const box = document.createElement('div')
 	box.className = 'comment-box'
-	const isReplyOpen = composerTargets(thread.side, thread.lineNumber)
+	const isReplyOpen = isReplyComposerOpen(thread)
 	box.innerHTML = `${messagesHtml(thread)}${threadFoot(thread, isReplyOpen)}`
 	// Mount the in-place editor into the message being edited.
 	if (S.editingCommentId && thread.status !== 'resolved') {

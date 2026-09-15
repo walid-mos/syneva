@@ -1,3 +1,4 @@
+import { commentAnchor } from './comments.js'
 import { computeApprovedFiles, effectiveDecisions } from './decisions.js'
 
 import type {
@@ -10,6 +11,7 @@ import type {
 
 // The single QuestionPayload constructor - shared by /api/ask (live question event) and
 // computeOpenQuestions (questions folded into a Send) so the two payload shapes can't drift.
+// lineNumber 0 (whole-file) stamps anchor - the agent reads "file" instead of inferring it.
 export function questionPayload(
 	state: Pick<ReviewState, 'mode' | 'session'>,
 	question: {
@@ -24,6 +26,7 @@ export function questionPayload(
 		lineNumber: question.lineNumber,
 		side: question.side,
 		body: question.body,
+		anchor: commentAnchor(question.lineNumber),
 		mode: state.mode,
 		session: state.session,
 	}
@@ -95,6 +98,9 @@ function decisionSummaries(
 }
 
 // The change requests going back to the agent: open, reviewer-authored, non-question comments.
+// Whole-file requests (the file-header comment) ride out as lineNumber 0 + anchor "file" - no
+// line to edit, so the agent applies the remark to the file as a whole; side keeps its additions
+// placeholder (uniform array shape, same as the persisted record).
 function requestedChanges(
 	state: ReviewState,
 ): ReviewResult['requestedChanges'] {
@@ -110,6 +116,7 @@ function requestedChanges(
 			lineNumber: comment.lineNumber,
 			side: comment.side,
 			body: comment.body,
+			anchor: commentAnchor(comment.lineNumber),
 		}))
 }
 

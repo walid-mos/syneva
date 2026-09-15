@@ -44,6 +44,9 @@ const ANCHORS = [
 	'overallNote',
 	// unanswered questions fold into the Send (issue 05)
 	'openQuestions',
+	// whole-file comments (the file-header thread) - the --line 0 reply and its wire marker
+	'--line 0',
+	'whole-file',
 	'How to act on a review',
 	// guided review schema (folded in from the old guide-spec)
 	'Guide JSON schema',

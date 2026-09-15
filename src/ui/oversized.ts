@@ -6,7 +6,12 @@ import {
 	fileReviewState,
 } from './changes'
 import { approveCurrentFile, resetReview, rejectFile } from './decisions'
-import { currentGuideEntry } from './guide'
+import {
+	fileCommentIconButton,
+	fileCommentSection,
+	fileCommentsEnabled,
+} from './file-comments'
+import { currentGuideEntry, hasGuide } from './guide'
 import { deferRender } from './render'
 import { isFileSkim, fileSkimReason, movedFrom } from './skim'
 import { S, $, esc } from './store'
@@ -102,7 +107,8 @@ function verdictControls(path: string): HTMLElement {
 	return wrap
 }
 
-// Row 1: change-type icon + path (+ rename arrow) + a kind badge.
+// Row 1: change-type icon + path (+ rename arrow) + a kind badge (+ the whole-file comment
+// trigger on unguided desks - the guide bar owns it otherwise).
 function headSection(file: ReviewFile): HTMLElement {
 	const head = document.createElement('div')
 	head.className = 'ovsz-head'
@@ -122,6 +128,12 @@ function headSection(file: ReviewFile): HTMLElement {
 	kind.className = 'ovsz-kind'
 	kind.textContent = file.changeKind ?? 'modified'
 	head.appendChild(kind)
+	// The whole-file comment trigger, UNGUIDED desks only (a guided desk's icon is in the guide
+	// bar next to home; and the two surfaces must never show duplicates).
+	// Whole-file comment trigger: multi-file unguided desks only (a guided desk's icon is in
+	// the guide bar; a single-file desk has no use for the scope).
+	if (!hasGuide() && fileCommentsEnabled())
+		head.appendChild(fileCommentIconButton())
 	return head
 }
 
@@ -202,6 +214,10 @@ export function renderOversizedCard(): void {
 	card.appendChild(note)
 	const flag = flagSection(entry)
 	if (flag) card.appendChild(flag)
+	// The oversized card is the file's whole verdict surface - a whole-file comment naturally
+	// lives here too (its thread renders inside the card like any file header section).
+	const fc = fileCommentSection()
+	if (fc) card.appendChild(fc)
 	card.appendChild(actionsSection(file.path))
 	$('diff').replaceChildren(card)
 }

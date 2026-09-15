@@ -148,6 +148,9 @@ export type ThreadMeta = {
 	status: 'open' | 'resolved'
 	comments: ReviewComment[]
 	changeId?: string
+	// Whole-file thread (anchored to the file header, not a diff row): the reply composer and
+	// open/close routes through the file composer instead of the line one.
+	fileLevel?: boolean
 }
 export type ChangeMeta = {
 	type: 'change'
@@ -235,7 +238,10 @@ export interface Store {
 	selected: Selection
 	// An inline composer (new / reply / edit) is open. Exactly one at a time; the composer's
 	// text lives in composerBody so it survives the diff DOM rebuild (see composer.ts).
+	// composerOpen is the LINE composer's flag; fileComposerOpen its whole-file twin (the file
+	// header's comment icon). The open helpers keep the pair mutually exclusive.
 	composerOpen: boolean
+	fileComposerOpen: boolean
 	toastMsg: string
 	// Pending "go to line" digits typed in the diff ("" = inactive). Drives the goline pill;
 	// ↵ / idle timeout commits the jump, Esc cancels (see cursor.ts goline section).
@@ -317,6 +323,12 @@ export interface Store {
 	requestChange?: () => void
 	reset?: () => Promise<void>
 	send?: (overallNote?: string) => Promise<void>
+	// The whole-file (file header) composer: toggled by the guide bar's / file header's comment
+	// icon; the count feeds the icon badge, the availability gate hides it on the Overview page
+	// and single-file desks.
+	toggleFileComposer?: () => void
+	openFileCommentCount?: () => number
+	fileCommentAvailable?: () => boolean
 	// Keyboard navigation (keys.ts): file stepping in either mode, confirm-dialog answers, and the
 	// grouped binding list the help overlay renders.
 	nextFile?: () => void

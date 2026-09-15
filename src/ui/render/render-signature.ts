@@ -57,9 +57,26 @@ export function renderSignature(
 		composer,
 	}: {
 		comments: ReviewComment[]
-		composer: Pick<Store, 'composerOpen' | 'editingCommentId' | 'selected'>
+		composer: Pick<
+			Store,
+			| 'composerOpen'
+			| 'fileComposerOpen'
+			| 'editingCommentId'
+			| 'selected'
+		>
 	},
 ): string {
+	// Opening/replying/editing changes annotations without changing persisted comments. The file
+	// composer hangs off the header (file-comments.ts), so its flag flips too. Closed selections
+	// and draft keystrokes do not change the mounted editor structure.
+	let composerState = ''
+	if (composer.composerOpen)
+		composerState = JSON.stringify([
+			composer.editingCommentId,
+			composer.selected,
+		])
+	else if (composer.fileComposerOpen)
+		composerState = JSON.stringify(['file', composer.editingCommentId])
 	return [
 		file.path,
 		file.contentHash,
@@ -72,10 +89,6 @@ export function renderSignature(
 		GROUP,
 		comments.map(commentSignature).join(RECORD),
 		GROUP,
-		// Opening/replying/editing changes annotations without changing persisted comments.
-		// Closed selections and draft keystrokes do not change the mounted editor structure.
-		composer.composerOpen
-			? JSON.stringify([composer.editingCommentId, composer.selected])
-			: '',
+		composerState,
 	].join(FIELD)
 }

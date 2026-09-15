@@ -1,4 +1,4 @@
-import { closeComposer, openComposer } from './composer'
+import { closeComposer, closeFileComposer, openComposer } from './composer'
 import { cursorSyncTo } from './cursor'
 import { sideFromLineType } from './selection-derive'
 import { S, $ } from './store'
@@ -152,11 +152,19 @@ function showForDiffLine(payload: LineTarget): void {
 }
 
 export function composerHasText(): boolean {
-	return S.composerOpen && S.composerBody.trim().length > 0
+	return (
+		(S.composerOpen || S.fileComposerOpen) &&
+		S.composerBody.trim().length > 0
+	)
 }
 
+// Close whichever composer is up when it's empty (the outside-click / retarget path); no-op
+// when none is open or it holds unsaved text. The two composers are mutually exclusive, so at
+// most one flag is set.
 export function closeComposerIfEmpty(isRenderDeferred = false): void {
-	if (S.composerOpen && !composerHasText()) closeComposer(isRenderDeferred)
+	if ((!S.composerOpen && !S.fileComposerOpen) || composerHasText()) return
+	if (S.fileComposerOpen) closeFileComposer(isRenderDeferred)
+	else closeComposer(isRenderDeferred)
 }
 
 export function handleDiffSelection(range: SelectionRange | null): void {

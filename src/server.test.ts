@@ -1388,3 +1388,84 @@ void test('stable-port EADDRINUSE falls back to a different port instead of thro
 		await rm(root, { recursive: true, force: true })
 	}
 })
+
+void test('a whole-file comment (lineNumber 0) anchors to the file, drops the line anchor, and normalizes side', async () => {
+	await withServer(async handle => {
+		// A deletions-side habit on a file comment must not fork the thread key: line 0 has no
+		// diff side, so it stores the additions placeholder.
+		const res = await post(handle.url, 'api/comment', {
+			path: 'a.ts',
+			side: 'deletions',
+			lineNumber: 0,
+			body: 'rename this module',
+			role: 'user',
+		})
+		assert.equal(res.status, 200)
+		const st = await getState(handle.url)
+		const fileComment = st.comments.find(c => c.path === 'a.ts')
+		assert.ok(fileComment, 'comment persisted')
+		assert.equal(fileComment.lineNumber, 0)
+		assert.equal(fileComment.anchor, 'file')
+		assert.equal(fileComment.side, 'additions')
+		assert.equal(fileComment.anchorText, undefined)
+
+		// A `--line 0` agent reply keys the same file-level group (side/line placeholders equal).
+		await post(handle.url, 'api/comment', {
+			path: 'a.ts',
+			lineNumber: 0,
+			body: 'sure, where?',
+			role: 'agent',
+		})
+		const replied = await getState(handle.url)
+		assert.equal(replied.comments.length, 2)
+		const reply = replied.comments.find(c => c.role === 'agent')
+		assert.ok(reply)
+		assert.equal(reply.side, fileComment.side)
+		assert.equal(reply.lineNumber, fileComment.lineNumber)
+	})
+})
+
+void test('a whole-file ask carries anchor file through the question event and the Send fold', async () => {
+	await withServer(async handle => {
+		await post(handle.url, 'api/ask', {
+			path: 'a.ts',
+			lineNumber: 0,
+			body: 'should this be async?',
+		})
+		const event = await readJson<AwaitEvent>(
+			await fetch(`${handle.url}api/await-send`),
+		)
+		if (event.kind !== 'question')
+			assert.fail('await-send handed back a question event')
+		const live = event.questions.at(-1)
+		assert.ok(live)
+		assert.equal(live.lineNumber, 0)
+		assert.equal(live.anchor, 'file')
+	})
+})
+
+void test('a whole-file Send carries the file request with anchor file (requestedChanges)', async () => {
+	await withServer(async handle => {
+		// The reviewer asks for a whole-file change from the diff header, then sends. The Send
+		// body omits `comments` (the reviewer slice merges only posted keys), so the open file
+		// comment survives into the result.
+		const commentRes = await post(handle.url, 'api/comment', {
+			path: 'a.ts',
+			lineNumber: 0,
+			body: 'add a header comment',
+			role: 'user',
+		})
+		assert.equal(commentRes.status, 200)
+		await post(handle.url, 'api/send', {})
+		const review = await readJson<AwaitEvent>(
+			await fetch(`${handle.url}api/await-send`),
+		)
+		if (review.kind !== 'review')
+			assert.fail('await-send handed back the review event')
+		assert.equal(review.result.requestedChanges.length, 1)
+		const [fileRequest] = review.result.requestedChanges
+		assert.equal(fileRequest.path, 'a.ts')
+		assert.equal(fileRequest.lineNumber, 0)
+		assert.equal(fileRequest.anchor, 'file')
+	})
+})

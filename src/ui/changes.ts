@@ -64,6 +64,24 @@ export function currentComments(): ReviewComment[] {
 	return (S.state?.comments ?? []).filter(c => c.path === path)
 }
 
+// ── Whole-file comments ────────────────────────────────────────────────────
+// lineNumber 0 is the whole-file anchor (real lines are 1-based, so it can never collide with
+// a rendered one); the persisted record stamps anchor "file" alongside it. Sister copy of
+// FILE_LEVEL_LINE in state/comments.ts - the UI must not import backend runtime code.
+const FILE_LEVEL_LINE = 0
+
+// Is this comment addressed to the file as a whole (a file-header thread) rather than a diff line?
+export function isFileComment(c: ReviewComment): boolean {
+	return c.lineNumber === FILE_LEVEL_LINE
+}
+
+// The current file's whole-file comments, oldest first.
+export function currentFileComments(): ReviewComment[] {
+	return currentComments()
+		.filter(isFileComment)
+		.toSorted((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt))
+}
+
 // ── File-level review state: pending / approved / changes-requested ──────────
 export type FileReviewState = 'pending' | 'approved' | 'changes-requested'
 

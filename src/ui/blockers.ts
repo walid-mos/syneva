@@ -1,4 +1,4 @@
-import { currentFile, toDisplayLine } from './changes'
+import { currentFile, isFileComment, toDisplayLine } from './changes'
 import { cursorJumpTo } from './cursor'
 import { revealLine } from './expand'
 import { D, $, requireState } from './store'
@@ -28,6 +28,9 @@ export type Blocker =
 			lineNumber: number
 			preview: string
 			unanchored: boolean
+			// Whole-file thread (anchored to the file header, not a diff row) - the jump
+			// scrolls the file comment section instead of a rendered line.
+			fileLevel: boolean
 	  }
 
 // Must mirror fileObjections (changes.ts) exactly - the chip count and the button label
@@ -66,6 +69,7 @@ export function fileBlockers(path: string): Blocker[] {
 					? `${preview.slice(0, PREVIEW_HEAD)}…`
 					: preview,
 			unanchored: !!file && comments.some(c => isUnanchored(c, file)),
+			fileLevel: isFileComment(first),
 		})
 	}
 	return out
@@ -100,6 +104,22 @@ function decisionDisplayPos(d: Decision): { side: Side; line: number } {
 }
 
 export function jumpToBlocker(b: Blocker): void {
+	if (b.kind === 'thread' && b.fileLevel) {
+		// The thread lives in the file comment section under the header, not on a row.
+		const el = $('diff').querySelector<HTMLElement>(
+			'.fc-section [data-file-thread]',
+		)
+		el?.scrollIntoView({
+			block: 'center',
+			behavior: 'smooth',
+		})
+		if (el) {
+			el.classList.remove('flash')
+			void el.offsetWidth // restart the animation
+			el.classList.add('flash')
+		}
+		return
+	}
 	if (b.kind === 'thread' && b.unanchored) {
 		// The thread lives in the strip above the diff, not on a row.
 		const el = $('diff').querySelector<HTMLElement>(
@@ -133,6 +153,23 @@ function setRowText(row: HTMLElement, text: string): void {
 	if (span) span.textContent = text
 }
 
+// A row's kind tag, where-label and preview text: "Rejected / line 12 / title" for a rejected
+// hunk, "Change request / file|unanchored|line N / body" for an open change-request thread.
+function blockerRowBody(b: Blocker): { html: string; text: string } {
+	if (b.kind === 'reject')
+		return {
+			html: `<span class="bk-kind reject">Rejected</span><span class="bk-where">line ${b.decision.lineNumber}</span><span class="bk-text"></span>`,
+			text: b.decision.title,
+		}
+	let where = `line ${b.lineNumber}`
+	if (b.fileLevel) where = 'file'
+	else if (b.unanchored) where = 'unanchored'
+	return {
+		html: `<span class="bk-kind change">Change request</span><span class="bk-where">${where}</span><span class="bk-text"></span>`,
+		text: b.preview,
+	}
+}
+
 export function blockersChip(): HTMLElement | null {
 	const { path } = currentFile()
 	const items = fileBlockers(path)
@@ -149,13 +186,9 @@ export function blockersChip(): HTMLElement | null {
 	for (const b of items) {
 		const row = document.createElement('button')
 		row.className = 'blockers-item'
-		if (b.kind === 'reject') {
-			row.innerHTML = `<span class="bk-kind reject">Rejected</span><span class="bk-where">line ${b.decision.lineNumber}</span><span class="bk-text"></span>`
-			setRowText(row, b.decision.title)
-		} else {
-			row.innerHTML = `<span class="bk-kind change">Change request</span><span class="bk-where">${b.unanchored ? 'unanchored' : `line ${b.lineNumber}`}</span><span class="bk-text"></span>`
-			setRowText(row, b.preview)
-		}
+		const { html, text } = blockerRowBody(b)
+		row.innerHTML = html
+		setRowText(row, text)
 		row.addEventListener('click', () => {
 			wrap.classList.remove('open')
 			jumpToBlocker(b)

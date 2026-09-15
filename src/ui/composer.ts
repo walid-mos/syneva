@@ -108,15 +108,41 @@ export function composerTargets(side: Side, rawLine: number): boolean {
 }
 
 // Open a fresh new/reply composer at the current S.selected line (a reply first points
-// S.selected at the thread's anchor). The composer appears on the next render.
+// S.selected at the thread's anchor). The composer appears on the next render. The two
+// composer flags are mutually exclusive: opening one closes the other.
 export function openComposer(): void {
 	composerCaret = 0
 	S.composerBody = ''
 	S.editingCommentId = null
 	S.composerOpen = true
+	S.fileComposerOpen = false
 	needsWindowFocus = true
 	activeViewport()?.reveal(S.selected.side, S.selected.lineNumber, 'center')
 	void render()
+}
+
+// Open a fresh whole-file composer (no line anchor - it hangs off the file header). Same
+// lifecycle as the line composer: one open at a time, text in S.composerBody, focused after
+// the next render.
+export function openFileComposer(): void {
+	composerCaret = 0
+	S.composerBody = ''
+	S.editingCommentId = null
+	S.composerOpen = false
+	S.fileComposerOpen = true
+	needsWindowFocus = true
+	void render()
+}
+
+// Toggle the whole-file composer from the header's comment icon: open when closed, close
+// when open (the closed case is a no-op - click-outside already closed it).
+export function toggleFileComposer(): void {
+	if (S.fileComposerOpen) {
+		S.composerBody = ''
+		closeFileComposer()
+		return
+	}
+	openFileComposer()
 }
 
 // Close whatever composer is open and rebuild the diff so its DOM goes away (the inline
@@ -133,6 +159,20 @@ export function closeComposer(isDeferred = false): void {
 	S.composerOpen = false
 	needsWindowFocus = false
 	S.editingCommentId = null
+	rebuildAfterClose(isDeferred)
+}
+
+// The file composer lives inside the file header (a rebuilt-on-every-render slot like the
+// unanchored strip), so closing it rebuilds the same way the line composer's close does.
+export function closeFileComposer(isDeferred = false): void {
+	S.fileComposerOpen = false
+	needsWindowFocus = false
+	S.editingCommentId = null
+	rebuildAfterClose(isDeferred)
+}
+
+// The shared close tail: immediate rebuild, or the click-settling deferral above.
+function rebuildAfterClose(isDeferred: boolean): void {
 	if (!isDeferred) {
 		void render()
 		return
@@ -154,7 +194,7 @@ export function restorePendingComposerFocus(): void {
 }
 
 export function restoreComposerFocus(): void {
-	if (!S.composerOpen) return
+	if (!S.composerOpen && !S.fileComposerOpen) return
 	const ta = document.querySelector<HTMLTextAreaElement>('.js-composer-focus')
 	if (!ta?.getClientRects().length) {
 		needsWindowFocus = true

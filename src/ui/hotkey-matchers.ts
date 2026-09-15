@@ -25,7 +25,7 @@ export type Hotkey = {
 }
 
 // Scopes: which surface is up. `inDiff` is the diff itself - no composer, modal or Overview.
-export const inComposer = (): boolean => S.composerOpen
+export const inComposer = (): boolean => S.composerOpen || S.fileComposerOpen
 export const inModal = (): boolean =>
 	S.settingsOpen || !!S.confirmMsg || S.sendOpen
 export const inOverview = (): boolean => S.overviewOpen && hasGuide()

@@ -93,16 +93,18 @@ await yields exactly one:
   (arrival order; \`question\` is the oldest, kept for compatibility) - answer EACH. A question wants
   an ANSWER, not a code change: answering is READ-ONLY - read for context, reply with \`galley
   comment\` at path/lineNumber/side, and NEVER edit tracked files (the "Between rounds" rule) unless
-  the question's own text asks for a change (then edit + \`galley reload\`). Questions are a live
-  side-channel - never in a Send/ReviewResult except openQuestions below. Slow answer → post
-  \`galley status\` lines so the human sees progress.
+  the question's own text asks for a change (then edit + \`galley reload\`). lineNumber 0 (anchor
+  "file") = a whole-file question asked from the file header - reply with \`galley comment --path
+  <f> --line 0 --body "…"\`. Questions are a live side-channel - never in a Send/ReviewResult
+  except openQuestions below. Slow answer → post \`galley status\` lines so the human sees progress.
 - {"kind":"review","result":{…ReviewResult…}} - reviewer clicked Send. Act on result.
 
 ## ReviewResult
 The \`result\` field of a review event:
 - session, repoRoot, mode, staged, head (sha|null), baseDiffHash (hash of the reviewed diff)
 - accepted[], rejected[]: {path, lineNumber, side, title}
-- requestedChanges[]: {path, lineNumber, side, body}
+- requestedChanges[]: {path, lineNumber, side, body} - the edit to make per request (lineNumber 0
+  + anchor "file" = a whole-file request from the file header: apply it to that file as a whole).
 - overallNote? - optional note about the WHOLE review (absent if blank): an overall remark, or an
   afterthought instruction for after applying (e.g. "run the formatter"). Not tied to any line.
 - stagedFiles[], approvedFiles[]
@@ -120,7 +122,8 @@ new Send). Live questions arrive only via await, so a file-poller sees Sends but
 
 ## How to act on a review - one path per item, don't mix
 - rejected → revert that change; the reviewer doesn't want it.
-- requestedChanges (a comment) → make the edit at path:lineNumber.
+- requestedChanges (a comment) → make the edit at path:lineNumber; lineNumber 0 (anchor "file")
+  = a whole-file request - apply it to that file as a whole, wherever it belongs.
 - accepted → leave it; don't re-touch.
 - approvedFiles → signed off as-is; leave the whole file unless a requested change forces a touch
   (which re-opens it for re-review).

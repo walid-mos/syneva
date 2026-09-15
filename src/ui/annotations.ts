@@ -3,6 +3,7 @@ import {
 	currentComments,
 	currentChanges,
 	currentFile,
+	isFileComment,
 	toDisplayLine,
 	fromDisplayLine,
 } from './changes'
@@ -26,10 +27,12 @@ import type {
 type ReviewFile = ReviewState['files'][number]
 
 // Comment groups keyed `side:rawLine`, each group oldest-first - the order the conversation
-// happened in, which is the order the thread renders.
+// happened in, which is the order the thread renders. Whole-file comments are excluded: they
+// anchor to the file header (file-comments.ts), not a rendered line.
 function commentGroups(): Map<string, ReviewComment[]> {
 	const groups = new Map<string, ReviewComment[]>()
 	for (const c of currentComments()) {
+		if (isFileComment(c)) continue
 		const key = `${c.side}:${c.lineNumber}`
 		const group = groups.get(key)
 		if (group) group.push(c)

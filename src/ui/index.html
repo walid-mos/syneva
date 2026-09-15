@@ -625,6 +625,60 @@
 				background: var(--surface-raised);
 			}
 
+			/* Whole-file comment trigger: same 26px button family as the nav trio (it lives in it),
+   cyan when its composer is up (Ask/Question accent) with a quiet open-count badge. */
+			.guidebar .gb-fc {
+				position: relative;
+				flex: 0 0 auto;
+				width: 26px;
+				height: 26px;
+				display: grid;
+				place-items: center;
+				padding: 0;
+				border: 1px solid var(--line);
+				border-radius: var(--radius);
+				background: var(--panel);
+				color: var(--muted);
+			}
+
+			.guidebar .gb-fc:hover {
+				border-color: var(--line-strong);
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
+
+			.guidebar .gb-fc.open {
+				color: var(--cyan-fg);
+				border-color: var(--cyan-line-strong);
+				background: var(--cyan-bg);
+			}
+
+			.guidebar .gb-fc .ic {
+				width: 14px;
+				height: 14px;
+			}
+
+			.guidebar .gb-fc-count,
+			.fc-btn .fc-count {
+				position: absolute;
+				top: -5px;
+				right: -5px;
+				min-width: 13px;
+				height: 13px;
+				padding: 0 3px;
+				border-radius: var(--radius-pill);
+				background: var(--cyan);
+				color: var(--surface);
+				font-size: 9px;
+				font-weight: 700;
+				line-height: 13px;
+				text-align: center;
+			}
+
+			.guidebar .gb-fc-count {
+				position: absolute;
+			}
+
 			.guidebar .gb-nav:disabled {
 				opacity: 0.4;
 				cursor: default;
@@ -1340,6 +1394,146 @@
 
 			.unanchored-strip .annotation + .annotation {
 				border-top: 1px solid rgba(224, 175, 104, 0.18);
+			}
+
+			/* Whole-file comments (fc = file comment): the thread + composer card family that hangs
+			   under the file header (or the oversized card) - an annotation-family card box, kept a
+			   neutral gray so it reads as conversation, not as a warning. In the markdown rendered
+			   view it is a free-styled section with its own trigger, hence the bar + label row. */
+			.fc-section {
+				font-family: var(--sans);
+				margin: 5px 0 2px;
+				border: 1px solid var(--line);
+				background: var(--panel);
+				border-radius: var(--radius-sm);
+				padding: 2px 0 4px;
+			}
+
+			.fc-section .annotation + .annotation,
+			.fc-section .fc-bar + .annotation {
+				border-top: 1px solid rgba(34, 42, 45, 0.75);
+			}
+
+			.fc-section .fc-bar {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 6px 10px 4px;
+			}
+
+			.fc-section .fc-label {
+				color: var(--muted);
+				font-size: var(--text-xs);
+			}
+
+			.fc-section .fc-btn {
+				position: relative;
+				flex: 0 0 auto;
+				width: 24px;
+				height: 24px;
+				display: grid;
+				place-items: center;
+				padding: 0;
+				border: 1px solid var(--line);
+				border-radius: var(--radius-sm);
+				background: var(--panel);
+				color: var(--muted);
+			}
+
+			.fc-section .fc-btn:hover {
+				border-color: var(--line-strong);
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
+
+			.fc-section .fc-btn.active {
+				color: var(--cyan-fg);
+				border-color: var(--cyan-line-strong);
+				background: var(--cyan-bg);
+			}
+
+			.fc-section .fc-btn .ic {
+				width: 13px;
+				height: 13px;
+			}
+
+			/* The header row carries the trigger too (unguided desks): same quiet icon family as
+			   ghdr-open, cyan-when-open, count badge top-right like the guide bar twin. */
+			.ghdr .fc-btn {
+				flex: 0 0 auto;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				margin-left: 6px;
+				padding: 2px;
+				border: 1px solid transparent;
+				background: transparent;
+				color: var(--muted);
+				border-radius: var(--radius-xs);
+			}
+
+			.ghdr .fc-btn:hover {
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
+
+			.ghdr .fc-btn.active {
+				color: var(--cyan-fg);
+				border-color: var(--cyan-line-strong);
+				background: var(--cyan-bg);
+			}
+
+			.ghdr .fc-btn .ic {
+				width: 13px;
+				height: 13px;
+			}
+
+			/* Oversized card: the trigger lands in its head row (next to the kind badge). */
+			.ovsz-head .fc-btn {
+				position: relative;
+				flex: 0 0 auto;
+				margin-left: 8px;
+				display: grid;
+				place-items: center;
+				width: 24px;
+				height: 24px;
+				padding: 0;
+				border: 1px solid var(--line);
+				border-radius: var(--radius-sm);
+				background: var(--panel);
+				color: var(--muted);
+			}
+
+			.ovsz-head .fc-btn:hover {
+				border-color: var(--line-strong);
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
+
+			.ovsz-head .fc-btn.active {
+				color: var(--cyan-fg);
+				border-color: var(--cyan-line-strong);
+				background: var(--cyan-bg);
+			}
+
+			.ovsz-head .fc-btn .ic {
+				width: 13px;
+				height: 13px;
+			}
+
+			.ovsz-card .fc-section,
+			.oversized-card .fc-section {
+				margin: 10px 0 2px;
+			}
+
+			/* Markdown rendered view: a free-standing panel above the first block. */
+			#diff > .md-file .fc-section.fc-md {
+				margin: 0 0 14px;
+				padding: 0 0 6px;
+			}
+
+			.fc-section .annotation.flash {
+				animation: blocker-flash 1.2s ease-out;
 			}
 
 			/* Skim (issue 06): a muted, low-attention treatment — the opposite of the amber flag.
@@ -3617,6 +3811,35 @@
 								<svg class="ic">
 									<use href="#gly-home"></use>
 								</svg>
+							</button>
+							<button
+								class="gb-fc"
+								x-show="
+									!$store.g.overviewOpen &&
+									$store.g.fileCommentAvailable &&
+									$store.g.fileCommentAvailable()
+								"
+								:class="{ open: $store.g.fileComposerOpen }"
+								data-tip="Comment on file (⇧C)"
+								@click="
+									$store.g.toggleFileComposer &&
+									$store.g.toggleFileComposer()
+								"
+							>
+								<svg class="ic">
+									<use href="#gly-comment"></use>
+								</svg>
+								<span
+									class="gb-fc-count"
+									x-show="
+										$store.g.openFileCommentCount &&
+										$store.g.openFileCommentCount()
+									"
+									x-text="
+										$store.g.openFileCommentCount &&
+										$store.g.openFileCommentCount()
+									"
+								></span>
 							</button>
 							<button
 								class="gb-nav"

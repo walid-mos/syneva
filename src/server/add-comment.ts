@@ -1,5 +1,10 @@
 import crypto from 'node:crypto'
 
+import {
+	commentAnchor,
+	commentSide,
+	isFileLevelLine,
+} from '../state/comments.js'
 import { anchorTextFor, readFileContents } from '../state/contents.js'
 import { nowIso } from '../state/identity.js'
 
@@ -14,8 +19,9 @@ export type CommentRequest = {
 }
 
 // A comment needs a file and a body; everything else has a documented default (additions, line 1,
-// an agent-authored reply). Returns null when the request lacks what it cannot default - the route
-// answers 422 INVALID_COMMENT.
+// an agent-authored reply). lineNumber 0 is the whole-file anchor (see state/comments.ts) - a
+// file comment has no diff side, so the side it may carry is normalized away. Returns null when
+// the request lacks what it cannot default - the route answers 422 INVALID_COMMENT.
 export function parseCommentRequest(payload: unknown): CommentRequest | null {
 	if (typeof payload !== 'object' || payload === null) return null
 	const filePath =
@@ -28,13 +34,16 @@ export function parseCommentRequest(payload: unknown): CommentRequest | null {
 			: ''
 	if (!filePath || !text) return null
 	const line = 'lineNumber' in payload ? payload.lineNumber : undefined
+	const lineNumber = Number(line ?? 1)
 	return {
 		path: filePath,
-		lineNumber: Number(line ?? 1),
-		side:
+		lineNumber,
+		side: commentSide(
 			'side' in payload && payload.side === 'deletions'
 				? 'deletions'
 				: 'additions',
+			lineNumber,
+		),
 		body: text,
 		role: 'role' in payload && payload.role === 'user' ? 'user' : 'agent',
 	}
@@ -44,20 +53,22 @@ export function parseCommentRequest(payload: unknown): CommentRequest | null {
 // later reload can re-anchor the thread (see reanchorComments). Fetching just this file's contents
 // (the state embeds none) is what makes it work for a file the tab never opened - the resolver reads
 // git/the working tree directly. A file whose contents resolve to nothing (deleted, index-only)
-// still gets the comment; it simply carries no anchor text.
+// still gets the comment; it simply carries no anchor text. Whole-file comments skip the content
+// read - they have no line to anchor.
 export async function appendLiveComment(
 	state: ReviewState,
 	request: CommentRequest,
 ): Promise<ReviewComment> {
 	const now = nowIso()
 	const file = state.files.find(candidate => candidate.path === request.path)
-	const contents = file
-		? await readFileContents(state, file).catch(() => undefined)
-		: undefined
+	const contents =
+		file && !isFileLevelLine(request.lineNumber)
+			? await readFileContents(state, file).catch(() => undefined)
+			: undefined
 	const comment: ReviewComment = {
 		id: crypto.randomUUID(),
 		path: request.path,
-		side: request.side,
+		side: commentSide(request.side, request.lineNumber),
 		lineNumber: request.lineNumber,
 		body: request.body,
 		createdAt: now,
@@ -65,6 +76,7 @@ export async function appendLiveComment(
 		status: 'open',
 		intent: 'note',
 		role: request.role,
+		anchor: commentAnchor(request.lineNumber),
 		anchorText: anchorTextFor(contents, request.side, request.lineNumber),
 	}
 	state.comments.push(comment)

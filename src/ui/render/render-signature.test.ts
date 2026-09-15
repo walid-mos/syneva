@@ -68,6 +68,7 @@ function digest(over: {
 	comments?: ReviewComment[]
 	composer?: {
 		composerOpen: boolean
+		fileComposerOpen: boolean
 		editingCommentId: string | null
 		selected: {
 			side: 'additions' | 'deletions'
@@ -84,6 +85,7 @@ function digest(over: {
 			comments: over.comments ?? [],
 			composer: over.composer ?? {
 				composerOpen: false,
+				fileComposerOpen: false,
 				editingCommentId: null,
 				selected: { side: 'additions', lineNumber: 1 },
 			},
@@ -95,6 +97,7 @@ void test('opening, moving, editing and closing a composer repaint without chang
 	const comments = [comment({})]
 	const composer = {
 		composerOpen: true,
+		fileComposerOpen: false,
 		editingCommentId: null,
 		selected: { side: 'additions' as const, lineNumber: 12 },
 	}
@@ -201,4 +204,31 @@ void test('rename metadata repaints', () => {
 	const samePath = digest({})
 	const moved = digest({ file: { newPath: 'src/b.ts' } })
 	assert.notEqual(samePath, moved)
+})
+
+void test('the file composer flips the signature without touching the line flags', () => {
+	const closed = digest({ comments: [comment({})] })
+	const opened = digest({
+		comments: [comment({})],
+		composer: {
+			composerOpen: false,
+			fileComposerOpen: true,
+			editingCommentId: null,
+			selected: { side: 'additions', lineNumber: 1 },
+		},
+	})
+	assert.notEqual(opened, closed)
+	// Editing a file comment keeps the flip so the editor mount repaints.
+	assert.notEqual(
+		digest({
+			comments: [comment({})],
+			composer: {
+				composerOpen: false,
+				fileComposerOpen: true,
+				editingCommentId: 't1',
+				selected: { side: 'additions', lineNumber: 1 },
+			},
+		}),
+		opened,
+	)
 })

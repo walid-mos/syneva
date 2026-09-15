@@ -1,7 +1,8 @@
-import { currentFile, currentComments } from './changes'
+import { currentFile, currentComments, isFileComment } from './changes'
 import { buildCommentThread } from './comment-thread'
 import { buildComposer, openComposer } from './composer'
 import { cur } from './contents'
+import { markdownFileCommentStrip } from './file-comments'
 import { renderMarkdown } from './markdown'
 import { S, $ } from './store'
 
@@ -75,12 +76,15 @@ function placeAtLine(
 	else el.after(node)
 }
 
-// Comments grouped by the source line they anchor to, each thread oldest-first.
+// Comments grouped by the source line they anchor to, each thread oldest-first. Whole-file
+// comments address the file as a whole and are hosted by markdownFileCommentStrip, so they
+// never join a block group.
 function groupCommentsByLine(
 	comments: ReviewComment[],
 ): Map<number, ReviewComment[]> {
 	const byLine = new Map<number, ReviewComment[]>()
 	for (const c of comments) {
+		if (isFileComment(c)) continue
 		const thread = byLine.get(c.lineNumber)
 		if (thread) thread.push(c)
 		else byLine.set(c.lineNumber, [c])
@@ -138,7 +142,8 @@ function overlayComposer(
 
 // Render the current markdown file as formatted HTML in #diff, with click-to-comment on
 // each block and existing comment threads overlaid at their source line. Replaces the
-// @pierre/diffs view; comments are still plain line-anchored ReviewComments.
+// @pierre/diffs view; comments are still plain line-anchored ReviewComments, plus the whole-file
+// comment strip at the top (the rendered view replaces the file header entirely).
 export function renderMarkdownFile(): void {
 	const { path } = currentFile()
 	const container = createMarkdownContainer()
@@ -150,6 +155,10 @@ export function renderMarkdownFile(): void {
 	const threadsByLine = groupCommentsByLine(currentComments())
 	overlayThreads(container, anchors, threadsByLine, path)
 	overlayComposer(container, anchors, threadsByLine)
+	// The file-comment strip leads the flow (a comment on the file addresses its first block too);
+	// null on a single-file desk with no whole-file comments.
+	const strip = markdownFileCommentStrip()
+	if (strip) container.insertBefore(strip, container.firstChild)
 }
 
 // The anchor whose data-line is the largest value <= line (the block the comment sits in).

@@ -1,5 +1,12 @@
-import { currentFileOrNull, fromDisplayLine } from '../changes'
+import {
+	currentFileComments,
+	currentFileOrNull,
+	hasCurrentFile,
+	fromDisplayLine,
+} from '../changes'
+import { toggleFileComposer } from '../composer'
 import { cur } from '../contents'
+import { fileCommentsEnabled } from '../file-comments'
 import { render } from '../render'
 import { closeComposerIfEmpty } from '../selection'
 import { api, persist, requireState, S, toast } from '../store'
@@ -7,26 +14,37 @@ import { uuid } from '../uuid'
 
 // Submitting a comment from the inline composer. A new comment carries an intent: "question"
 // (Ask - pushed to the agent now via /api/ask, answered live) or "action" (Request change - goes
-// back on Send). Editing just updates the body and keeps the existing intent.
+// back on Send). Editing just updates the body and keeps the existing intent. The whole-file
+// composer binds here too: the guide bar's and file header's comment icons toggle it.
 export function installCommentBindings(): void {
 	S.saveComment = () => submitComment('action') // editing Save + the `c` shortcut default
 	S.ask = () => submitComment('question')
 	S.requestChange = () => submitComment('action')
+	S.toggleFileComposer = toggleFileComposer
+	// The guide bar's static icon shows when there's a file to comment on and the whole-file
+	// scope adds something over the line threads (hidden on the Overview and single-file desks).
+	S.fileCommentAvailable = (): boolean =>
+		hasCurrentFile() && fileCommentsEnabled()
+	S.openFileCommentCount = () =>
+		currentFileComments().filter(
+			c => c.status === 'open' && c.role !== 'agent',
+		).length
 	installComposerDismissal()
 }
 
 // Close the inline composer when clicking outside it (unless it has unsaved text). The
 // composer/editor live inside the diff DOM, so match their containers directly; the listener is on
-// the document, capturing, so it sees the press before any diff control handles the click.
+// the document, capturing, so it sees the press before any diff control handles the click. The
+// file header's comment icon toggles its own composer, so it is carved out of the dismissal.
 function installComposerDismissal(): void {
 	document.addEventListener(
 		'pointerdown',
 		event => {
-			if (!S.composerOpen) return
+			if (!S.composerOpen && !S.fileComposerOpen) return
 			const { target } = event
 			if (
 				target instanceof HTMLElement &&
-				target.closest('.composer-card, .msg-edit')
+				target.closest('.composer-card, .msg-edit, .fc-btn, .gb-fc')
 			)
 				return
 			// Defer the closing render: this fires on pointerdown, before the click reaches a diff
@@ -47,7 +65,9 @@ function submitComment(intent: CommentIntent): void {
 		updateEditedComment(body)
 		return
 	}
-	const anchor = selectedAnchor()
+	// The file composer answers to the file header (no line anchor); the line composer to the
+	// selected line. The open helpers keep exactly one of the two flags up.
+	const anchor = S.fileComposerOpen ? fileAnchor() : selectedAnchor()
 	if (!anchor) return
 	const now = new Date().toISOString()
 	const comment = {
@@ -65,9 +85,11 @@ function submitComment(intent: CommentIntent): void {
 		role: 'user' as const,
 		body,
 		intent,
+		anchor: anchor.anchor,
 	}
 	requireState().comments.push(comment)
 	S.composerOpen = false
+	S.fileComposerOpen = false
 	void render()
 	persist()
 	if (intent === 'question') {
@@ -97,6 +119,7 @@ function updateEditedComment(body: string): void {
 	}
 	S.editingCommentId = null
 	S.composerOpen = false
+	S.fileComposerOpen = false
 	void render()
 	persist()
 	toast('Comment updated')
@@ -113,6 +136,15 @@ type CommentAnchor = {
 	lineNumber: number
 	endLine?: number
 	anchorText?: string
+	anchor?: 'file'
+}
+
+// The whole-file anchor: addressed to the file, so no line - lineNumber 0 is the reserved
+// file-level slot (mirrors state/comments.ts's FILE_LEVEL_LINE).
+function fileAnchor(): CommentAnchor | null {
+	const file = currentFileOrNull()
+	if (!file) return null
+	return { path: file.path, side: 'additions', lineNumber: 0, anchor: 'file' }
 }
 
 function selectedAnchor(): CommentAnchor | null {

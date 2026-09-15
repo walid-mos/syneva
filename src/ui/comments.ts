@@ -8,15 +8,23 @@ import { persist, requireState, S, toast } from './store'
 export function editComment(id: string): void {
 	const comment = requireState().comments.find(c => c.id === id)
 	if (!comment || comment.role === 'agent') return
-	// Comments persist raw lines; S.selected is display space. The edit renders in place
-	// inside the thread (see buildCommentThread) - render() mounts it and restores focus.
-	S.selected = {
-		side: comment.side,
-		lineNumber: toDisplayLine(comment.side, comment.lineNumber),
-	}
 	S.composerBody = comment.body
 	S.editingCommentId = id
-	S.composerOpen = true
+	// A whole-file comment edits inside its header thread (the file composer); a line comment
+	// anchors on its line (the line composer). Exactly one of the two flags ends up up.
+	if (comment.anchor === 'file') {
+		S.composerOpen = false
+		S.fileComposerOpen = true
+	} else {
+		S.fileComposerOpen = false
+		S.composerOpen = true
+		// Comments persist raw lines; S.selected is display space. The edit renders in place
+		// inside the thread (see buildCommentThread) - render() mounts it and restores focus.
+		S.selected = {
+			side: comment.side,
+			lineNumber: toDisplayLine(comment.side, comment.lineNumber),
+		}
+	}
 	void render()
 }
 
@@ -27,6 +35,7 @@ export function deleteComment(id: string): void {
 	if (S.editingCommentId === id) {
 		S.editingCommentId = null
 		S.composerOpen = false
+		S.fileComposerOpen = false
 	}
 	state.comments = state.comments.filter(c => c.id !== id)
 	void render()

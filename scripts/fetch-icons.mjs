@@ -24,6 +24,8 @@ const ICON_MAP = {
 	'gly-arrow-right': 'lucide:arrow-right',
 	'gly-warn': 'lucide:triangle-alert',
 	'gly-open-editor': 'lucide:square-arrow-out-up-right',
+	// Whole-file comment (the file header / guide bar's comment trigger).
+	'gly-comment': 'lucide:message-square',
 	// Walkthrough per-file status trio (gly-check doubles as the approved state).
 	'gly-circle': 'lucide:circle',
 	'gly-circle-alert': 'lucide:circle-alert',

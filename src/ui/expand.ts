@@ -1,4 +1,9 @@
-import { currentComments, currentFileOrNull, toDisplayLine } from './changes'
+import {
+	currentComments,
+	currentFileOrNull,
+	isFileComment,
+	toDisplayLine,
+} from './changes'
 import { D } from './store'
 import { revealThreads } from './thread-reveals'
 import { isUnanchored } from './unanchored'
@@ -110,8 +115,12 @@ export function revealThreadLines(): void {
 	const file = currentFileOrNull()
 	const { instance } = D
 	if (!file || !instance) return
+	// Whole-file comments anchor to the header, not a rendered line - nothing to reveal.
 	const threads = currentComments().filter(
-		comment => comment.status === 'open' && !isUnanchored(comment, file),
+		comment =>
+			comment.status === 'open' &&
+			!isFileComment(comment) &&
+			!isUnanchored(comment, file),
 	)
 	revealThreads(instance, threads, revealLine)
 }
