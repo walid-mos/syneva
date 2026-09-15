@@ -66,10 +66,12 @@ export async function connectDesk(target: DeskTarget): Promise<DeskConnection> {
 
 // Save every received envelope before notifying Pi. Large reviews are delivered as
 // a file reference rather than truncated JSON; a failed wake still leaves evidence.
+// Returns the written event's path AND kind, or '' when the long-poll timed out (the
+// caller rearms). `closed` tells the attachment the human ended the review.
 export async function receiveDeskEvent(
 	connection: DeskConnection,
 	signal: AbortSignal,
-): Promise<string> {
+): Promise<string | { eventPath: string; kind: string }> {
 	const response = await fetch(
 		new URL(`/api/await-send?timeout=${HOLD_SECONDS}`, connection.url),
 		{
@@ -84,17 +86,16 @@ export async function receiveDeskEvent(
 	if (!response.ok)
 		throw new Error(`Galley listener failed: HTTP ${response.status}.`)
 	const envelope: unknown = await response.json()
-	if (
-		!envelope ||
-		typeof envelope !== 'object' ||
-		!('kind' in envelope) ||
-		!['question', 'review'].includes(String(envelope.kind))
-	)
+	const kind =
+		typeof envelope === 'object' && envelope !== null && 'kind' in envelope
+			? String(envelope.kind)
+			: ''
+	if (!['question', 'review', 'closed'].includes(kind))
 		throw new Error('Galley returned an invalid event envelope.')
 	const eventPath = path.join(
 		connection.directory,
 		`pi-event-${randomUUID()}.json`,
 	)
 	await writeFile(eventPath, JSON.stringify(envelope), { mode: 0o600 })
-	return eventPath
+	return { eventPath, kind }
 }

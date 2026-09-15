@@ -265,6 +265,45 @@
 				font-size: var(--text-sm);
 			}
 
+			/* The closed-desk cover: the tab's terminal state after a browser Close (or a dead desk).
+			   Fills the work surface under the topbar; muted panel, centered card. */
+			.desk-closed {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: var(--bg);
+				color: var(--muted);
+				font-size: var(--text-sm);
+				min-height: 0;
+				min-width: 0;
+				overflow: auto;
+			}
+
+			/* .app's second row becomes the cover; the workspace (main) is hidden by x-show. */
+			.app.desk-closed {
+				grid-template-rows: 48px minmax(0, 1fr);
+			}
+
+			.desk-closed-card {
+				max-width: 52ch;
+				padding: 20px 24px;
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				background: var(--panel);
+				line-height: 1.6;
+			}
+
+			.desk-closed-card p {
+				margin: 4px 0 0;
+			}
+
+			.desk-closed-card code {
+				padding: 1px 6px;
+				border: 1px solid var(--line);
+				border-radius: 4px;
+				background: var(--bg);
+			}
+
 			.top,
 			.bottom {
 				display: grid;
@@ -3345,7 +3384,10 @@
 		<div
 			class="app"
 			x-data
-			:class="{ 'refresh-required': $store.g.isRefreshRequired }"
+			:class="{
+				'refresh-required': $store.g.isRefreshRequired,
+				'desk-closed': $store.g.deskClosed && !$store.g.isRefreshRequired,
+			}"
 		>
 			<header class="top">
 				<div class="brand">
@@ -3511,7 +3553,13 @@
 							x-text="$store.g.awaitingAgent ? 'Waiting for Agent…' : 'Send to Agent'"
 							>Send to Agent</span
 						>
-						<kbd>⇧S</kbd>
+						<kbd>⇧S</kbd></button
+					><button
+						class="btn danger"
+						data-tip="Close Galley - stop the desk (⇧Q)"
+						@click="$store.g.closeDesk()"
+					>
+						Close
 					</button>
 				</div>
 				<div
@@ -3531,7 +3579,31 @@
 				<strong>Desk restarted.</strong> Finish pending actions and copy
 				any unsaved text, then refresh this tab to reconnect.
 			</div>
-			<main class="main">
+			<div
+				class="desk-closed"
+				x-cloak
+				x-show="$store.g.deskClosed && !$store.g.isRefreshRequired"
+				role="status"
+			>
+				<div class="desk-closed-card">
+					<strong>Desk closed.</strong>
+					<p>
+						The Galley desk stopped. All review state is saved on
+						disk; the attached agent was told the review ended.
+					</p>
+					<p>
+						Reopen it in the repo with
+						<code
+							x-text="'galley --session ' + ($store.g.state ? $store.g.state.session : '')"
+						></code>
+						.
+					</p>
+				</div>
+			</div>
+			<main
+				class="main"
+				x-show="!($store.g.deskClosed && !$store.g.isRefreshRequired)"
+			>
 				<aside
 					class="tree"
 					:class="{'drawer-open': $store.g.treeDrawerOpen}"

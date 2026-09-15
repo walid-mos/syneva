@@ -894,11 +894,30 @@ void test('POST /api/shutdown acks then triggers shutdown with reason stop', asy
 			)
 			assert.equal(body.ok, true)
 			assert.equal(body.stopping, true)
-			// Shutdown fires on response finish - give the event loop a beat.
-			await sleep(20)
+			// Shutdown fires after the closed-event grace - give the event loop a beat.
+			await sleep(300)
 			assert.ok(isDeepStrictEqual(reasons, ['stop']))
 		},
 		{ idleTimeoutMs: 0, onShutdown: reason => reasons.push(reason) },
+	)
+})
+
+void test('POST /api/shutdown delivers a closed event to a parked await before exiting', async () => {
+	await withServer(
+		async handle => {
+			// Park a waiter, then close the desk: the waiter must get WHY it went down.
+			const parked = fetch(`${handle.url}api/await-send`)
+			await sleep(30)
+			await fetch(`${handle.url}api/shutdown`, { method: 'POST' })
+			const res = await parked
+			const event = await readJson<{ kind?: string; session?: string }>(
+				res,
+			)
+			assert.ok(res.ok)
+			assert.equal(event.kind, 'closed')
+			assert.equal(typeof event.session, 'string')
+		},
+		{ idleTimeoutMs: 0, onShutdown: () => {} },
 	)
 })
 

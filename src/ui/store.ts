@@ -37,6 +37,10 @@ export const S: Store = AlpineJS.reactive<Store>({
 	queuedReviews: 0,
 	lastBaseDiffHash: null,
 	isRefreshRequired: false,
+	// The desk stopped (the browser Close action, or it's simply gone and the polls stopped
+	// answering). One-way for the tab: a cover replaces the work surface. Polling continues,
+	// so a same-origin restart can still propose refresh via isRefreshRequired.
+	deskClosed: false,
 	selected: { side: 'additions', lineNumber: 1 },
 	// chrome UI flags (templates bind to these)
 	composerOpen: false,

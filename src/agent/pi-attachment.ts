@@ -55,7 +55,7 @@ export function wakeDeskOwner(
 	pi.sendMessage(
 		{
 			customType: 'galley-event',
-			content: `Galley feedback for repo ${JSON.stringify(target.repo)}, session ${JSON.stringify(target.session)}.\nRead the complete event at ${JSON.stringify(eventPath)} and follow galley spec (read it once per session). Answer every question via galley comment; act on review events and reload the desk. Always pass this repo and session to Galley CLI commands.\nThe native listener stays attached across turns. Do not launch galley await, a polling child, or another agent to wait. Return control after handling feedback; further events wake this session automatically.`,
+			content: `Galley feedback for repo ${JSON.stringify(target.repo)}, session ${JSON.stringify(target.session)}.\nRead the complete event at ${JSON.stringify(eventPath)} and follow galley spec (read it once per session). Questions and reviews are handled differently: NEVER answer a question in this session - launch one read-only galley-answer child per question in ONE parallel subagent call, then post each answer yourself with galley comment at that question's own path/line/side VERBATIM, because this session is the desk's only writer; a question asking WHY (your intent, not the code) gets one line of intent in that child's task. Act on review events here, then galley reload. A closed event means the human ended the review in the browser: detach with galley_agent {action:'detach'} and return control - never restart the desk on your own. Always pass this repo and session to Galley CLI commands.\nThe native listener stays attached across turns. Never launch galley await or a child whose job is to wait. Return control after handling feedback; further events wake this session automatically.`,
 			display: true,
 			details: { ...target, eventPath },
 		},
@@ -68,7 +68,7 @@ export function wakeDeskOwner(
 export class PiDeskAttachment {
 	private connection?: DeskConnection
 	private controller?: AbortController
-	private pending = Promise.resolve()
+	private pending: Promise<void> = Promise.resolve()
 	private failure?: string
 	private generation = 0
 	private isConnecting = false
@@ -163,11 +163,27 @@ export class PiDeskAttachment {
 			await startDeskListener({
 				signal,
 				receive: abort => receiveDeskEvent(desk, abort),
-				deliver: eventPath => wakeDeskOwner(this.pi, desk, eventPath),
+				deliver: event =>
+					wakeDeskOwner(
+						this.pi,
+						desk,
+						typeof event === 'string' ? event : event.eventPath,
+					),
 			})
 		} catch (error) {
 			this.reportFailure(error, ctx)
+			return
 		}
+		// The loop only resolves on a `closed` event with the signal still alive (aborts return
+		// silently, transport failures throw): the human ended the review from the browser.
+		// Detach cleanly - no saved target, no dangling connection, no dead-socket error report.
+		if (signal.aborted) return
+		this.remember(ctx)
+		await this.stop()
+		ctx.ui.notify(
+			'Galley review closed by the reviewer - attachment detached.',
+			'info',
+		)
 	}
 
 	private reportFailure(error: unknown, ctx: AttachmentContext): void {

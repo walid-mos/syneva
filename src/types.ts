@@ -389,7 +389,8 @@ export type QuestionPayload = {
 }
 
 // What `galley await` yields - a tagged event stream. The agent loops and branches:
-// "question" → answer it now with `galley comment`; "review" → act on the Send.
+// "question" → answer it now with `galley comment`; "review" → act on the Send;
+// "closed" → the human ended the review from the browser (the desk's Close action).
 export type AwaitEvent =
 	| { kind: 'review'; result: ReviewResult }
 	// `question` is the oldest of the batch (kept for compatibility); `questions` carries every
@@ -401,3 +402,8 @@ export type AwaitEvent =
 			question: QuestionPayload
 			questions: QuestionPayload[]
 	  }
+	// The reviewer closed the desk (browser Close): the review flow is over. Every Sends not
+	// picked up live survive as artifacts.resultJson (the file-poll fallback); all review state
+	// is saved and a later start restores the session. Emitted just before the desk exits so a
+	// parked waiter learns why instead of watching the socket die.
+	| { kind: 'closed'; session: string }

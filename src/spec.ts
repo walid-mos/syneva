@@ -42,8 +42,24 @@ Never delegate waiting to a one-shot subagent: its exit cannot wake an idle pare
 The listener survives agent turns and restores on reload/resume of the SAME Pi session; a fork
 cannot inherit it. Print/JSON sessions cannot attach. Keep the owning Pi process open.
 \`galley_agent {action:"status"}\` reports the connection; transport failures are reported and
-require reattachment. Before switching desks, or when the human ends the review, detach with
-\`galley_agent {action:"detach"}\`; detach does not stop the desk. Use \`galley stop\` separately.
+require reattachment. Before switching desks, detach with
+\`galley_agent {action:"detach"}\` - the browser Close already does it (see closed); detach
+does not stop the desk. Use \`galley stop\` separately.
+
+### Question routing - answer in a child, never in the owner
+Every read the answering session does to answer a question stays in its context and is re-sent
+on EVERY later turn of the round, so the cost compounds. Keep the owner a router:
+- questions -> ONE read-only child per question (this package ships \`galley-answer\`), all launched
+  in a SINGLE PARALLEL call, e.g.
+  \`await runs.all([{key:"q1",agent:"galley-answer",task:"…"},…])\`; each task carries repo,
+  mode, path, lineNumber, side, body, and - when the anchor is on the deletions side - a short
+  excerpt of the hunk, because the child has no git access. Post each returned answer yourself with
+  \`galley comment\` at that question's own path/line/side, VERBATIM: the owner is the desk's only
+  writer. Children never post, never edit files, never touch the desk.
+- a question asking WHY (your intent rather than the code) -> add one line of intent to that task.
+  Never fork this session's transcript for a factual question: a fork re-sends exactly what the
+  routing exists to avoid.
+- review events -> still handled IN the owner, which holds the code context; then \`galley reload\`.
 For an existing unattached desk, attach the session that owns its review context, not an unrelated
 agent. If the tool is missing in an already-open Pi process, reload the Pi extensions first.
 
@@ -62,12 +78,15 @@ while ev=$(galley await); do
       done ;;
     review)    # act on the ReviewResult, then \`galley reload\` to show your edits
       r=$(jq .result <<<"$ev") ;;
+    closed)    exit 0 ;;    # the human ended the review in the browser - workflow over
   esac
 done
 \`\`\`
 - \`galley await [--timeout <s>]\` - block for the next event, print one tagged JSON envelope,
   exit. No --timeout → holds open; --timeout <s> → empty stdout (204) after <s>s, re-poll. Exit
-  non-zero = no live desk (start one). After handling ANY event, await again immediately - more
+  non-zero = no live desk (start one) - including a desk that went silent mid-poll (closed or
+  crashed; don't blind-restart a closed desk, see the closed event below). After handling ANY
+  event, await again immediately - more
   may already be queued (the human keeps working while you act).
 - \`galley comment --path <f> --line <n> [--side additions|deletions] --body "…"\` - agent reply.
   Live desk → posts over HTTP (~1.5s), threaded under the matching human comment; no desk →
@@ -83,14 +102,17 @@ done
 - \`galley stop [--session <id> | --all]\` - shut down this repo's live desk(s) (--all = every
   session). Idempotent, exits 0 with {stopped:[…]} whether or not a desk was running - call it
   yourself the same turn the session settles; never ask the human whether to stop, that prices
-  an idle desk's closure at a whole LLM round-trip. All review state is persisted; a later
+  an idle desk's closure at a whole LLM round-trip. The human's browser Close is the same
+  shutdown, delivered to you as a closed event. All review state is persisted; a later
   start restores the session.
 
 ## Events
 await yields exactly one:
 - {"kind":"question","question":{path,lineNumber,side,body,mode,session},"questions":[…]} -
   reviewer wants an answer NOW. \`questions\` holds every question batched into this delivery
-  (arrival order; \`question\` is the oldest, kept for compatibility) - answer EACH. A question wants
+  (arrival order; \`question\` is the oldest, kept for compatibility) - answer EACH, and on a Pi
+  attachment answer each in its own read-only child, never in the owner session (see Question
+  routing). A question wants
   an ANSWER, not a code change: answering is READ-ONLY - read for context, reply with \`galley
   comment\` at path/lineNumber/side, and NEVER edit tracked files (the "Between rounds" rule) unless
   the question's own text asks for a change (then edit + \`galley reload\`). lineNumber 0 (anchor
@@ -98,6 +120,12 @@ await yields exactly one:
   <f> --line 0 --body "…"\`. Questions are a live side-channel - never in a Send/ReviewResult
   except openQuestions below. Slow answer → post \`galley status\` lines so the human sees progress.
 - {"kind":"review","result":{…ReviewResult…}} - reviewer clicked Send. Act on result.
+- {"kind":"closed","session":...} - the reviewer ended the review from the browser (the desk's
+  Close, ⇧Q). The desk exits right after emitting it, so no await will ever answer again: end
+  your round and DON'T restart the desk yourself (relaunch/reattach only when the human asks).
+  A Send queued but never picked up live still left artifacts.resultJson (file-poll fallback);
+  all review state is saved, and a later \`galley --session\` restores it. A Pi attachment deals
+  with closed internally - it auto-detaches and notifies the session.
 
 ## ReviewResult
 The \`result\` field of a review event:

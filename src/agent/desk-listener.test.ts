@@ -3,10 +3,14 @@ import { test } from 'node:test'
 
 import { startDeskListener } from './desk-listener.js'
 
+import type { DeskEventEnvelope } from './desk-listener.js'
+
+const CLOSED = { eventPath: '/tmp/closed.json', kind: 'closed' }
+
 void test('one attachment delivers consecutive questions and a completed review, then keeps listening', async () => {
 	const controller = new AbortController()
 	const events = ['question one', 'question two', 'review']
-	const received: string[] = []
+	const received: (string | DeskEventEnvelope)[] = []
 	let calls = 0
 	let rearmed: (() => void) | undefined
 	const listeningAgain = new Promise<void>(resolve => {
@@ -44,9 +48,22 @@ void test('one attachment delivers consecutive questions and a completed review,
 	await listener
 })
 
+void test('a closed event delivers once and ends the loop - the workflow is over', async () => {
+	const controller = new AbortController()
+	const received: (string | typeof CLOSED)[] = []
+	await startDeskListener({
+		signal: controller.signal,
+		receive: async () => CLOSED,
+		deliver: event => {
+			received.push(event)
+		},
+	})
+	assert.deepEqual(received, [CLOSED])
+})
+
 void test('a long-poll timeout rearms without sending an empty agent message', async () => {
 	const controller = new AbortController()
-	const received: string[] = []
+	const received: (string | typeof CLOSED)[] = []
 	let calls = 0
 	await startDeskListener({
 		signal: controller.signal,
@@ -62,7 +79,7 @@ void test('a long-poll timeout rearms without sending an empty agent message', a
 
 void test('shutdown cannot inject a late event into the replacement Pi session', async () => {
 	const controller = new AbortController()
-	const received: string[] = []
+	const received: (string | DeskEventEnvelope)[] = []
 	await startDeskListener({
 		signal: controller.signal,
 		receive: async () => {

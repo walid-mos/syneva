@@ -20,7 +20,12 @@ export type PollWithStatus = PollPayload & Partial<DeskStatus>
 // diff's hash - everything small enough to re-read continuously.
 export const POLL_INTERVAL_MS = 1500
 
+// Consecutive unreachable polls before the tab declares the desk gone (human Close, agent
+// `galley stop`, crash). One miss is a tick of load jitter; three ≈ 4.5s of silence is closure.
+const DESK_GONE_TICKS = 3
+
 let serverInstanceId: string | undefined
+let missedPolls = 0
 
 // Check every response that can replace browser state, including Reset. A notification is safer
 // than automatic navigation: stage/unstage/Send can still be in flight after their dialogs close.
@@ -86,6 +91,8 @@ async function pollOnce(): Promise<PollPayload | BrowserRefreshEvent | null> {
 		const payload = await api<
 			PollWithStatus | (BrowserRefreshEvent & Partial<DeskStatus>)
 		>(`/api/poll${query}`)
+		missedPolls = 0
+		S.deskClosed = false
 		if ('kind' in payload) {
 			adoptLiveness(payload)
 			updateAwaitingDom()
@@ -98,6 +105,11 @@ async function pollOnce(): Promise<PollPayload | BrowserRefreshEvent | null> {
 		updateAwaitingDom()
 		return lite
 	} catch {
+		// The desk stopped answering (Close, `galley stop`, crash): a cover says so once the
+		// misses outlast a plausible jitter window. Clearing on the next success covers a
+		// same-origin restart racing the detection.
+		missedPolls++
+		if (missedPolls >= DESK_GONE_TICKS) S.deskClosed = true
 		return null
 	}
 }

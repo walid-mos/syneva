@@ -32,6 +32,28 @@ export type Saver = {
 	// The poll's reload branch checks this so it never adopts server state over local
 	// mutations that haven't been persisted yet (see poll.ts).
 	isBusy: () => boolean
+	// Resolves once everything requested so far has left for the wire (an in-flight save
+	// plus one trailing save, if one was pending), or when the limit expires - a wedged
+	// endpoint must not block a caller that is leaving anyway (the browser Close).
+	drain: (limitMs?: number) => Promise<void>
+}
+
+// How often drain() re-checks busy, and how long it waits overall when the caller passes no limit.
+const DRAIN_TICK_MS = 25
+const DRAIN_DEFAULT_LIMIT_MS = 2000
+
+// Poll `check` from a macrotask until it holds (or the limit expires), then resolve. The
+// promise-chain shape keeps the busy-ness reads out of an awaiting loop. A limit keeps a
+// wedged transport from holding a departing caller forever.
+function settledWithin(limitMs: number, check: () => boolean): Promise<void> {
+	return new Promise(resolve => {
+		const deadline = Date.now() + limitMs
+		const poll = (): void => {
+			if (check() || Date.now() >= deadline) return resolve()
+			setTimeout(poll, DRAIN_TICK_MS)
+		}
+		poll()
+	})
 }
 
 export function createSaver<T>(
@@ -61,13 +83,19 @@ export function createSaver<T>(
 		})()
 	}
 
+	const trigger = (): void => {
+		if (isInFlight) isPending = true
+		else run()
+	}
+
+	const isBusy = (): boolean => isInFlight || isPending
+
 	return {
-		trigger() {
-			if (isInFlight) isPending = true
-			else run()
-		},
-		isBusy() {
-			return isInFlight || isPending
+		trigger,
+		isBusy,
+		drain(limitMs = DRAIN_DEFAULT_LIMIT_MS): Promise<void> {
+			trigger()
+			return settledWithin(limitMs, () => !isBusy())
 		},
 	}
 }

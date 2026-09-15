@@ -5,12 +5,12 @@ import { isCurrentDesk } from '../poll'
 import { reviewStats } from '../progress'
 import { render } from '../render'
 import { reviewerSlice } from '../save'
-import { $, api, D, requireState, S, toast } from '../store'
+import { $, api, D, requireState, S, saver, toast } from '../store'
 
 import type { BrowserResetResponse } from '../../types'
 
 // The modal bindings: the Send receipt (a glance at what is about to go, one-way), the
-// review-complete prompt, Reset, and the keyboard-help + confirm dialogs.
+// review-complete prompt, Reset, the browser Close, and the keyboard-help + confirm dialogs.
 
 // Pluralize a count with its noun: plural(1, "file") -> "1 file", plural(3, "file") -> "3 files".
 function plural(count: number, noun: string): string {
@@ -43,6 +43,7 @@ function openSendModal(message: string): void {
 
 export function installDialogBindings(): void {
 	installSendBindings()
+	installCloseBinding()
 	installHelpBindings()
 }
 
@@ -96,6 +97,35 @@ function installResetBinding(): void {
 		toast('Reset review')
 	}
 	installSendAction()
+}
+
+// How many ms a Close click may wait for the coalescing saver to drain, and how long until
+// window.close() fires after the desk ACKed the shutdown.
+const CLOSE_SAVE_FLUSH_MS = 800
+const CLOSE_WINDOW_DELAY_MS = 250
+
+// The browser Close: the human ends the whole desk, not just the round. The server tells any
+// parked agent listener ({kind:"closed"}) before exiting, so this is `galley stop` with its
+// proper paperwork. State is saved continuously; nothing else to hand over.
+function installCloseBinding(): void {
+	S.closeDesk = async () => {
+		// A trailing save may still carry a not-yet-persisted decision: flush it first so Close
+		// can't drop the freshest review mutations (bounded - a wedged desk must still close).
+		await saver.drain(CLOSE_SAVE_FLUSH_MS)
+		// Paint the cover first: the desk dies within the request's grace window, and a refused
+		// script-close leaves the cover as the tab's terminal state.
+		S.deskClosed = true
+		try {
+			await api('/api/shutdown', { method: 'POST' })
+		} catch {
+			// An unreachable desk is a closed desk as far as this tab is concerned; the
+			// poll's miss counter converges on the same state regardless.
+		}
+		toast('Desk closed')
+		// The desk opens its tab via the OS opener, so script-close is usually refused.
+		// Harmless where it works, invisible where it doesn't - the cover already shows.
+		setTimeout(() => window.close(), CLOSE_WINDOW_DELAY_MS)
+	}
 }
 
 // The one-way handoff: post only the reviewer-owned slice, never the whole (multi-MB) ReviewState.

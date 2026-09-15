@@ -184,7 +184,18 @@ export async function runAwait(args: CliArgs): Promise<void> {
 		return
 	}
 	const response = await httpGetJson(awaitUrl(lock.url, args))
-	if (response.status === NO_CONTENT || !response.body) return // timed out; caller re-runs
+	if (response.status === NO_CONTENT || !response.body) {
+		// A timed-out wait (204) leaves the loop alive; a dead/unreachable desk must NOT
+		// return empty-and-0, or the spec's `while ev=$(galley await)` loop would spin
+		// against a corpse - exit non-zero so the caller re-checks liveness instead.
+		if (response.status !== NO_CONTENT) {
+			warn(
+				`Desk for session "${session}" is not answering (closed or stopped? ${lock.url})`,
+			)
+			process.exitCode = 1
+		}
+		return
+	}
 	// `unknown` on purpose: the guard above narrows response.body to a truthy value, which
 	// would make the object/kind checks below look redundant to the type checker.
 	const event: unknown = response.body

@@ -235,6 +235,9 @@ export interface Store {
 	lastBaseDiffHash: string | null
 	// Persistent, non-destructive notice: a restarted desk may require a different UI bundle.
 	isRefreshRequired: boolean
+	// The desk stopped (the browser Close action, or it's simply gone and the polls stopped
+	// answering). One-way for the tab: a full-surface cover replaces the workspace.
+	deskClosed: boolean
 	selected: Selection
 	// An inline composer (new / reply / edit) is open. Exactly one at a time; the composer's
 	// text lives in composerBody so it survives the diff DOM rebuild (see composer.ts).
@@ -251,7 +254,7 @@ export interface Store {
 	settings: Settings
 	settingsOpen: boolean
 	// Which tab the settings modal shows ("shortcuts" = the keyboard map). A small confirm dialog
-	// backs the destructive shortcuts (⇧R / ⇧S); confirmMsg is the prompt text, "" when closed.
+	// backs the destructive shortcuts (⇧R / ⇧S / ⇧Q); confirmMsg is the prompt text, "" when closed.
 	settingsTab: 'settings' | 'shortcuts'
 	confirmMsg: string
 	// The Send modal (⇧S / Send button): a receipt (sendMsg) plus an optional overall note the
@@ -323,6 +326,10 @@ export interface Store {
 	requestChange?: () => void
 	reset?: () => Promise<void>
 	send?: (overallNote?: string) => Promise<void>
+	// The browser Close: confirm, flush the coalescing saver, stop the desk via /api/shutdown,
+	// then show the closed cover (window.close() after it usually can't script-close an
+	// OS-opened tab). Also driven implicitly when the polls stop answering (poll.ts).
+	closeDesk?: () => Promise<void>
 	// The whole-file (file header) composer: toggled by the guide bar's / file header's comment
 	// icon; the count feeds the icon badge, the availability gate hides it on the Overview page
 	// and single-file desks.

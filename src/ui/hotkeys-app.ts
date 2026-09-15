@@ -151,6 +151,18 @@ export const HOTKEYS_APP: Hotkey[] = [
 		run: () => S.confirmSend?.(),
 	},
 	{
+		combo: '⇧Q',
+		desc: 'Close Galley (stops the desk)',
+		group: 'App',
+		test: shift('Q'),
+		when: navigable,
+		run: () =>
+			askConfirm(
+				'Close the desk? Galley stops; the review state is saved and the agent is told the review ended.',
+				() => void S.closeDesk?.(),
+			),
+	},
+	{
 		combo: '⇧,',
 		desc: 'Settings',
 		group: 'App',

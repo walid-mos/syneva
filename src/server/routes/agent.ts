@@ -20,6 +20,11 @@ const MS_PER_SECOND = 1000
 // bounded wait passes ?timeout=<seconds>.
 const HOLD_DEFAULT_MS = MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MS_PER_SECOND
 
+// How long the desk lingers after ACKing a stop so the new `closed` event reaches a parked
+// waiter (its HTTP response flushes on the emission, but Node needs a beat to write it to the
+// socket before the process exits). Loopback: a fraction of a second is generous.
+const CLOSED_EVENT_GRACE_MS = 150
+
 export async function askQuestion({
 	ctx,
 	req,
@@ -98,9 +103,14 @@ export async function postStatus({
 }
 
 export async function stopDesk({ ctx, res }: RouteRequest): Promise<void> {
-	// `galley stop`: exit after the response flushes so the caller gets its ack.
-	// The process exit handler removes the desk lock.
-	res.on('finish', () => ctx.shutdown('stop'))
+	// `galley stop`, or the browser's Close action: exit after the response flushes, but first
+	// tell any parked waiter WHY the desk is going (a `closed` event) so an agent's loop learns
+	// the human ended the review instead of watching the socket die. The process exit handler
+	// removes the desk lock.
+	res.on('finish', () => {
+		ctx.events.emit({ kind: 'closed', session: ctx.state.session })
+		setTimeout(() => ctx.shutdown('stop'), CLOSED_EVENT_GRACE_MS)
+	})
 	json(res, HTTP_OK, { ok: true, stopping: true })
 }
 

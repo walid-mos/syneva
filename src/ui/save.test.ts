@@ -181,3 +181,44 @@ void test('createSaver: a trigger after quiescence starts a fresh send', async (
 	assert.equal(calls.length, 2)
 	assert.equal(saver.isBusy(), true)
 })
+
+void test('createSaver: drain resolves after the in-flight plus the trailing save land', async () => {
+	const { send, calls } = fakeSend<number>()
+	const saver = createSaver(() => 1, send)
+	saver.trigger()
+	saver.trigger() // trails the in-flight
+
+	const draining = saver.drain(1000)
+	calls[0].resolve()
+	await flush()
+	assert.equal(calls.length, 2, 'the trailing save fired')
+	// A drain that settled after the FIRST cycle would pass `await draining` too early -
+	// but busy-ness is still true here, so the failure below catches exactly that bug.
+	assert.equal(saver.isBusy(), true)
+	calls[1].resolve()
+	await draining
+	assert.equal(saver.isBusy(), false)
+})
+
+void test('createSaver: a drain fires the first save when it was not running yet', async () => {
+	const { send, calls } = fakeSend<number>()
+	const saver = createSaver(() => 1, send)
+	const draining = saver.drain(1000)
+	assert.equal(
+		calls.length,
+		1,
+		'drain triggers the save nothing else started',
+	)
+	calls[0].resolve()
+	await draining
+	assert.equal(saver.isBusy(), false)
+})
+
+void test('createSaver: drain gives up at its limit instead of blocking a departing caller', async () => {
+	const { send } = fakeSend<number>()
+	const saver = createSaver(() => 1, send)
+	saver.trigger() // never resolved
+	const started = Date.now()
+	await saver.drain(30)
+	assert.ok(Date.now() - started < 500, 'the limit capped the wait')
+})

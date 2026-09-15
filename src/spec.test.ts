@@ -23,6 +23,11 @@ const ANCHORS = [
 	'questions AND completed reviews wake this same session',
 	'Never delegate waiting to a one-shot subagent',
 	'Print/JSON sessions cannot attach',
+	// question routing: the owner stays a router, one read-only child per question, owner posts
+	'Question routing',
+	'galley-answer',
+	'runs.all',
+	'VERBATIM',
 	// the loop + events
 	'galley await',
 	'galley comment',
@@ -30,6 +35,9 @@ const ANCHORS = [
 	'galley status',
 	'"kind":"question"',
 	'"kind":"review"',
+	// the browser Close: the human can end the workflow (see the closed event)
+	'"kind":"closed"',
+	"DON'T restart the desk yourself",
 	// a question is READ-ONLY: answer it, don't edit code in response (guards issue 04)
 	'answering is READ-ONLY',
 	'NEVER edit tracked',
