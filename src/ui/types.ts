@@ -54,6 +54,12 @@ export type Settings = {
 	// Default view for a markdown file: "auto" (new/unchanged → rendered, changed → source so the
 	// diff shows first), or force "rendered"/"source". The toolbar toggle still overrides per file.
 	markdownView: 'auto' | 'rendered' | 'source'
+	// Distill round-over-round reviewed material (issue: multi-round reviews): hide change blocks
+	// already ACCEPTED out of the current diff, and fold fully-approved files out of the tree and
+	// walkthrough into a collapsed "Reviewed" group, gathering what still needs eyes. OFF by
+	// default; the header toggle (⇧H) flips it for the whole session; display only - decisions,
+	// progress, and the review-complete gate are untouched.
+	hideReviewed: boolean
 	stageOnAccept: boolean
 	// Command template for "Open in editor" ({repo}/{file}/{line} placeholders). A machine
 	// preference like the rest - empty falls back to the OS opener (see src/editor.ts).
@@ -113,12 +119,17 @@ export type FileRow = {
 // The collapsed "Skimmed · N files" group header at the bottom of the tree (issue 07). Fully-
 // skimmed files leave the main listing and gather under it; clicking toggles per-session expand,
 // and its member FileRows follow only while `open`.
+// The collapsible trailing group of files that left the reviewer's listing: the Skimmed
+// group (files the agent skimmed / pure renames) and - with the hide-reviewed pref on - the
+// Reviewed group (fully-approved files the lens distills). Same shape, different label and
+// expand key; `group` says which.
 export type SkimGroupRow = {
 	kind: 'skimgrp'
 	key: string
 	count: number
 	open: boolean
 	caret: string
+	group: 'skimmed' | 'reviewed'
 }
 
 export type TreeRow = DirRow | FileRow | SkimGroupRow
@@ -263,6 +274,8 @@ export interface Store {
 	sendOpen: boolean
 	sendMsg: string
 	sendNote: string
+	// Confirm-first gate for the browser Close (the header button and ⇧Q both route through it).
+	confirmClose?: () => void
 	// Guided review: when true (and a guide is attached) the center shows the Overview page
 	// instead of the diff. Selecting any file (tree or Start) drops back to the diff.
 	overviewOpen: boolean
@@ -295,12 +308,18 @@ export interface Store {
 	treeAnyOpen?: () => boolean
 	toggleTestDir?: (key: string) => void
 	toggleSkimGroup?: () => void
+	toggleReviewedGroup?: () => void
 	rowClick?: (r: TreeRow) => void
 	setStyle?: (style: DiffStyle) => void
 	setFileView?: (view: 'rendered' | 'source') => void
 	isMarkdownFile?: () => boolean
 	// Sign off on the current file from the floating button (same action as the header ⇧A).
 	approveFile?: () => void
+	// The hide-reviewed lens (multi-round reviews): hide accepted change bands in the diff
+	// (render/distill) and fold fully-approved files out of the sidebars (flow-index). The
+	// pref persists; hasReviewed gates the header toggle (nothing to distill on first sight).
+	hasReviewed?: () => boolean
+	toggleHideReviewed?: () => void
 	// Drives the floating Approve button: null hides it (overview, preview, or finished file),
 	// else the pending file's sign-off flavor - "clean" (Approve) or "changes" (Mark Reviewed).
 	fabState?: () => 'clean' | 'changes' | null

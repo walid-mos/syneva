@@ -1,6 +1,7 @@
 import { flowIndex } from './changes'
 import { isGuideBaseStale } from './guide-derive'
 import { renderMarkdown } from './markdown'
+import { isReviewedGroupExpanded } from './reviewed'
 import {
 	navFileOrder,
 	nextUnreviewed,
@@ -166,26 +167,31 @@ function locByPath(): Map<string, number> {
 }
 
 // Guide categories + their files (plus the trailing "Other" group of unlisted diff files) -
-// the data behind the Walkthrough sidebar tab and the Overview file list.
+// the data behind the Walkthrough sidebar tab and the Overview file list. The hide-reviewed
+// lens folds fully-approved files into a trailing "Reviewed" group alongside it.
 export function walkGroups(): WalkGroup[] {
 	const { state } = S
 	if (!state?.guide?.files.length) return []
-	// One flow-index pass backs both predicates for the whole group derivation.
+	// One flow-index pass backs both predicates for the whole group derivation. The distilled
+	// predicate reads the pref itself: empty set when off.
 	const ix = flowIndex()
 	return walkthroughGroups(
 		state.guide.files,
 		state.files,
 		p => ix.reviewState(p),
-		p => ix.outOfFlow.has(p),
+		{ skim: p => ix.outOfFlow.has(p), distilled: p => ix.distilled.has(p) },
 	)
 }
 
 // Flat rows for the Walkthrough tab's x-for. The "active" highlight is deliberately NOT derived
 // here (activePath = null): reading S.fileIndex/S.preview/S.overviewOpen made every file switch
 // re-run this whole x-for. applyActiveRow (tree.ts) patches the class imperatively for both
-// sidebars. The trailing "Skimmed" group's file rows appear only while the group is expanded.
+// sidebars. The trailing "Skimmed"/"Reviewed" groups' file rows appear only while expanded.
 export function walkthroughRows(): WalkRow[] {
-	return walkRows(walkGroups(), null, isSkimGroupExpanded())
+	return walkRows(walkGroups(), null, {
+		skim: isSkimGroupExpanded(),
+		reviewed: isReviewedGroupExpanded(),
+	})
 }
 
 // Overall review progress for the guide-bar indicator, weighted by changed lines (LOC) rather
@@ -206,8 +212,10 @@ export function guideProgress(): {
 		done = 0,
 		approved = 0
 	for (const f of S.state?.files ?? []) {
-		// Fully-skimmed files carry no progress weight - they left the flow (issue 07).
-		if (ix.outOfFlow.has(f.path)) continue
+		// Fully-skimmed files carry no progress weight - they left the flow (issue 07). The
+		// hide-reviewed lens folds approved files out the same way: they're already 'done',
+		// so shedding them from both done and total leaves the percentage unchanged.
+		if (ix.outOfFlow.has(f.path) || ix.distilled.has(f.path)) continue
 		// LOC-weighted progress counts a file's changed lines; file-weighted counts it as 1.
 		const weight = linesPerFile ? (linesPerFile.get(f.path) ?? 1) : 1
 		total += weight

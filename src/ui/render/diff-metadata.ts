@@ -8,6 +8,7 @@ import {
 import { cur } from '../contents'
 import { D, S } from '../store'
 
+import { distillAccepted } from './distill'
 import { replayDecisions } from './replay-decisions'
 
 import type { FileDiffMetadata } from '@pierre/diffs'
@@ -67,6 +68,9 @@ function metadataFingerprint(file: ReviewFile, view: DiffView): string {
 		view.isPreviewing ? 'p' : 'd',
 		view.isExpandedUnchanged ? 'e' : 'c',
 		isViewOnly(view.isPreviewing) ? 'v' : 'r',
+		// The hide-reviewed pref changes the rendered structure (accepted bands drop), so the
+		// same decisions cache different metadata under it.
+		S.settings.hideReviewed ? 'h' : 'v',
 		file.path,
 		file.oldPath ?? file.path,
 		file.newPath ?? file.path,
@@ -131,7 +135,11 @@ function buildDiffMetadata(file: ReviewFile, view: DiffView): FileDiffMetadata {
 	}
 	const raw = parseDiffFromFile(oldSide, newSide)
 	ensureChangesFromFileDiff(raw)
-	const replayed = replayDecisions(raw)
-	syncDisplayAnchors(replayed)
-	return replayed
+	const { diff: replayed, decided } = replayDecisions(raw)
+	// The hide-reviewed pref distills accepted bands out of the rendered structure; the
+	// line map was rebuilt against the cut layout, so display positions stay exact.
+	const cutCount = decided.filter(d => d.status === 'cut').length
+	const final = cutCount ? distillAccepted(replayed, decided) : replayed
+	syncDisplayAnchors(final)
+	return final
 }

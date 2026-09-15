@@ -180,3 +180,60 @@ void test('flow-index: null state derives an empty index', () => {
 	assert.equal(ix.outOfFlow.size, 0)
 	assert.equal(ix.reviewState('anything'), 'pending')
 })
+
+void test('the distilled set mirrors reviewState approved, and is empty when the pref is off', () => {
+	// a.ts signed off against its CURRENT content and clean → distilled; b.ts has a
+	// rejection → changes-requested, never distilled; c.ts's sign-off predates its content
+	// (stale hash) → not finished, not distilled.
+	const idxState = {
+		changes: [],
+		comments: [],
+		files: [
+			{
+				path: 'a.ts',
+				contentHash: 'ha',
+				added: 1,
+				removed: 0,
+				hasHunks: true,
+			},
+			{
+				path: 'b.ts',
+				contentHash: 'hb',
+				added: 1,
+				removed: 0,
+				hasHunks: true,
+			},
+			{
+				path: 'c.ts',
+				contentHash: 'hc2',
+				added: 1,
+				removed: 0,
+				hasHunks: true,
+			},
+		],
+		decisions: [
+			{
+				key: 'b.ts:k',
+				status: 'rejected',
+				path: 'b.ts',
+				lineNumber: 1,
+				side: 'additions',
+				title: '',
+			},
+		],
+		reviewedFiles: ['a.ts', 'c.ts'],
+		reviewedFileHashes: { 'a.ts': 'ha', 'c.ts': 'hc1' },
+	} satisfies NonNullable<Parameters<typeof deriveFlowIndex>[0]>
+	const on = deriveFlowIndex(idxState, { distill: true })
+	assert.ok(on.distilled.has('a.ts'))
+	assert.ok(!on.distilled.has('b.ts'))
+	assert.ok(!on.distilled.has('c.ts'))
+	// The fold mirrors reviewState: a rejected-but-finished file is changes-requested (b.ts
+	// has no sign-off yet, so it reads plainly pending; the rejection only colors finished files).
+	assert.equal(on.reviewState('a.ts'), 'approved')
+	assert.equal(on.reviewState('b.ts'), 'pending')
+	assert.equal(on.reviewState('c.ts'), 'pending')
+	// Off (or default): the set is EMPTY, so call sites can read it unconditionally.
+	const off = deriveFlowIndex(idxState, { distill: false })
+	assert.equal(off.distilled.size, 0)
+})

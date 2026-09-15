@@ -1,16 +1,19 @@
 import { flowIndex } from './changes'
+import { pushReviewedGroup } from './reviewed'
 import { movedFrom, isSkimGroupExpanded } from './skim'
 import { S } from './store'
-import { emptyNode, foldTestFiles, insertFile } from './tree-structure'
+import {
+	CARET_CLOSED,
+	CARET_OPEN,
+	emptyNode,
+	foldTestFiles,
+	insertFile,
+} from './tree-structure'
 
 import type { FlowIndex } from './flow-index'
 import type { FileRow, ReviewState, TreeFile, TreeNode, TreeRow } from './types'
 
 type ReviewFile = ReviewState['files'][number]
-
-// The caret glyphs the template renders for an open/closed branch.
-const CARET_OPEN = '▾'
-const CARET_CLOSED = '▸'
 
 // Everything one treeRows() evaluation needs. The row builders take it explicitly instead of
 // closing over the module, so each stays a function of its inputs.
@@ -242,25 +245,27 @@ function skimFileRow(build: TreeBuild, path: string): FileRow {
 		testCaret: CARET_CLOSED,
 		changeType: null,
 		state: null,
-		// A pure rename shows a "← old" arrow instead of the skim indicator (it's moved, not skimmed).
-		// movedFrom() returns '' when the path isn't a rename, which the template's truthy check reads
-		// as absent (the same convention the walkthrough rows use).
+		// A pure rename shows a "← old" arrow instead of the skim indicator (it's moved, not
+		// skimmed); movedFrom() returns '' when the path isn't a rename, which the template's
+		// truthy check reads as absent (the same convention the walkthrough rows use).
 		skim: !movedFromPath,
 		movedFrom: movedFromPath,
 	}
 }
 
 // The collapsed "Skimmed · N files" group at the very bottom - the test-fold precedent, but a
-// flat group (no nesting). Expand state is per-session (isSkimGroupExpanded).
+// flat group (no nesting). Expand state is per-session (isSkimGroupExpanded); reviewed.ts
+// builds a matching "Reviewed" group of approved files.
 function appendSkimGroup(build: TreeBuild, skimmedPaths: string[]): void {
 	if (!skimmedPaths.length) return
 	const isOpen = isSkimGroupExpanded()
 	build.rows.push({
 		kind: 'skimgrp',
-		key: 'skimgrp',
+		key: 'group:skimmed',
 		count: skimmedPaths.length,
 		open: isOpen,
 		caret: isOpen ? CARET_OPEN : CARET_CLOSED,
+		group: 'skimmed',
 	})
 	if (!isOpen) return
 	const ordered = [...skimmedPaths]
@@ -283,9 +288,17 @@ export function treeRows(): TreeRow[] {
 	// changed and don't clutter the tree.
 	const skimmedPaths = changedPaths.filter(path => ix.outOfFlow.has(path))
 	const skimmedSet = new Set(skimmedPaths)
+	// The hide-reviewed lens folds fully-approved files the same way (a separate "Reviewed"
+	// group) - a file already approved AND skimmed stays in the skimmed group (skim wins).
+	const reviewedPaths = S.settings.hideReviewed
+		? changedPaths.filter(
+				path => !skimmedSet.has(path) && ix.distilled.has(path),
+			)
+		: []
+	const reviewedSet = new Set(reviewedPaths)
 	// A reviewed file must always appear, even if it isn't in the project listing (a new/
 	// untracked file, or a stale listing): union the listing with the changed files when
-	// showing unchanged; otherwise just the changed files. Fully-skimmed files are held back.
+	// showing unchanged; otherwise just the changed files. Folded files are held back.
 	const listed =
 		S.settings.showUnchanged && S.projectFiles.length
 			? [...new Set([...S.projectFiles, ...changedPaths])]
@@ -301,40 +314,12 @@ export function treeRows(): TreeRow[] {
 	}
 	const root = emptyNode('', '')
 	for (const path of listed) {
-		if (skimmedSet.has(path)) continue
+		if (skimmedSet.has(path) || reviewedSet.has(path)) continue
 		insertFile(root, path, changedIndex.get(path))
 	}
 	root.files = foldTestFiles(root, S.state.stagedFiles)
 	walk(build, root, 0)
 	appendSkimGroup(build, skimmedPaths)
+	pushReviewedGroup(build.rows, reviewedPaths, path => changedIndex.get(path))
 	return build.rows
-}
-
-// Layout classes were toggled inside the old sync(); render() calls this now.
-export function applyLayoutClasses(): void {
-	document.body.classList.toggle('single', (S.state?.files.length ?? 0) <= 1)
-	document.body.classList.toggle('file-mode', S.state?.mode === 'file')
-}
-
-// The sidebar's "active" highlight, patched in place instead of derived in the row models.
-// Deriving it made treeRows()/walkthroughRows() depend on S.fileIndex/S.preview/S.overviewOpen,
-// so every file switch re-ran both x-fors - thousands of row bindings re-evaluated to move one
-// highlight (the dominant per-switch cost on big desks). Same pattern as updateAwaitingDom:
-// selectFile calls this directly, and render() re-applies it after Alpine's flush (an rAF later,
-// so freshly re-keyed rows get the class back - Alpine's :class diff only removes classes it
-// added itself, so this manual class survives binding re-evaluation on reused elements).
-export function applyActiveRow(): void {
-	for (const el of document.querySelectorAll(
-		'#files .node.active, #walk .node.active',
-	))
-		el.classList.remove('active')
-	// No file is "active" on the Overview; a previewed file wins over the indexed review file.
-	if (S.overviewOpen) return
-	const path = S.preview?.path ?? S.state?.files.at(S.fileIndex)?.path ?? null
-	if (!path) return
-	for (const key of [`file:${path}`, `test:${path}`])
-		for (const el of document.querySelectorAll(
-			`.node[data-key="${CSS.escape(key)}"]`,
-		))
-			el.classList.add('active')
 }

@@ -42,7 +42,18 @@ export default defineConfig({
 			},
 		},
 		{
-			// Each long-poll consumes the next queued event. Parallel requests would
+			// The hide-reviewed distill pass is a mechanical translation of @pierre's own
+			// resolveRegion cursor walk (same counters, same collapsed-context handling, minus
+			// dropped rows) - the pinned-library seam's shape, not a reviewable logic tree.
+			// Splitting it would scatter one invariant (the lockstep ledger) across closures.
+			files: ['src/ui/render/distill.ts'],
+			rules: {
+				'eslint/max-lines-per-function': 'off',
+				'eslint/max-depth': 'off',
+			},
+		},
+		{
+			// The long-poll consumes the next queued event. Parallel requests would
 			// reorder feedback and detach event ownership from its delivery.
 			files: ['src/agent/desk-listener.ts'],
 			rules: { 'eslint/no-await-in-loop': 'off' },

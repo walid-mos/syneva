@@ -14,7 +14,9 @@ import type { ChangeState, ReviewComment, ReviewState, Side } from './types'
 // files through them is O(files × changes) and froze big desks (see flow-index.ts). Build the
 // index once per evaluation and never cache it across effects.
 export function flowIndex(): FlowIndex {
-	return deriveFlowIndex(S.state)
+	// The distill option rides the pref; reading it here makes every index evaluation depend
+	// on the toggle reactively (the index must be built per evaluation, never cached).
+	return deriveFlowIndex(S.state, { distill: S.settings.hideReviewed })
 }
 
 type ReviewFile = ReviewState['files'][number]

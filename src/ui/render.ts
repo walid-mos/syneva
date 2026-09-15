@@ -10,6 +10,7 @@ import { updateProgress } from './progress'
 import { diffKey } from './render/diff-key'
 import { isExpandCapped, newLines } from './render/expand-cap'
 import { clearOverviewRuler } from './render/overview-ruler'
+import { applyActiveRow, applyLayoutClasses } from './sidebar-dom'
 import {
 	fileMovedPure,
 	isFileSkimCollapsed,
@@ -17,7 +18,6 @@ import {
 	renderMovedPure,
 } from './skim'
 import { $, D, esc, S } from './store'
-import { applyActiveRow, applyLayoutClasses } from './tree'
 
 import type * as DiffIsland from './render/diff-instance'
 import type { DiffView } from './render/diff-key'

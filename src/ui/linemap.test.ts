@@ -158,3 +158,31 @@ void test('non-change or out-of-range decided positions are ignored', () => {
 	])
 	assert.equal(m.toDisplay('deletions', 10), 10)
 })
+
+void test('a CUT block compresses both display streams by its whole raw extent', () => {
+	// Cut block A (2 del → 3 add): with the hide-reviewed pref on, the band renders nothing,
+	// so the deletion side compresses by 2 from old line 2 on, and the addition side by 3
+	// from new line 2 on. Even a 1-del/2-add cut (block B) compresses symmetrically.
+	const m = buildLineMap(fixture(), [
+		{ hunkIndex: 0, changeIndex: 1, status: 'cut' },
+	])
+	assert.equal(m.toDisplay('deletions', 1), 1) // before the band: identity
+	assert.equal(m.toDisplay('deletions', 4), 2) // ctx after A: shifted by the 2 dropped dels
+	assert.equal(m.toDisplay('deletions', 10), 8) // end of file
+	assert.equal(m.toDisplay('additions', 5), 2) // addition side shifted by the 3 dropped adds
+	assert.equal(m.toDisplay('additions', 9), 6)
+	// Round-trips inside the compressed layout
+	assert.equal(m.fromDisplay('deletions', m.toDisplay('deletions', 4)), 4)
+	assert.equal(m.fromDisplay('additions', m.toDisplay('additions', 5)), 5)
+})
+
+void test('cut and visible decisions compose on both streams', () => {
+	// Cut A (compress dels by 2) + visible-accept C (shift dels by adds-dels = -3 past old 9):
+	// after both, old line 10 lands two (cut) minus three (accept) = one line lower.
+	const m = buildLineMap(fixture(), [
+		{ hunkIndex: 0, changeIndex: 1, status: 'cut' },
+		{ hunkIndex: 0, changeIndex: 5, status: 'accepted' },
+	])
+	assert.equal(m.toDisplay('deletions', 4), 2) // ctx after A
+	assert.equal(m.toDisplay('deletions', 10), 5) // after A (-2) and C (-3)
+})

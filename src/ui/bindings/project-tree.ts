@@ -1,3 +1,4 @@
+import { toggleReviewedGroup } from '../reviewed'
 import { toggleSkimGroup } from '../skim'
 import { S } from '../store'
 import { allDirPaths, touchedDirPaths, treeRows } from '../tree'
@@ -33,11 +34,14 @@ export function installProjectTreeBindings(): void {
 		else S.expandedDirs.add(key)
 	}
 	S.toggleSkimGroup = toggleSkimGroup
-	// One click handler for every row kind: the Skimmed group header, a folder, an unchanged file
-	// (open it as a preview) or a changed one (select it in the review).
+	S.toggleReviewedGroup = toggleReviewedGroup
+	// One click handler for every row kind: the Skimmed/Reviewed group headers, a folder, an
+	// unchanged file (open it as a preview) or a changed one (select it in the review).
 	S.rowClick = (row: TreeRow) => {
-		if (row.kind === 'skimgrp') S.toggleSkimGroup?.()
-		else if (row.kind === 'dir') S.toggleDir?.(row.full, row.changed)
+		if (row.kind === 'skimgrp') {
+			if (row.group === 'reviewed') S.toggleReviewedGroup?.()
+			else S.toggleSkimGroup?.()
+		} else if (row.kind === 'dir') S.toggleDir?.(row.full, row.changed)
 		else if (typeof row.fileIndex === 'number')
 			S.selectFile?.(row.fileIndex)
 		else S.previewFile?.(row.path)

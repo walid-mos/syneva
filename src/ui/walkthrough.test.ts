@@ -201,7 +201,10 @@ void test('walkthroughGroups gathers fully-skimmed files into one trailing Skimm
 		[guideFile('a.ts', 'Core'), guideFile('b.ts', 'Core')],
 		[file('a.ts', 'a'), file('b.ts', 'a'), file('stray.ts', 'a')],
 		allPending,
-		p => p === 'a.ts' || p === 'stray.ts',
+		{
+			skim: p => p === 'a.ts' || p === 'stray.ts',
+			distilled: () => false,
+		},
 	)
 	const categories = groups.map(g => g.category)
 	assert.ok(isDeepStrictEqual(categories, ['Core', 'Skimmed']))
@@ -226,7 +229,7 @@ void test('walkthroughGroups: a skimmed file between same-category files does no
 		],
 		[file('a.ts', 'a'), file('b.ts', 'a'), file('c.ts', 'a')],
 		allPending,
-		p => p === 'b.ts',
+		{ skim: p2 => p2 === 'b.ts', distilled: () => false },
 	)
 	const categories = groups.map(g => g.category)
 	assert.ok(isDeepStrictEqual(categories, ['Core', 'Skimmed']))
@@ -239,10 +242,10 @@ void test("walkRows hides the Skimmed group's file rows until expanded", () => {
 		[guideFile('a.ts', 'Core'), guideFile('b.ts', 'Core')],
 		[file('a.ts', 'a'), file('b.ts', 'a')],
 		allPending,
-		p => p === 'b.ts',
+		{ skim: p2 => p2 === 'b.ts', distilled: () => false },
 	)
 	// Collapsed (default): the Skimmed header shows, its file row does not.
-	const collapsed = walkRows(groups, null, false)
+	const collapsed = walkRows(groups, null, { skim: false })
 	assert.deepEqual(
 		collapsed.map(r => r.kind),
 		['cat', 'file', 'cat'],
@@ -250,7 +253,7 @@ void test("walkRows hides the Skimmed group's file rows until expanded", () => {
 	const skimCat = collapsed.find(r => r.kind === 'cat' && r.skimmed)
 	assert.ok(skimCat?.kind === 'cat' && !skimCat.open)
 	// Expanded: the skimmed file row appears under its header.
-	const expanded = walkRows(groups, null, true)
+	const expanded = walkRows(groups, null, { skim: true })
 	assert.deepEqual(
 		expanded.map(r => r.kind),
 		['cat', 'file', 'cat', 'file'],
@@ -285,7 +288,7 @@ void test('walkthroughGroups: a pure rename gets movedFrom and folds into the Sk
 		[guideFile('core/a.ts', 'Core')],
 		files,
 		allPending,
-		p => p === 'lib/new.ts', // the moved file has left the main flow
+		{ skim: p => p === 'lib/new.ts', distilled: () => false }, // the moved file has left the main flow
 	)
 	const skim = groups.find(g => g.skimmed)
 	assert.ok(skim)
@@ -295,4 +298,91 @@ void test('walkthroughGroups: a pure rename gets movedFrom and folds into the Sk
 	const core = groups.find(g => g.category === 'Core')
 	assert.ok(core)
 	assert.equal(core.files[0].movedFrom, '') // a normal edit is not a rename
+})
+
+void test('the hide-reviewed lens folds fully-approved files into a trailing Reviewed group', () => {
+	// a.ts is APPROVED (stateOf says so): with the distilled fold it leaves Core and gathers
+	// in the trailing "Reviewed" group; b.ts stays in Core. Reviewed ranks after Skimmed.
+	const groups = walkthroughGroups(
+		[guideFile('a.ts', 'Core'), guideFile('b.ts', 'Core')],
+		[file('a.ts', 'ad'), file('b.ts', 'a')],
+		(p: string): FileReviewState => (p === 'a.ts' ? 'approved' : 'pending'),
+		{ skim: p2 => p2 === 'stray.ts', distilled: p2 => p2 === 'a.ts' },
+	)
+	assert.ok(
+		isDeepStrictEqual(
+			groups.map(g => g.category),
+			['Core', 'Reviewed'],
+		),
+	)
+	const [core, reviewed] = groups
+	assert.ok(
+		isDeepStrictEqual(
+			core.files.map(f => f.path),
+			['b.ts'],
+		),
+	)
+	assert.equal(reviewed.reviewed, true)
+	assert.equal(reviewed.skimmed, false)
+	assert.ok(
+		isDeepStrictEqual(
+			reviewed.files.map(f => f.path),
+			['a.ts'],
+		),
+	)
+	// An approved file also leaves the "Other" group of unlisted files.
+	const unlistedGroups = walkthroughGroups(
+		[guideFile('a.ts', 'Core')],
+		[file('a.ts', 'ad'), file('stray.ts', 'a')],
+		(p: string): FileReviewState =>
+			p === 'stray.ts' ? 'approved' : 'pending',
+		{ skim: () => false, distilled: p2 => p2 === 'stray.ts' },
+	)
+	assert.ok(
+		isDeepStrictEqual(
+			unlistedGroups.map(g => g.category),
+			['Core', 'Reviewed'],
+		),
+	)
+})
+
+void test('skim wins over the distilled fold when a file is both skimmed and approved', () => {
+	const groups = walkthroughGroups(
+		[guideFile('a.ts', 'Core')],
+		[file('a.ts', 'ad')],
+		(): FileReviewState => 'approved',
+		{ skim: p2 => p2 === 'a.ts', distilled: p2 => p2 === 'a.ts' },
+	)
+	assert.ok(
+		isDeepStrictEqual(
+			groups.map(g => g.category),
+			['Skimmed'],
+		),
+	)
+	assert.equal(groups[0].skimmed, true)
+	assert.notEqual(groups[0].reviewed, true)
+})
+
+void test("walkRows hides the Reviewed group's file rows until expanded, like Skimmed", () => {
+	const groups = walkthroughGroups(
+		[guideFile('a.ts', 'Core'), guideFile('b.ts', 'Core')],
+		[file('a.ts', 'ad'), file('b.ts', 'a')],
+		(p: string): FileReviewState => (p === 'a.ts' ? 'approved' : 'pending'),
+		{ skim: () => false, distilled: p2 => p2 === 'a.ts' },
+	)
+	const collapsed = walkRows(groups, null, { reviewed: false })
+	// Core's header + its pending file, then the collapsed Reviewed header (no file rows).
+	assert.deepEqual(
+		collapsed.map(r => r.kind),
+		['cat', 'file', 'cat'],
+	)
+	const reviewedCat = collapsed.find(r => r.kind === 'cat' && r.reviewed)
+	assert.ok(reviewedCat?.kind === 'cat' && !reviewedCat.open)
+	const expanded = walkRows(groups, null, { reviewed: true })
+	assert.deepEqual(
+		expanded.map(r => r.kind),
+		['cat', 'file', 'cat', 'file'],
+	)
+	const openCat = expanded.find(r => r.kind === 'cat' && r.reviewed)
+	assert.ok(openCat?.kind === 'cat' && openCat.open)
 })

@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	tabSize: 2,
 	showUnchanged: false,
 	unchangedLines: 'collapse',
+	hideReviewed: false,
 	progressBy: 'lines',
 	sidebarDefault: 'tree',
 	markdownView: 'auto',

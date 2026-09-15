@@ -267,7 +267,7 @@
 
 			/* The closed-desk cover: the tab's terminal state after a browser Close (or a dead desk).
 			   Fills the work surface under the topbar; muted panel, centered card. */
-			.desk-closed {
+			.desk-closed-cover {
 				display: flex;
 				align-items: center;
 				justify-content: center;
@@ -3501,6 +3501,18 @@
 				<div class="toggles">
 					<div
 						class="toggle"
+						x-show="$store.g.hasReviewed && $store.g.hasReviewed()"
+						data-tip="Hide accepted changes (⇧H)"
+					>
+						<button
+							:class="{active: $store.g.settings.hideReviewed}"
+							@click="$store.g.toggleHideReviewed()"
+						>
+							Hide approved<kbd>⇧H</kbd>
+						</button>
+					</div>
+					<div
+						class="toggle"
 						x-show="$store.g.isMarkdownFile()"
 						data-tip="Rendered / source (m)"
 					>
@@ -3557,7 +3569,7 @@
 					><button
 						class="btn danger"
 						data-tip="Close Galley - stop the desk (⇧Q)"
-						@click="$store.g.closeDesk()"
+						@click="$store.g.confirmClose()"
 					>
 						Close
 					</button>
@@ -3580,7 +3592,7 @@
 				any unsaved text, then refresh this tab to reconnect.
 			</div>
 			<div
-				class="desk-closed"
+				class="desk-closed-cover"
 				x-cloak
 				x-show="$store.g.deskClosed && !$store.g.isRefreshRequired"
 				role="status"
@@ -3700,6 +3712,7 @@
 								<span
 									class="nm skimgrp-name"
 									x-show="r.kind==='skimgrp'"
+									x-text="r.group==='reviewed' ? 'Reviewed' : 'Skimmed'"
 									>Skimmed</span
 								>
 								<span
@@ -3763,14 +3776,14 @@
 							<div
 								class="node"
 								:data-key="r.key"
-								:class="[r.kind==='cat' ? 'walk-cat' : r.cls, r.kind==='cat' && r.skimmed ? 'walk-skim' : '']"
+								:class="[r.kind==='cat' ? 'walk-cat' : r.cls, r.kind==='cat' && (r.skimmed || r.reviewed) ? 'walk-skim' : '']"
 								:style="r.kind==='cat' ? '' : r.style"
-								@click="r.kind!=='cat' ? $store.g.selectFile(r.fileIndex) : (r.skimmed ? $store.g.toggleSkimGroup() : $store.g.selectFile(r.jumpIndex))"
+								@click="r.kind!=='cat' ? $store.g.selectFile(r.fileIndex) : (r.skimmed ? $store.g.toggleSkimGroup() : (r.reviewed ? $store.g.toggleReviewedGroup() : $store.g.selectFile(r.jumpIndex)))"
 							>
 								<svg
 									class="ic chev"
 									:class="{open: r.open}"
-									x-show="r.kind==='cat' && r.skimmed"
+									x-show="r.kind==='cat' && (r.skimmed || r.reviewed)"
 								>
 									<use href="#gly-chevron"></use>
 								</svg>
@@ -3782,7 +3795,7 @@
 								></span>
 								<span
 									class="walk-skim-count"
-									x-show="r.kind==='cat' && r.skimmed"
+									x-show="r.kind==='cat' && (r.skimmed || r.reviewed)"
 									x-text="r.total + (r.total===1 ? ' file' : ' files')"
 								></span>
 								<!-- File status leads the row (empty circle = to do); ± stay flush right below. -->

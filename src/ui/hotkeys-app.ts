@@ -113,6 +113,14 @@ export const HOTKEYS_APP: Hotkey[] = [
 		run: () => S.startGuided?.(),
 	},
 	{
+		combo: '⇧H',
+		desc: 'Hide approved changes (multi-round)',
+		group: 'View',
+		when: navigable,
+		test: shift('H'),
+		run: () => S.toggleHideReviewed?.(),
+	},
+	{
 		combo: 'w',
 		desc: 'Tree / Walkthrough sidebar',
 		group: 'View',
@@ -156,11 +164,7 @@ export const HOTKEYS_APP: Hotkey[] = [
 		group: 'App',
 		test: shift('Q'),
 		when: navigable,
-		run: () =>
-			askConfirm(
-				'Close the desk? Galley stops; the review state is saved and the agent is told the review ended.',
-				() => void S.closeDesk?.(),
-			),
+		run: () => S.confirmClose?.(),
 	},
 	{
 		combo: '⇧,',

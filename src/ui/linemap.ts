@@ -25,7 +25,9 @@ type ChangePart = Extract<HunkPart, { type: 'change' }>
 export type DecidedPosition = {
 	hunkIndex: number
 	changeIndex: number
-	status: 'accepted' | 'rejected'
+	// 'cut' = an accepted block the hide-reviewed pref distills out: the band renders
+	// nothing, so both sides' display streams contract at it (see pushBreak).
+	status: 'accepted' | 'rejected' | 'cut'
 }
 
 const IDENTITY: LineMap = { toDisplay: (_s, l) => l, fromDisplay: (_s, l) => l }
@@ -35,7 +37,15 @@ export function identityLineMap(): LineMap {
 }
 
 // A decided CHANGE part shifts one side by additions - deletions; context parts and net-zero
-// changes produce no break.
+// changes produce no visible shift. The deltas encode what each side's display stream
+// consumes for the section:
+// - accepted (visible): the deletions are spliced out, the additions ride along as context
+//   on the deletion side.
+// - rejected: the additions are spliced out, the deletions ride along on the addition side.
+// - cut (accepted + hidden): the band is distilled out of the rendered diff entirely, so
+//   both streams skip their whole raw extent: everything from the band's first raw line on
+//   compresses by exactly `dels` (deletions side) / `adds` (additions side) - even when the
+//   two counts are equal, unlike the visible cases where equal means zero shift.
 function pushBreak(
 	breaks: Record<Side, Break[]>,
 	decided: DecidedPosition,
@@ -43,6 +53,20 @@ function pushBreak(
 ): void {
 	const dels = part.deletions
 	const adds = part.additions
+	if (decided.status === 'cut') {
+		// Both streams skip the whole band: one break each, placed at the band's first raw
+		// display line (everything from there on compresses). NOTE for equal dels/adds the
+		// visible cases' early return does NOT apply - the band still vanishes.
+		breaks.deletions.push({
+			after: part.deletionLineIndex,
+			delta: -dels,
+		})
+		breaks.additions.push({
+			after: part.additionLineIndex,
+			delta: -adds,
+		})
+		return
+	}
 	if (adds === dels) return
 	if (decided.status === 'accepted') {
 		// Accept keeps the additions; the deletion side now shows them as context.

@@ -20,6 +20,8 @@ export function diffKey(file: ReviewFile, view: DiffView): string {
 		currentSplittable() ? S.diffStyle : 'unified',
 		view.isExpandedUnchanged,
 		S.settings.unchangedLines,
+		// The hide-reviewed pref drops accepted bands from the rendered structure.
+		S.settings.hideReviewed,
 		view.isPreviewing ? 'none' : S.settings.diffIndicators,
 		S.settings.overflow,
 		S.settings.hunkSeparators,

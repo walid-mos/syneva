@@ -28,6 +28,11 @@ export type FlowIndex = {
 	// Mirrors fileFullySkimmed / fileOutOfFlow over every path in s.files.
 	fullySkimmed: Set<string>
 	outOfFlow: Set<string>
+	// Fully-approved files the hide-reviewed pref distills out of the tree/walkthrough into
+	// the collapsed "Reviewed" group. Navigation, progress weight, and the completion gate
+	// deliberately keep treating them normally. EMPTY whenever the pref is off, so every
+	// call site can read the set unconditionally.
+	distilled: Set<string>
 	// Mirror fileFinished / fileReviewState.
 	finished(path: string): boolean
 	reviewState(path: string): 'pending' | 'approved' | 'changes-requested'
@@ -101,10 +106,12 @@ function classifyFiles(
 	contentHash: Map<string, string>
 	fullySkimmed: Set<string>
 	outOfFlow: Set<string>
+	distilled: Set<string>
 } {
 	const contentHash = new Map<string, string>()
 	const fullySkimmed = new Set<string>()
 	const outOfFlow = new Set<string>()
+	const distilled = new Set<string>()
 	for (const f of files) {
 		contentHash.set(f.path, f.contentHash)
 		const blockSkims = (changesByPath.get(f.path) ?? []).map(c => !!c.skim)
@@ -112,10 +119,13 @@ function classifyFiles(
 			fullySkimmed.add(f.path)
 		if (fullySkimmed.has(f.path) || f.renamePure) outOfFlow.add(f.path)
 	}
-	return { contentHash, fullySkimmed, outOfFlow }
+	return { contentHash, fullySkimmed, outOfFlow, distilled }
 }
 
-export function deriveFlowIndex(s: IndexedState | null | undefined): FlowIndex {
+export function deriveFlowIndex(
+	s: IndexedState | null | undefined,
+	options: { distill?: boolean } = {},
+): FlowIndex {
 	const st = s ?? EMPTY
 	const changesByPath = groupByPath(st.changes)
 	const commentsByPath = groupByPath(st.comments)
@@ -124,7 +134,7 @@ export function deriveFlowIndex(s: IndexedState | null | undefined): FlowIndex {
 	const guideSkim = guideSkimPathSet(st.guide)
 	const reviewed = new Set(st.reviewedFiles)
 	const hashes = st.reviewedFileHashes ?? {}
-	const { contentHash, fullySkimmed, outOfFlow } = classifyFiles(
+	const { contentHash, fullySkimmed, outOfFlow, distilled } = classifyFiles(
 		st.files,
 		changesByPath,
 		guideSkim,
@@ -145,11 +155,19 @@ export function deriveFlowIndex(s: IndexedState | null | undefined): FlowIndex {
 			? 'changes-requested'
 			: 'approved'
 	}
+	// The distilled set mirrors reviewState()'s approved branch, folded in the same single
+	// pass. It's resolved per EVALUATION (never cached across effects) exactly like finished.
+	if (options.distill)
+		for (const file of st.files.filter(
+			x => reviewState(x.path) === 'approved',
+		))
+			distilled.add(file.path)
 	return {
 		changesByPath,
 		commentsByPath,
 		fullySkimmed,
 		outOfFlow,
+		distilled,
 		finished,
 		reviewState,
 	}

@@ -1,5 +1,10 @@
 import type { TreeFile, TreeNode } from './types'
 
+// The caret glyphs the tree/walkthrough templates render for an open/closed branch. Lived
+// in tree.ts before the reviewed-group builder moved beside them in reviewed.ts.
+export const CARET_OPEN = '▾'
+export const CARET_CLOSED = '▸'
+
 // A sibling test file (`<name>.test.ts`, `.spec` too, any extension) folds under its `<name>.ts`
 // parent, so it shows under the parent's caret instead of taking a row of its own.
 const TEST_FILE_NAME = /^(?<base>.*)\.(?:test|spec)(?<extension>\.[^.]+)$/

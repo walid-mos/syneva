@@ -40,6 +40,9 @@ export type WalkGroup = {
 	category: string
 	other: boolean // the trailing group of diff files the guide didn't list
 	skimmed: boolean // the trailing collapsed group of fully-skimmed files (issue 07)
+	// The hide-reviewed lens' trailing collapsed group of fully-approved files. Exclusive
+	// with skimmed by construction (skim wins when a file is both).
+	reviewed?: boolean
 	files: WalkFile[]
 	added: number
 	removed: number
@@ -47,13 +50,18 @@ export type WalkGroup = {
 	total: number
 }
 
-type GroupFlags = { isOther: boolean; isSkimmed?: boolean }
+type GroupFlags = {
+	isOther: boolean
+	isSkimmed?: boolean
+	isReviewed?: boolean
+}
 
 function blankGroup(category: string, flags: GroupFlags): WalkGroup {
 	return {
 		category,
 		other: flags.isOther,
 		skimmed: flags.isSkimmed ?? false,
+		reviewed: flags.isReviewed ?? false,
 		files: [],
 		added: 0,
 		removed: 0,
@@ -77,6 +85,7 @@ function withFile(group: WalkGroup, f: WalkFile): WalkGroup {
 
 function categoryKey(index: number, group: WalkGroup): string {
 	if (group.skimmed) return `cat:${index}:·skimmed`
+	if (group.reviewed) return `cat:${index}:·reviewed`
 	if (group.other) return `cat:${index}:·other`
 	return `cat:${index}:${group.category}`
 }
@@ -117,23 +126,59 @@ function fileBuilder(
 // mirror guideOrder() exactly. Guide entries absent from the diff are skipped (same rule as
 // guideOrder); diff files absent from the guide land in a trailing "Other" group - so these
 // surfaces always cover everything the progress strip counts and the two can never disagree.
+// The two trailing collapsed fold groups plus the router that sends files into them:
+// skim wins when a file is both; the route returns the file back when it stays shown.
+// The buckets mutate in place during the walk (locals, not the immutable withFile path).
+function foldBuckets(
+	skim: (path: string) => boolean,
+	distilled: (path: string) => boolean,
+): {
+	skimmed: WalkGroup
+	reviewed: WalkGroup
+	route: (path: string, file: WalkFile) => WalkFile | null
+} {
+	const skimmed = blankGroup('Skimmed', { isOther: false, isSkimmed: true })
+	const reviewed = blankGroup('Reviewed', {
+		isOther: false,
+		isReviewed: true,
+	})
+	const route = (path: string, file: WalkFile): WalkFile | null => {
+		let bucket: WalkGroup | null = null
+		if (skim(path)) bucket = skimmed
+		else if (distilled(path)) bucket = reviewed
+		if (!bucket) return file
+		bucket.files.push(file)
+		bucket.added += file.added
+		bucket.removed += file.removed
+		bucket.total++
+		bucket.done += file.state === 'pending' ? 0 : 1
+		return null
+	}
+	return { skimmed, reviewed, route }
+}
+
 export function walkthroughGroups(
 	guideFiles: GuideFile[],
 	files: FileLike[],
 	stateOf: (path: string) => FileReviewState,
-	fullySkimmed: (path: string) => boolean = (): boolean => false,
+	folds: {
+		skim: (path: string) => boolean
+		distilled: (path: string) => boolean
+	} = {
+		skim: (): boolean => false,
+		distilled: (): boolean => false,
+	},
 ): WalkGroup[] {
 	const stats = lineStats(files)
 	const index = new Map(files.map((f, i) => [f.path, i] as const))
 	const mkFile = fileBuilder(files, stats, stateOf)
 	const groups: WalkGroup[] = []
 	const listed = new Set<string>()
-	// Fully-skimmed files leave their normal group (guide category or Other) and gather in one
-	// trailing collapsed "Skimmed" group (issue 07). Collected here, appended last.
-	let skimmedGroup = blankGroup('Skimmed', {
-		isOther: false,
-		isSkimmed: true,
-	})
+	// Fully-skimmed files leave their normal group (guide category or Other) for the trailing
+	// collapsed "Skimmed" group (issue 07); the hide-reviewed lens folds fully-approved files
+	// into a "Reviewed" group the same way.
+	const buckets = foldBuckets(folds.skim, folds.distilled)
+	const { route } = buckets
 	// Track only the current group: a skipped file (not in the diff) leaves no visible gap, so
 	// it must not split a run - hence the category compare happens against the last *shown* file.
 	let current: WalkGroup | null = null
@@ -142,43 +187,46 @@ export function walkthroughGroups(
 		const i = index.get(guide.path)
 		if (typeof i !== 'number') continue
 		const file = mkFile(guide.path, i, guide)
-		if (fullySkimmed(guide.path)) {
-			skimmedGroup = withFile(skimmedGroup, file)
-			continue
-		}
+		const shown = route(guide.path, file)
+		if (!shown) continue
 		// A skimmed file must not carry the run forward - compare/open the category off shown,
 		// in-flow files only, so a skimmed file between two same-category files can't split them.
 		if (!current || current.category !== guide.category) {
 			current = blankGroup(guide.category, { isOther: false })
 			groups.push(current)
 		}
-		current = withFile(current, file)
+		current = withFile(current, shown)
 		groups[groups.length - 1] = current
 	}
 	let otherGroup = blankGroup('Other', { isOther: true })
 	files.forEach((file, i): void => {
 		if (listed.has(file.path)) return
-		if (fullySkimmed(file.path))
-			skimmedGroup = withFile(skimmedGroup, mkFile(file.path, i))
-		else otherGroup = withFile(otherGroup, mkFile(file.path, i))
+		const shown = route(file.path, mkFile(file.path, i))
+		if (!shown) return
+		otherGroup = withFile(otherGroup, shown)
 	})
 	if (otherGroup.total) groups.push(otherGroup)
-	if (skimmedGroup.total) groups.push(skimmedGroup)
+	if (buckets.skimmed.total) groups.push(buckets.skimmed)
+	if (buckets.reviewed.total) groups.push(buckets.reviewed)
 	return groups
 }
 
 // Flat row list the sidebar template renders with x-for (the treeRows pattern): a header
 // row per category, then its file rows. activePath marks the file being viewed (null on
-// the Overview page - nothing is active there).
+// the Overview page - nothing is active there). `expanded` carries the per-session expand
+// state of the two collapsible trailing groups.
+export type ExpandedGroups = { skim?: boolean; reviewed?: boolean }
 export type WalkRow =
 	| {
 			kind: 'cat'
 			key: string
 			category: string
 			other: boolean
-			// The trailing collapsed "Skimmed" group's header (issue 07): a toggle, not a jump target;
-			// `open` drives its caret, and its file rows are emitted only while open.
+			// The trailing collapsed "Skimmed"/"Reviewed" group's header (issue 07 / the
+			// hide-reviewed lens): a toggle, not a jump target; `open` drives its caret, and
+			// its file rows are emitted only while open.
 			skimmed: boolean
+			reviewed: boolean
 			open: boolean
 			total: number
 			done: number
@@ -189,10 +237,19 @@ export type WalkRow =
 	  }
 	| (WalkFile & { kind: 'file'; key: string; cls: string; style: string })
 
+// Whether a group's rows hide behind its header: only the two trailing fold groups -
+// Skimmed (issue 07) and the hide-reviewed lens' Reviewed - collapse; every other group
+// is always open.
+function isCollapsed(group: WalkGroup, expanded: ExpandedGroups): boolean {
+	if (group.skimmed) return !expanded.skim
+	if (group.reviewed) return !expanded.reviewed
+	return false
+}
+
 export function walkRows(
 	groups: WalkGroup[],
 	activePath: string | null,
-	isSkimGroupExpanded = false,
+	expanded: ExpandedGroups = {},
 ): WalkRow[] {
 	const rows: WalkRow[] = []
 	groups.forEach((group, gi): void => {
@@ -201,6 +258,7 @@ export function walkRows(
 		// Groups always carry ≥1 file (guide groups get one per add; Other is only pushed if it has any).
 		const target =
 			group.files.find(f => f.state === 'pending') ?? group.files[0]
+		const collapsed = isCollapsed(group, expanded)
 		rows.push({
 			kind: 'cat',
 			// The group index keeps the key unique when a category label repeats across runs;
@@ -209,7 +267,8 @@ export function walkRows(
 			category: group.category,
 			other: group.other,
 			skimmed: group.skimmed,
-			open: group.skimmed ? isSkimGroupExpanded : true,
+			reviewed: group.reviewed ?? false,
+			open: !collapsed,
 			total: group.total,
 			done: group.done,
 			added: group.added,
@@ -217,9 +276,9 @@ export function walkRows(
 			complete: group.done === group.total,
 			jumpIndex: target.fileIndex,
 		})
-		// A collapsed Skimmed group hides its file rows until expanded; every other group is
-		// always open.
-		if (group.skimmed && !isSkimGroupExpanded) return
+		// A collapsed Skimmed/Reviewed group hides its file rows until expanded; every other
+		// group is always open.
+		if (collapsed) return
 		for (const f of group.files)
 			rows.push({
 				...f,

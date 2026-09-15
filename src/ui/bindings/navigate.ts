@@ -3,8 +3,8 @@ import { cursorReset } from '../cursor'
 import { defaultFileView } from '../file-summary'
 import { hasGuide, nextFileIndex, nextWrapIndex, prevWrapIndex } from '../guide'
 import { deferRender, render } from '../render'
+import { applyActiveRow } from '../sidebar-dom'
 import { api, D, S, toast } from '../store'
-import { applyActiveRow } from '../tree'
 
 import type { FileRow, PreviewFile } from '../types'
 

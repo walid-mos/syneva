@@ -11,6 +11,7 @@ import { approveCurrentFile } from '../decisions'
 import { isMarkdownPath } from '../file-summary'
 import { setMarkdownTheme } from '../markdown'
 import { render } from '../render'
+import { hasReviewedMaterial, toggleHideReviewed } from '../reviewed'
 import { applyAppearance } from '../settings'
 import { api, D, persistPrefs, S, toast } from '../store'
 
@@ -72,6 +73,10 @@ function installSignOffBindings(): void {
 			state?.mode === 'file' ? state.files[S.fileIndex] : undefined
 		return !!file && isMarkdownPath(file.path)
 	}
+	// The hide-reviewed lens bindings: the header toggle + its visibility gate. Both are
+	// stateless helpers in reviewed.ts (persist + repaint live there).
+	S.hasReviewed = hasReviewedMaterial
+	S.toggleHideReviewed = toggleHideReviewed
 	S.splitApplies = currentSplittable
 	// Jump from the desk into the local editor at the cursor's line. The cursor (and S.selected)
 	// hold DISPLAY coordinates - replayed decisions renumber the rendered diff - so convert to the

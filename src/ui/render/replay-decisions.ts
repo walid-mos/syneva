@@ -3,7 +3,7 @@ import { diffAcceptRejectHunk } from '@pierre/diffs'
 import { changeStableKey } from '../change-derive'
 import { currentChanges } from '../changes'
 import { buildLineMap } from '../linemap'
-import { D } from '../store'
+import { D, S } from '../store'
 
 import type {
 	ChangeContent,
@@ -61,26 +61,42 @@ function changePosition(
 	return { hunkIndex, changeIndex }
 }
 
-// Replay every decided block onto the raw diff, and rebuild the raw↔display line map
-// the rest of the render (annotations, cursor, selections) converts through.
-export function replayDecisions(diff: FileDiffMetadata): FileDiffMetadata {
+// Every decided block, with its display treatment: accepted shows the band (its additions
+// merged into context), rejected keeps the deletions, and - with the hide-reviewed pref on -
+// a CUT accepted block is distilled out of the rendered diff entirely (see distill.ts). The
+// pref is read here so the replay's line map and the metadata builder derive from ONE
+// decided list computed in ONE pass.
+export function decidedPositions(diff: FileDiffMetadata): DecidedPosition[] {
 	const decided: DecidedPosition[] = []
 	// Resolve every position against the RAW diff up front (the fallback lookup would
 	// mis-match against a partially resolved one), then apply by invariant indexes.
 	for (const change of currentChanges().filter(c => c.status !== 'pending')) {
 		const pos = changePosition(diff, change)
-		if (pos)
-			decided.push({
-				...pos,
-				status: change.status === 'rejected' ? 'rejected' : 'accepted',
-			})
+		if (!pos) continue
+		let status: DecidedPosition['status'] = 'accepted'
+		if (change.status === 'rejected') status = 'rejected'
+		else if (S.settings.hideReviewed) status = 'cut'
+		decided.push({ ...pos, status })
 	}
-	decided.sort(
-		(a, b) => a.hunkIndex - b.hunkIndex || a.changeIndex - b.changeIndex,
-	)
+	return decided
+}
+
+export type ReplayOutcome = {
+	diff: FileDiffMetadata
+	// The decided list the replay applied, cuts included - the distiller walks the same list.
+	decided: DecidedPosition[]
+}
+
+// Replay every decided block onto the raw diff, and rebuild the raw↔display line map
+// the rest of the render (annotations, cursor, selections) converts through. Cut
+// blocks replay like any accepted block (they become the context entries the
+// distiller then drops), but their line-map breaks compress the display streams.
+export function replayDecisions(diff: FileDiffMetadata): ReplayOutcome {
+	const decided = decidedPositions(diff)
 	D.lineMap = decided.length ? buildLineMap(diff, decided) : null
 	let resolved = diff
 	for (const d of decided) {
+		// Cut entries replay too: their context entries are what the distiller drops.
 		try {
 			resolved = diffAcceptRejectHunk(resolved, d.hunkIndex, {
 				type: d.status === 'accepted' ? 'accept' : 'reject',
@@ -90,5 +106,5 @@ export function replayDecisions(diff: FileDiffMetadata): FileDiffMetadata {
 			// leave this block unresolved rather than aborting the replay
 		}
 	}
-	return resolved
+	return { diff: resolved, decided }
 }

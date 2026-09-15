@@ -1,4 +1,4 @@
-import { confirmNo, confirmYes } from '../confirm'
+import { askConfirm, confirmNo, confirmYes } from '../confirm'
 import { walkthroughRows } from '../guide'
 import { helpGroups } from '../keys'
 import { isCurrentDesk } from '../poll'
@@ -108,6 +108,14 @@ const CLOSE_WINDOW_DELAY_MS = 250
 // parked agent listener ({kind:"closed"}) before exiting, so this is `galley stop` with its
 // proper paperwork. State is saved continuously; nothing else to hand over.
 function installCloseBinding(): void {
+	// Confirm-first: one click loses the workspace, so the header button routes through the
+	// same destructive-action dialog the ⇧Q hotkey uses.
+	S.confirmClose = () => {
+		askConfirm(
+			'Close the desk? Galley stops; the review state is saved and the agent is told the review ended.',
+			() => void S.closeDesk?.(),
+		)
+	}
 	S.closeDesk = async () => {
 		// A trailing save may still carry a not-yet-persisted decision: flush it first so Close
 		// can't drop the freshest review mutations (bounded - a wedged desk must still close).
