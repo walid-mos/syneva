@@ -23,7 +23,13 @@ import type { ReviewComment } from './types'
 // which is why we use it over comark; html:false drops raw HTML at the source, and
 // DOMPurify is the final gate before anything is innerHTML'd (incl. agent-authored).
 
+// buildMd builds one renderer per use site: `html:false` for guide prose and comment bodies
+// (raw HTML stays printed as literal text - agent-authored prose never becomes DOM), and
+// `html:true` for the FILE view (markdownFileCommentStrip's sibling - a reviewed file may
+// legitimately carry HTML like the GitHub-README <div>/<img> wrappers), which then passes
+// through the same DOMPurify gate before mounting.
 let md: MarkdownIt | null = null
+let mdFile: MarkdownIt | null = null
 // A second renderer for comment bodies with `breaks: true`, so a single newline a reviewer types
 // renders as a line break (people write comments as chat, not markdown source). File/guide
 // markdown keeps the standard soft-break behavior via `md`, so hard-wrapped prose isn't shredded.
@@ -50,15 +56,23 @@ function sourceLine(mdi: MarkdownIt): void {
 // Shiki's highlighter loads async (wasm + grammars); markdown-it render is sync once
 // ready. Until then renderMarkdown returns an escaped-text fallback; on ready we
 // repaint once so any fallbacks upgrade to rendered markdown.
+// An options object over the two orthogonal renderer flavors (the linter caps boolean params):
+// `isBreakOnNewline` reads comments as chat; `canCarryRawHtml` lets a reviewed file carry raw
+// HTML (sanitized below). Guide/file markdown keeps one instance per flavor, shared.
+type MarkdownFlavor = {
+	isBreakOnNewline?: boolean
+	canCarryRawHtml?: boolean
+}
+
 function buildMd(
 	highlighter: HighlighterCore,
 	theme: string,
-	isBreakOnNewline = false,
+	flavor: MarkdownFlavor = {},
 ): MarkdownIt {
 	const renderer = new MarkdownIt({
-		html: false,
+		html: flavor.canCarryRawHtml ?? false,
 		linkify: true,
-		breaks: isBreakOnNewline,
+		breaks: flavor.isBreakOnNewline ?? false,
 	})
 		.use(footnote)
 		.use(taskLists, { label: true })
@@ -111,7 +125,8 @@ export async function initializeMarkdown(themeName: string): Promise<void> {
 	hl = highlighter
 	const theme = resolveTheme(themeName)
 	md = buildMd(highlighter, theme)
-	mdComment = buildMd(highlighter, theme, true)
+	mdFile = buildMd(highlighter, theme, { canCarryRawHtml: true })
+	mdComment = buildMd(highlighter, theme, { isBreakOnNewline: true })
 }
 
 // Switch the comment-code theme (settings) - rebuild the renderer + drop the cache;
@@ -120,15 +135,42 @@ export function setMarkdownTheme(name: string): void {
 	if (!hl) return
 	const theme = resolveTheme(name)
 	md = buildMd(hl, theme)
-	mdComment = buildMd(hl, theme, true)
+	mdFile = buildMd(hl, theme, { canCarryRawHtml: true })
+	mdComment = buildMd(hl, theme, { isBreakOnNewline: true })
 	cache.clear()
 }
 
-// Render arbitrary markdown to sanitized HTML (data-* attributes, incl. data-line,
-// are preserved by DOMPurify). Synchronous once the highlighter is ready.
+// Synchronous once the highlighter is ready.
 export function renderMarkdown(text: string): string {
 	if (!md) return `<p>${esc(text)}</p>`
 	return DOMPurify.sanitize(md.render(text || ''))
+}
+
+// The rendered FILE view: raw HTML (GitHub README wrappers, badges) comes through and passes
+// the same DOMPurify gate, and the file's own relative image srcs rewrite to /api/blob so its
+// assets render. Absolute/external sources pass untouched.
+export function renderFileMarkdown(text: string): string {
+	if (!mdFile) return `<p>${esc(text)}</p>`
+	return rewriteRepoImages(DOMPurify.sanitize(mdFile.render(text || '')))
+}
+
+// An img src into a repo-relative file (md or raw HTML) served by the desk's blob route.
+// Fragments are meaningless on a binary asset, so they are dropped; absolute, protocol-relative,
+// external and data sources pass through.
+const NON_REPO_SRC = /^(https?:|data:|blob:|\/)/i
+function repoImageUrl(src: string): string {
+	const raw = src.trim()
+	if (!raw || NON_REPO_SRC.test(raw)) return raw
+	return `/api/blob?path=${encodeURIComponent(raw.split('#')[0])}`
+}
+
+function rewriteRepoImages(html: string): string {
+	if (!html.includes('<img')) return html
+	const doc = new DOMParser().parseFromString(html, 'text/html')
+	for (const img of doc.querySelectorAll('img[src]')) {
+		img.setAttribute('src', repoImageUrl(img.getAttribute('src') ?? ''))
+	}
+	return doc.body.innerHTML
 }
 
 // One-line markdown (guide file summaries): inline rules only, no <p> wrapper. Block-only

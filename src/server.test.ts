@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	symlink,
+	writeFile,
+} from 'node:fs/promises'
 import http from 'node:http'
 import { hostname, tmpdir } from 'node:os'
 import path from 'node:path'
@@ -1468,4 +1475,54 @@ void test('a whole-file Send carries the file request with anchor file (requeste
 		assert.equal(fileRequest.lineNumber, 0)
 		assert.equal(fileRequest.anchor, 'file')
 	})
+})
+
+void test('GET /api/blob serves a contained repo file with its image mime, and refuses escapes', async () => {
+	const root = await mkdtemp(path.join(tmpdir(), 'galley-blob-'))
+	const oldHome = process.env.HOME
+	process.env.HOME = root
+	const g = (args: string[]): string =>
+		execFileSync('git', args, { cwd: root }).toString()
+	g(['init', '-q'])
+	g(['config', 'user.email', 't@t.co'])
+	g(['config', 'user.name', 'tester'])
+	await mkdir(path.join(root, 'assets'), { recursive: true })
+	await writeFile(path.join(root, 'a.ts'), 'one\n')
+	await writeFile(path.join(root, 'assets', 'logo.svg'), '<svg/>')
+	g(['add', '.'])
+	g(['commit', '-qm', 'init'])
+	// A working diff so the reviewer state builds.
+	await writeFile(path.join(root, 'a.ts'), 'CHANGED\n')
+	const st = await buildReviewState(root, { session: 's' })
+	assert.ok(st)
+	const handle = await startServer({
+		state: st,
+		open: false,
+		idleTimeoutMs: 0,
+	})
+	try {
+		const ok = await fetch(`${handle.url}api/blob?path=assets/logo.svg`)
+		assert.equal(ok.status, 200)
+		assert.equal(ok.headers.get('content-type'), 'image/svg+xml')
+		assert.equal(await ok.text(), '<svg/>')
+
+		// A path outside the repo hits the containment boundary, like /api/file.
+		const escaped = await fetch(
+			`${handle.url}api/blob?path=${encodeURIComponent('../secret.txt')}`,
+		)
+		assert.equal(escaped.status, 400)
+		assert.equal(
+			(await readJson<{ code?: string }>(escaped)).code,
+			'BAD_PATH',
+		)
+
+		const missing = await fetch(
+			`${handle.url}api/blob?path=assets/nope.png`,
+		)
+		assert.equal(missing.status, 404)
+	} finally {
+		handle.server.close()
+		process.env.HOME = oldHome
+		await rm(root, { recursive: true, force: true })
+	}
 })

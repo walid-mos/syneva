@@ -3,7 +3,7 @@ import { buildCommentThread } from './comment-thread'
 import { buildComposer, openComposer } from './composer'
 import { cur } from './contents'
 import { markdownFileCommentStrip } from './file-comments'
-import { renderMarkdown } from './markdown'
+import { renderFileMarkdown } from './markdown'
 import { S, $ } from './store'
 
 import type { ReviewComment } from './types'
@@ -149,7 +149,7 @@ export function renderMarkdownFile(): void {
 	const container = createMarkdownContainer()
 	// Contents come from the per-file fetch (render() awaits it before this runs); `cur` holds
 	// the current file's new-side bytes.
-	container.innerHTML = renderMarkdown(cur.newContents)
+	container.innerHTML = renderFileMarkdown(cur.newContents)
 	const anchors = markAnchors(container)
 	attachBlockCommentHandler(container)
 	const threadsByLine = groupCommentsByLine(currentComments())

@@ -4,6 +4,7 @@ import {
 	postStatus,
 	stopDesk,
 } from './routes/agent.js'
+import { serveBlob } from './routes/blob.js'
 import {
 	servePoll,
 	serveSettings,
@@ -45,6 +46,7 @@ export const routes: RouteTable = {
 	'POST /api/settings': saveSettings,
 	'GET /api/tree': serveTree,
 	'GET /api/file': serveFile,
+	'GET /api/blob': serveBlob,
 	'GET /api/file-contents': serveFileContents,
 	'POST /api/open-editor': openInEditor,
 	'POST /api/save': saveReview,

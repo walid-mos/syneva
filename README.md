@@ -68,7 +68,7 @@ The printed URL is what you open in the remote browser; the agent's `galley awai
 - **A tight handoff loop.** Hit **Send to Agent** and your agent gets a structured review. It makes the edits, re-diffs into the same tab, and replies in place.
 - **Guided review.** Your agent can attach a guide: an overview, the files in a sensible order, a per-file orientation (the lens to read it with) and category, and the risky ones flagged.
 - **Focused review.** Ask your agent to skim the noise ("ignore the import churn") and the guide marks it: skimmed changes collapse behind one-line strips, and files that are pure noise leave the flow entirely — folded into a Skimmed group, with no progress weight. Everything stays one click from visible, and nothing is ever auto-approved.
-- **Four review modes.** The working tree, the staged diff, a single file (tracked or not, like a plan, PRD, or issue), or a branch against its merge-base.
+- **Four review modes.** The working tree, the staged diff, a single file (tracked or not, like a plan, PRD, or issue — markdown renders, with the file's own images served straight from the repo), or a branch against its merge-base.
 - **Keyboard-first.** Intuitive navigation: move by file, line, or change, and accept, reject, comment, or approve without touching the mouse.
 - **Open in editor.** Configure a repo-scoped editor command and jump from the review desk to the current file and line.
 - **Customize** diff layout, intra-line, hunk separators, wrapping, code-highlight theme, and fonts.

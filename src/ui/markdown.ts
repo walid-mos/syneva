@@ -40,6 +40,14 @@ export function renderMarkdown(text: string): string {
 	return `<p>${esc(text)}</p>`
 }
 
+// The rendered FILE view: like renderMarkdown but raw HTML passes (sanitized) and the file's
+// relative image srcs rewrite to /api/blob - see markdown-engine.ts.
+export function renderFileMarkdown(text: string): string {
+	if (engine) return engine.renderFileMarkdown(text)
+	loadMarkdown()
+	return `<p>${esc(text)}</p>`
+}
+
 export function renderMarkdownInline(text: string): string {
 	if (engine) return engine.renderMarkdownInline(text)
 	loadMarkdown()
