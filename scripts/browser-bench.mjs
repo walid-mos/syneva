@@ -227,6 +227,26 @@ async function benchRepo(name) {
 		)
 		.catch(() => {})
 	const timeToTokens = Date.now() - navStart
+	// Windowed pool: fully colored = every token window for this open landed (the token-task
+	// log stops producing new results for a beat). Falls through when the SIZE flag made the
+	// pool take no work (page heavy-file stamp: the wlog just stays init-only).
+	const timeToFullyColored = await page
+		.waitForFunction(
+			() => {
+				const tasks = window.__bench.wlog.filter(
+					entry => entry.type === 'token-window',
+				)
+				if (tasks.length < 2) return true
+				const last = tasks.at(-1)
+				return (
+					last.kind === 'result' && performance.now() - last.t > 700
+				)
+			},
+			undefined,
+			{ timeout: 240_000, polling: 120 },
+		)
+		.then(() => Date.now() - navStart)
+		.catch(() => -1)
 	await sleep(1500)
 
 	// Network + parse census for the state payload (large desks: one sample only - refetching
@@ -343,7 +363,7 @@ async function benchRepo(name) {
 	const loaf = await page.evaluate(() => {
 		const agg = new Map()
 		for (const s of window.__bench.loaf) {
-			const key = `${s.name || '?'} @ ${s.src || '?'}`
+			const key = `${s.name.length > 0 ? s.name : '?'} @ ${s.src.length > 0 ? s.src : '?'}`
 			agg.set(key, (agg.get(key) ?? 0) + Number(s.d))
 		}
 		return [...agg.entries()].toSorted((a, b) => b[1] - a[1]).slice(0, 12)
@@ -364,7 +384,8 @@ async function benchRepo(name) {
 			surface,
 			oversizeLoadMs,
 			timeToRows,
-			timeToTokens,
+			timeToTokens: timeToFullyColored > 0 ? timeToTokens : timeToTokens,
+			fullyColoredMs: timeToFullyColored,
 		},
 		cold,
 		interaction: {
@@ -390,6 +411,7 @@ async function benchRepo(name) {
 		name,
 		`rows=${timeToRows}ms`,
 		`tokens=${timeToTokens}ms`,
+		`fullyColored=${out.coldOpen.fullyColoredMs}ms`,
 		`accept=${acceptMs}ms`,
 		`nextFile=${out.interaction.nextFileMs}ms`,
 		`revisit=${revisitMs}ms`,

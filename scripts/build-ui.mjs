@@ -5,19 +5,20 @@ import * as esbuild from 'esbuild'
 
 import { checkBundleBudget } from './bundle-budget.mjs'
 
-// The @pierre/diffs worker script is bundled as its own asset: the UI hands a WorkerPoolManager
-// a factory that points at /worker.js (see src/ui/render/worker-pool.ts), and the desk serves it
-// like ui.js. Building it separately keeps the tokenization/highlight engine off the main bundle
-// AND off the main thread.
+// The tokenization worker script is built from OUR entry (src/ui/worker/diff-token-worker.ts)
+// into its own asset: the token pool (src/ui/render/worker-pool.ts) instantiates module workers
+// at /worker.js, and the desk serves it like ui.js. Building it separately keeps the
+// tokenization engine off the main bundle AND off the main thread.
 const workerEntry = fileURLToPath(
-	import.meta.resolve('@pierre/diffs/worker/worker.js'),
+	new URL('../src/ui/worker/diff-token-worker.ts', import.meta.url),
 )
 
 // The shell's static closure and all deferred chunks are budgeted independently. A tiny
 // entry that still imports the grammars eagerly must fail the initial-load budget.
-// dist/worker.js carries the same curated grammars plus @pierre's worker engine, so its floor is
-// comparable; the gate is a regression tripwire (a wasm/fat-barrel leak), generous rather than
-// tight to avoid false CI failures across @pierre releases.
+// dist/worker.js carries the curated grammars plus @pierre's render helpers (imported by the
+// token worker for the exact pipeline), so its floor is comparable; the gate is a regression
+// tripwire (a wasm/fat-barrel leak), generous rather than tight to avoid false CI failures
+// across @pierre releases.
 const WORKER_SIZE_LIMIT = 3_800_000
 const BYTES_PER_KB = 1000
 

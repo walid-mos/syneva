@@ -19,6 +19,31 @@ export default defineConfig({
 	],
 	overrides: [
 		{
+			// The token pool's pinned-library seam: @pierre/diffs pins a nominal-class
+			// WorkerPoolManager (private fields, no structural half) and types helpers against the
+			// full shiki v3 barrel (DiffsHighlighter) while galley builds a lean shiki v4(core)
+			// instance; DOM libs also lack DedicatedWorkerGlobalScope so the worker scope needs a
+			// narrow view. Every assertion lives next to its seam and is documented there.
+			// Token-pool files also log failures (an unhighlighted desk must show WHY, not stay
+			// silent), post worker messages without target-origin (workers post by identity, the
+			// rule targets window contexts), and pass slot objects as parameters by design
+			// (fleet/board share one transport object).
+			files: [
+				'src/ui/render/worker-pool.ts',
+				'src/ui/worker/diff-token-worker.ts',
+				'src/ui/render/token-pool/*.ts',
+			],
+			rules: {
+				'nextnode/no-type-assertion': 'off',
+				// The type-aware pass sees the same seams as unsafe (the nominal pool cast, the
+				// DiffsHighlighter parameter shape, the window-scope view).
+				'typescript/no-unsafe-type-assertion': 'off',
+				'unicorn/require-post-message-target-origin': 'off',
+				'eslint/no-console': 'off',
+				'eslint/prefer-destructuring': 'off',
+			},
+		},
+		{
 			// Each long-poll consumes the next queued event. Parallel requests would
 			// reorder feedback and detach event ownership from its delivery.
 			files: ['src/agent/desk-listener.ts'],
