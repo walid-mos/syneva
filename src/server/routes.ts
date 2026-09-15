@@ -25,6 +25,7 @@ import {
 	serveFavicon,
 	serveIndex,
 	serveUiBundle,
+	serveUiChunk,
 	serveWorkerBundle,
 } from './routes/static.js'
 
@@ -35,6 +36,7 @@ import type { RouteTable } from './router.js'
 export const routes: RouteTable = {
 	'GET /': serveIndex,
 	'GET /ui.js': serveUiBundle,
+	'GET /chunks/*': serveUiChunk,
 	'GET /worker.js': serveWorkerBundle,
 	'GET /favicon.ico': serveFavicon,
 	'GET /api/poll': servePoll,

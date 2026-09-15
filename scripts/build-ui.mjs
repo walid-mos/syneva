@@ -1,7 +1,9 @@
-import { statSync } from 'node:fs'
+import { rmSync, statSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import * as esbuild from 'esbuild'
+
+import { checkBundleBudget } from './bundle-budget.mjs'
 
 // The @pierre/diffs worker script is bundled as its own asset: the UI hands a WorkerPoolManager
 // a factory that points at /worker.js (see src/ui/render/worker-pool.ts), and the desk serves it
@@ -11,16 +13,8 @@ const workerEntry = fileURLToPath(
 	import.meta.resolve('@pierre/diffs/worker/worker.js'),
 )
 
-// dist/ui.js is a single un-split bundle served to the tab. Gate it so an accidental fat
-// dependency (e.g. shiki's full bundle - see the plugin below) can't silently balloon it back.
-// The floor is the curated grammars themselves (~2 MB of @shikijs/langs, bundled once - cpp alone
-// is ~650 KB); the total sits near 3 MB. This gate still catches a re-introduced fat barrel (that
-// regression is +9 MB) or the oniguruma wasm (+600 KB). Reaching "hundreds of KB" would require
-// lazy-loading grammar chunks (a code-split + a server route to serve them) - out of scope here.
-// 3.2 → 3.3 MB when light mode added six curated light themes (~170 KB of theme JSON).
-// 3.3 → 3.4 MB for the virtualized renderer - headroom until the chunk split
-// retires this whole-file cap for a budgeted lazy graph.
-const SIZE_LIMIT = 3_400_000
+// The shell's static closure and all deferred chunks are budgeted independently. A tiny
+// entry that still imports the grammars eagerly must fail the initial-load budget.
 // dist/worker.js carries the same curated grammars plus @pierre's worker engine, so its floor is
 // comparable; the gate is a regression tripwire (a wasm/fat-barrel leak), generous rather than
 // tight to avoid false CI failures across @pierre releases.
@@ -83,7 +77,11 @@ const options = {
 	bundle: true,
 	format: 'esm',
 	target: 'es2022',
-	outfile: 'dist/ui.js',
+	outdir: 'dist',
+	entryNames: 'ui',
+	chunkNames: 'chunks/[name]-[hash]',
+	splitting: true,
+	metafile: true,
 	loader: { '.wasm': 'binary' },
 	minify: true,
 	logLevel: 'info',
@@ -118,6 +116,10 @@ function gate(outfile, limit) {
 	)
 }
 
+// These hashed assets are generated exclusively by this build; never publish stale chunks
+// from earlier builds. During watch, retain prior hashes until the next process starts.
+rmSync('dist/chunks', { recursive: true, force: true })
+
 if (process.argv.includes('--watch')) {
 	// The worker bundle only changes when its dependency set changes (@pierre release, the shim),
 	// so it is watched alongside the UI rather than rebuilt on every dev save.
@@ -131,6 +133,12 @@ if (process.argv.includes('--watch')) {
 } else {
 	await esbuild.build(workerOptions)
 	gate(workerOptions.outfile, WORKER_SIZE_LIMIT)
-	await esbuild.build(options)
-	gate(options.outfile, SIZE_LIMIT)
+	const bundle = await esbuild.build(options)
+	checkBundleBudget(bundle.metafile.outputs, 'dist/ui.js')
+	const outputs = Object.fromEntries(
+		Object.entries(bundle.metafile.outputs).map(
+			([filename, { bytes, imports }]) => [filename, { bytes, imports }],
+		),
+	)
+	writeFileSync('dist/ui-manifest.json', JSON.stringify(outputs))
 }

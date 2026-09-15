@@ -40,7 +40,11 @@ export function createRequestHandler(
 			)
 				return
 			const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-			const route = routes[`${req.method ?? ''} ${url.pathname}`]
+			const route =
+				routes[`${req.method ?? ''} ${url.pathname}`] ??
+				(url.pathname.startsWith('/chunks/')
+					? routes[`${req.method ?? ''} /chunks/*`]
+					: undefined)
 			if (route) return await route({ ctx, req, res, url })
 			fail(res, {
 				status: HTTP_NOT_FOUND,

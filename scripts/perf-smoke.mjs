@@ -17,9 +17,11 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+import { checkBundleBudget, INITIAL_UI_BYTES_LIMIT } from './bundle-budget.mjs'
+
 const ID = 'perf-smoke'
 const CLI = path.join(process.cwd(), 'dist', 'cli.js')
-const UI_BUNDLE = path.join(process.cwd(), 'dist', 'ui.js')
+const UI_MANIFEST = path.join(process.cwd(), 'dist', 'ui-manifest.json')
 const FILE_COUNT = 1000
 const DESK_URL_TIMEOUT_MS = 30_000
 const POLL_ATTEMPTS = 150
@@ -75,10 +77,8 @@ const MIB = BYTES_PER_KIB * BYTES_PER_KIB
 const BUDGET_STARTUP_MS = 15_000 // local ~2s
 const STATE_BUDGET_MIB = 10
 const PERSISTED_BUDGET_MIB = 10
-const BUNDLE_BUDGET_MIB = 3.2
 const BUDGET_STATE_BYTES = STATE_BUDGET_MIB * MIB
 const BUDGET_PERSISTED_BYTES = PERSISTED_BUDGET_MIB * MIB
-const BUDGET_BUNDLE_BYTES = BUNDLE_BUDGET_MIB * MIB
 const BUDGET_RELOAD_MS = 10_000 // local ~280ms
 
 let desk, tmp, homeDir
@@ -252,11 +252,12 @@ try {
 	)
 	process.stdout.write('  ✓ persisted review file is content-free\n')
 
-	const bundleBytes = statSync(UI_BUNDLE).size
+	const uiOutputs = JSON.parse(readFileSync(UI_MANIFEST, 'utf8'))
+	const { initial: bundleBytes } = checkBundleBudget(uiOutputs, 'dist/ui.js')
 	budget({
-		name: 'dist/ui.js size',
+		name: 'initial UI module graph size',
 		actual: bundleBytes,
-		limit: BUDGET_BUNDLE_BYTES,
+		limit: INITIAL_UI_BYTES_LIMIT,
 		unit: ' bytes',
 		note: '(belt-and-suspenders with the build gate)',
 	})

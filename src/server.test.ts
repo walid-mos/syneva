@@ -209,24 +209,37 @@ void test('the static routes serve the page and the bundle, and answer the favic
 				),
 			),
 		)
-		const bundle = await fetch(`${handle.url}ui.js`)
-		assert.equal(bundle.status, 200)
-		assert.equal(
-			bundle.headers.get('content-type'),
-			'text/javascript; charset=utf-8',
-		)
-		// A built bundle revalidates by etag; without one the route still answers the request.
-		const etag = bundle.headers.get('etag')
-		if (etag) {
-			const revalidated = await fetch(`${handle.url}ui.js`, {
-				headers: { 'if-none-match': etag },
-			})
-			assert.equal(revalidated.status, 304)
-		}
+		await assertUiBundle(handle.url)
 		const favicon = await fetch(`${handle.url}favicon.ico`)
 		assert.equal(favicon.status, 204)
 	})
 })
+
+async function assertUiBundle(deskUrl: string): Promise<void> {
+	const bundle = await fetch(`${deskUrl}ui.js`)
+	const built = await readFile(
+		new URL('../dist/ui.js', import.meta.url),
+		'utf8',
+	).catch(() => undefined)
+	// Tests can run before a UI build. Missing assets must be a 404, not a successful
+	// empty module that leaves the browser silently blank.
+	if (!built) {
+		assert.equal(bundle.status, 404)
+		return
+	}
+	assert.equal(bundle.status, 200)
+	assert.equal(
+		bundle.headers.get('content-type'),
+		'text/javascript; charset=utf-8',
+	)
+	assert.ok((await bundle.text()) === built)
+	const etag = bundle.headers.get('etag')
+	assert.ok(etag)
+	const revalidated = await fetch(`${deskUrl}ui.js`, {
+		headers: { 'if-none-match': etag },
+	})
+	assert.equal(revalidated.status, 304)
+}
 
 type StatePayload = BrowserReviewState & {
 	agentActivity: { body: string; at: string } | null
