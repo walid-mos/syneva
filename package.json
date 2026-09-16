@@ -42,7 +42,12 @@
     ],
     "prompts": [
       "prompts"
-    ]
+    ],
+    "subagents": {
+      "agents": [
+        "./agents"
+      ]
+    }
   },
   "bin": {
     "galley": "./dist/cli.js"
