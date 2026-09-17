@@ -14,7 +14,7 @@ The review is the human's; the agent acts on the decisions and answers questions
 
 ## When to use it
 
-Reach for Syneva when the user should review something turn-by-turn: **code changes you made** (the working tree or staged diff), **a markdown plan or single artifact**, or **a branch / PR**. Use it when the user asks to "open the Syneva", or whenever a diff is better reviewed interactively than pasted into chat. When the user asks for a **focused review** (mechanical churn — lockfiles, generated code, import churn, moved files — de-emphasized so only the real changes stand out), attach a guide; `syneva spec` documents the focused-review schema.
+Reach for Syneva when the user should review something turn-by-turn: **code changes you made** (the working tree or staged diff), **a markdown plan or single artifact**, or **a branch / PR**. Use it when the user asks to "open the Syneva", or whenever a diff is better reviewed interactively than pasted into chat. When a review spans many files, attach a guide (`--guide <file>`) to give it a reading order and domain sections; `syneva spec` documents the grouping schema.
 
 ## Getting the tool
 
@@ -32,4 +32,4 @@ Close the desk yourself — once a Send is fully acted on and nothing needs the 
 
 ## The authoritative contract: `syneva spec`
 
-**For the full contract — review modes, the `await`/`comment`/`reload` loop, `await` exit semantics, the `ReviewResult` shape, how to act on a review, the guided-review schema, reload-vs-restart, concurrency, settings, and errors — run `syneva spec` and follow it.** Do this once per session before your first review.
+**For the full contract — review modes, the `await`/`comment`/`reload` loop, `await` exit semantics, the `ReviewResult` shape, how to act on a review, the guide's grouping schema, reload-vs-restart, concurrency, settings, and errors — run `syneva spec` and follow it.** Do this once per session before your first review.

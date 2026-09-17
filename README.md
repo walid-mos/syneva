@@ -6,7 +6,7 @@
 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-<img src="assets/screenshot.png" alt="Syneva — a guided review: pending changes with accept/reject, a question waiting on the agent, and a change request" width="80%" />
+<img src="assets/screenshot.png" alt="Syneva — a review desk: pending changes with accept/reject, a question waiting on the agent, and a change request" width="80%" />
 
 </div>
 
@@ -38,7 +38,7 @@ I'm not saying this is *the* review surface. I built it in a week and I'm still 
    syneva pr feature-branch     # review a branch's commits vs its merge-base
    ```
 
-   Syneva opens in your browser and stays open. You review and click **Send to Agent**; the agent attaches, acts on each send, and replies in the same tab. The full agent contract — modes, the event loop, all flags (`--repo`, `--path`, `--port`, `--no-open`, `--guide`, …), `ReviewResult`, and the guided-review schema — is printed by **`syneva spec`**.
+   Syneva opens in your browser and stays open. You review and click **Send to Agent**; the agent attaches, acts on each send, and replies in the same tab. The full agent contract — modes, the event loop, all flags (`--repo`, `--path`, `--port`, `--no-open`, `--guide`, …), `ReviewResult`, and the guide's grouping schema — is printed by **`syneva spec`**.
 
 ### Reviewing on a remote machine
 
@@ -62,8 +62,7 @@ The printed URL is what you open in the remote browser; the agent's `syneva awai
 - **Whole-file comments.** The file header (and the guide bar's 💬 button) opens a thread addressed to the file itself — same Ask / Request change intents. A file-wide change request keeps the file out of Approved until it's resolved.
 - **Per-change accept/reject.** Accept or reject individual changes, or sign off a whole file.
 - **A tight handoff loop.** Hit **Send to Agent** and your agent gets a structured review. It makes the edits, re-diffs into the same tab, and replies in place.
-- **Guided review.** Your agent can attach a guide: an overview, the files in a sensible order, a per-file orientation (the lens to read it with) and category, and the risky ones flagged.
-- **Focused review.** Ask your agent to skim the noise ("ignore the import churn") and the guide marks it: skimmed changes collapse behind one-line strips, and files that are pure noise leave the flow entirely — folded into a Skimmed group, with no progress weight. Everything stays one click from visible, and nothing is ever auto-approved.
+- **Grouped review.** Your agent can attach a guide to give the review a reading order and domain sections: files listed under category headings in the Walkthrough tab, general → specific. It is a grouping only — order and labels, validated by Syneva and rendered here — so files the guide doesn't mention still land in a trailing **Other** section and nothing is hidden.
 - **Four review modes.** The working tree, the staged diff, a single file (tracked or not, like a plan, PRD, or issue — markdown renders, with the file's own images served straight from the repo), or a branch against its merge-base.
 - **Keyboard-first.** Intuitive navigation: move by file, line, or change, and accept, reject, comment, or approve without touching the mouse.
 - **Open in editor.** Configure a repo-scoped editor command and jump from the review desk to the current file and line.
@@ -74,7 +73,7 @@ The printed URL is what you open in the remote browser; the agent's `syneva awai
 Syneva is opinionated about exactly one thing: the review surface. It's a protocol and an interface, nothing more. How you review, and what you review with, stays yours.
 
 - **No model runs here.** Syneva doesn't call an LLM or orchestrate one. It renders the diff, validates the structured input it's given, and hands a result back.
-- **Your agent, not ours.** The contract is plain JSON over stdout and a localhost server, with no assumption about who's on the other end: Claude Code, Cursor, Codex, a shell script. The guided review, the answers to your questions, the code changes themselves are all *your* agent's work. Syneva just gives it somewhere to land.
+- **Your agent, not ours.** The contract is plain JSON over stdout and a localhost server, with no assumption about who's on the other end: Claude Code, Cursor, Codex, a shell script. The review grouping, the answers to your questions, the code changes themselves are all *your* agent's work. Syneva just gives it somewhere to land.
 - **Local and private.** The server binds to loopback (`127.0.0.1`) on a stable per-session port. No telemetry. Your browser may fetch a web font; switch to system fonts and even that stops. (For remote-dev setups, `--host` can bind it wider — see [Reviewing on a remote machine](#reviewing-on-a-remote-machine); the default stays loopback-only.)
 - **It won't touch your repo unless you ask.** Syneva never edits your tracked files.
 
