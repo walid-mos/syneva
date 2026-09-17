@@ -9,3 +9,6 @@ dist/
 # Playwright MCP test artifacts (screenshots/snapshots)
 .playwright-mcp/
 .desk/
+
+# Impeccable design tooling (live-mode config + session journal)
+.impeccable/
