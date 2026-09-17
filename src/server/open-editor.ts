@@ -27,7 +27,7 @@ export type EditorTarget =
 	| { ok: false; code: string; message: string }
 
 // The editor command is a reviewer/machine preference, so it lives in the global
-// ~/.galley/settings.json with the rest of them (deliberately not per-repo). A template the
+// ~/.syneva/settings.json with the rest of them (deliberately not per-repo). A template the
 // allowlist refuses is the caller's to fix - hence the code the route turns into a 422.
 export async function resolveEditorTarget(
 	root: string,

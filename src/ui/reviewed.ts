@@ -10,7 +10,7 @@ import type { FileRow, TreeRow } from './types'
 // rendered diff (render/distill.ts) and fully-approved files fold out of the tree and
 // walkthrough into a collapsed "Reviewed" group (the Skimmed-group pattern, flow-index).
 // Display only: decisions, comments, progress and the review-complete gate are untouched.
-// The pref is persisted (~/.galley/settings.json) so the lens survives tab/round/OS, and
+// The pref is persisted (~/.syneva/settings.json) so the lens survives tab/round/OS, and
 // every surface reads it off the same flag at render time - nothing is cached session-side.
 
 // True when the review carries at least one accepted block: the only state the toggle can

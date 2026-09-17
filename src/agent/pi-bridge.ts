@@ -24,12 +24,12 @@ function registerAttachmentTool(
 	attachment: PiDeskAttachment,
 ): void {
 	pi.registerTool({
-		name: 'galley_agent',
-		label: 'Galley agent connection',
+		name: 'syneva_agent',
+		label: 'Syneva agent connection',
 		description:
-			'Attach this persistent Pi session to a running Galley desk (action attach, explicit session, optional repo). The desk answers questions itself through one dedicated correspondent thread (a `pi -p` session file in the review dir), so this session is woken only for completed reviews, closed desks, and correspondent failures - each pointing at a saved JSON event. Use instead of galley await or a one-shot waiting subagent. One desk per Pi session; detach before switching. status reports the connection. Detach only when the human ends the review; it does not stop the desk. Print/JSON children cannot attach. Received events are saved as JSON files and delivered as file references, never truncated. Transport failures require reattachment; reload/resume restores the same owner, never a fork.',
+			'Attach this persistent Pi session to a running Syneva desk (action attach, explicit session, optional repo). The desk answers questions itself through one dedicated correspondent thread (a `pi -p` session file in the review dir), so this session is woken only for completed reviews, closed desks, and correspondent failures - each pointing at a saved JSON event. Use instead of syneva await or a one-shot waiting subagent. One desk per Pi session; detach before switching. status reports the connection. Detach only when the human ends the review; it does not stop the desk. Print/JSON children cannot attach. Received events are saved as JSON files and delivered as file references, never truncated. Transport failures require reattachment; reload/resume restores the same owner, never a fork.',
 		promptGuidelines: [
-			'After starting a Galley desk, use galley_agent to attach the owning persistent session before returning control to the human. Do not delegate waiting to a one-shot subagent.',
+			'After starting a Syneva desk, use syneva_agent to attach the owning persistent session before returning control to the human. Do not delegate waiting to a one-shot subagent.',
 		],
 		parameters,
 		// registerTool's callback is positional, one parameter past the preset's cap; ctx rides
@@ -41,7 +41,7 @@ function registerAttachmentTool(
 			else if (action === 'attach') {
 				if (!args.session)
 					throw new Error(
-						'galley_agent attach requires the desk session printed when starting Galley.',
+						'syneva_agent attach requires the desk session printed when starting Syneva.',
 					)
 				await attachment.attach(
 					{ repo: args.repo ?? ctx.cwd, session: args.session },

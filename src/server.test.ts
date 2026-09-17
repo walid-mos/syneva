@@ -63,7 +63,7 @@ type ServerSeams = {
 	seed?: Partial<ReviewState>
 }
 
-// Each test points HOME at a temp dir so the global ~/.galley/settings.json the
+// Each test points HOME at a temp dir so the global ~/.syneva/settings.json the
 // open-editor handler reads is isolated from the developer's real one.
 async function withServer(
 	run: (
@@ -74,7 +74,7 @@ async function withServer(
 	options: ServerSeams = {},
 ): Promise<void> {
 	const { seed, ...serverOptions } = options
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-server-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-server-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = root
 	const st = state(root)
@@ -659,7 +659,7 @@ void test('/api/reload: a guide-declared move merges into a rename entry; a bad 
 })
 
 void test('/api/file-contents returns contents equal to the embedded copies; rejects escapes + unknown paths (issue 02)', async () => {
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-fc-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-fc-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = root
 	const g = (args: string[]): string =>
@@ -757,7 +757,7 @@ void test(
 			// unresolved prefix check passes (leak.txt sits under root) but the resolved target
 			// escapes - the route must realpath and refuse to follow the link.
 			const outside = await mkdtemp(
-				path.join(tmpdir(), 'galley-outside-'),
+				path.join(tmpdir(), 'syneva-outside-'),
 			)
 			const secret = path.join(outside, 'secret.txt')
 			await writeFile(secret, 'TOP SECRET\n')
@@ -816,7 +816,7 @@ void test('/api/state carries no file contents (lean wire, issue 04)', async () 
 })
 
 void test('POST /api/comment anchors a file the tab never opened (issue 04)', async () => {
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-anchor-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-anchor-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = root
 	const g = (args: string[]): string =>
@@ -1115,7 +1115,7 @@ void test('--host 0.0.0.0 accepts the hostname authority and loopback; lock stay
 	)
 })
 
-void test('GALLEY_ALLOWED_HOSTS entries pass the guard; a non-member 403s', async () => {
+void test('SYNEVA_ALLOWED_HOSTS entries pass the guard; a non-member 403s', async () => {
 	await withServer(
 		async handle => {
 			const { port } = new URL(handle.lockUrl)
@@ -1181,7 +1181,7 @@ async function runMutexRounds(
 }
 
 void test('concurrent /api/reload and /api/save leave the desk internally consistent (issue 05)', async () => {
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-mutex-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-mutex-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = root
 	const g = (args: string[]): string =>
@@ -1233,7 +1233,7 @@ void test('a throwing wrapped route settles the mutex without poisoning the chai
 })
 
 void test('/api/reset unstages every reviewed file in one batched restore and clears the review (issue 13)', async () => {
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-reset-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-reset-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = root
 	const g = (args: string[]): string =>
@@ -1302,7 +1302,7 @@ void test('/api/reset unstages every reviewed file in one batched restore and cl
 })
 
 void test('/api/reset in pr mode clears the review without touching the git index (issue 13)', async () => {
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-reset-pr-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-reset-pr-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = root
 	const g = (args: string[]): string =>
@@ -1377,7 +1377,7 @@ void test('settings API round-trips editorCommand', async () => {
 void test('stable-port EADDRINUSE falls back to a different port instead of throwing', async () => {
 	// A restarted desk's stablePort (deterministic per repo+session) can still be held by another
 	// process - startServer must rebind elsewhere rather than crash the launch.
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-portfallback-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-portfallback-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = root
 	const occupied = http.createServer()
@@ -1497,7 +1497,7 @@ void test('a whole-file Send carries the file request with anchor file (requeste
 })
 
 void test('GET /api/blob serves a contained repo file with its image mime, and refuses escapes', async () => {
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-blob-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-blob-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = root
 	const g = (args: string[]): string =>

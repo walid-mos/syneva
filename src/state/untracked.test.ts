@@ -29,7 +29,7 @@ const contents = (index: number): string =>
 // new side). The deletion sweep is the fan-out a whole-tree `Promise.all` pushed past the process's
 // file-descriptor budget: the failing reads degraded to "" and the pairing silently stopped resolving.
 function sweepRepo(): string {
-	const dir = mkdtempSync(path.join(tmpdir(), 'galley-sweep-'))
+	const dir = mkdtempSync(path.join(tmpdir(), 'syneva-sweep-'))
 	const g = (args: string[]): string =>
 		execFileSync('git', args, { cwd: dir }).toString()
 	g(['init', '-q'])

@@ -1,17 +1,17 @@
-// The machine contract for driving Galley as an agent. This is the SINGLE SOURCE OF TRUTH,
-// printed by `galley spec` so an installed skill / AGENTS.md can fetch it at runtime instead
+// The machine contract for driving Syneva as an agent. This is the SINGLE SOURCE OF TRUTH,
+// printed by `syneva spec` so an installed skill / AGENTS.md can fetch it at runtime instead
 // of hardcoding a copy that drifts from the user's installed binary. It covers the full
 // operational contract: review modes, the await/comment/reload loop, await exit semantics, the
 // ReviewResult shape, how to act on a review, the guided-review schema, reload-vs-restart,
-// concurrency, settings, and errors. Bootstrap-only material (what Galley is, when to use it,
+// concurrency, settings, and errors. Bootstrap-only material (what Syneva is, when to use it,
 // how to install it) lives in the skill/AGENTS.md, because you need it before running this.
 //
 // Written to be dense - every line carries a distinct fact. Keep it in sync with reality: if
 // you change CLI flags, events, or the ReviewResult shape, update this string in the same
 // change. The spec, CLI, and HTTP tests guard it.
-export const SPEC = `galley agent contract
+export const SPEC = `syneva agent contract
 
-Galley serves a localhost browser desk over a git diff. A human accepts/rejects changes,
+Syneva serves a localhost browser desk over a git diff. A human accepts/rejects changes,
 comments, and asks questions, then clicks Send to Agent; the desk stays live across rounds. You
 attach via CLI subcommands - receive each Send, answer questions, post replies that appear live,
 and re-diff your edits into the same tab. No model runs in the desk; the review is the human's.
@@ -19,21 +19,21 @@ and re-diff your edits into the same tab. No model runs in the desk; the review 
 ## Review modes
 Pick one at start. await/comment/status/reload auto-target the lone live desk and omit --session
 below; --session at start (and restart) names the desk - needed only for a stable id or a second desk.
-- repo (default) - \`galley\`: working-tree diff; \`--diff staged\` for the index; \`--path <p>\`
+- repo (default) - \`syneva\`: working-tree diff; \`--diff staged\` for the index; \`--path <p>\`
   limits to a path. Untracked (new) files show as full-file additions. Approve stages the file
   (toggle); accept/reject are verdicts. A moved file stages both its old and new paths as a rename.
-- file - \`galley file <path>\`: one file, tracked or not. Unchanged → full file; changed → diff
+- file - \`syneva file <path>\`: one file, tracked or not. Unchanged → full file; changed → diff
   (stageable); untracked → full file, verdict-only. Markdown gets a Rendered/Source toggle -
   comment any rendered block. Use it to review an artifact (e.g. a generated plan).
-- pr - \`galley pr <ref>\`: a branch's commits vs merge-base. <ref> = branch | PR number | GitHub
+- pr - \`syneva pr <ref>\`: a branch's commits vs merge-base. <ref> = branch | PR number | GitHub
   URL (number/URL resolved via \`gh\`, which must be installed+authed). Checks out the branch
   (aborts if the working tree has uncommitted tracked changes); \`--base <ref>\` overrides the
   base. Verdict only: Approve = approve, reject = request-changes, no staging - you amend the
   branch and re-review.
 ReviewResult.mode (repo|file|pr) tells you how to read verdicts.
 
-## Pi attachment (preferred when galley_agent is available)
-Start the desk, then call the Pi tool \`galley_agent\` with
+## Pi attachment (preferred when syneva_agent is available)
+Start the desk, then call the Pi tool \`syneva_agent\` with
 \`{action:"attach", repo:"<absolute repo>", session:"<desk session>"}\` from the owning
 persistent session. Return control: completed reviews, closed events, and failed question
 answers wake this same session via native follow-up messages, each pointing to a complete
@@ -42,10 +42,10 @@ not run the CLI wait loop while attached.
 Never delegate waiting to a one-shot subagent: its exit cannot wake an idle parent indefinitely.
 The listener survives agent turns and restores on reload/resume of the SAME Pi session; a fork
 cannot inherit it. Print/JSON sessions cannot attach. Keep the owning Pi process open.
-\`galley_agent {action:"status"}\` reports the connection; transport failures are reported and
+\`syneva_agent {action:"status"}\` reports the connection; transport failures are reported and
 require reattachment. Before switching desks, detach with
-\`galley_agent {action:"detach"}\` - the browser Close already does it (see closed); detach
-does not stop the desk. Use \`galley stop\` separately.
+\`syneva_agent {action:"detach"}\` - the browser Close already does it (see closed); detach
+does not stop the desk. Use \`syneva stop\` separately.
 
 ### Question routing - the desk correspondent answers, the owner reviews
 The extension runs ONE deterministic correspondent thread per desk: a \`pi -p\` process rooted
@@ -56,9 +56,9 @@ session, which is never asked to read for an answer. On each question event the 
 spawns that thread with the saved event file, parses its "### q<N>" reply blocks, and posts
 each answer to the desk at the question's own path/line/side with role agent, VERBATIM - no
 owner turn, no per-question children, no runs.all fanout. The owner is woken only for review
-events (act on the feedback in the owner, which holds the code context, then \`galley reload\`),
+events (act on the feedback in the owner, which holds the code context, then \`syneva reload\`),
 closed events, and a correspondent failure, in which case it answers the questions itself with
-\`galley comment\`, VERBATIM at the saved anchors. Never fork the owner transcript for a
+\`syneva comment\`, VERBATIM at the saved anchors. Never fork the owner transcript for a
 factual question: a fork re-sends exactly what the routing exists to avoid.
 
 For an existing unattached desk, attach the session that owns its review context, not an unrelated
@@ -67,40 +67,40 @@ agent. If the tool is missing in an already-open Pi process, reload the Pi exten
 ## The loop (CLI-only hosts, without the Pi attachment)
 Start the desk in the background, then await events and branch on kind:
 \`\`\`bash
-galley --session <id> --diff working &
-while ev=$(galley await); do
+syneva --session <id> --diff working &
+while ev=$(syneva await); do
   [ -z "$ev" ] && continue                               # --timeout fired, no event
   case "$(jq -r .kind <<<"$ev")" in
     question)  # answer EACH - READ-ONLY (see Events); thread under each question's path/line/side
       jq -c '.questions[]' <<<"$ev" | while IFS= read -r q; do   # one object per line - space-safe
-        galley status --body "Reading X to answer…"        # live progress
-        galley comment --path "$(jq -r .path<<<"$q")" \\
+        syneva status --body "Reading X to answer…"        # live progress
+        syneva comment --path "$(jq -r .path<<<"$q")" \\
           --line "$(jq -r .lineNumber<<<"$q")" --side "$(jq -r .side<<<"$q")" --body "…"
       done ;;
-    review)    # act on the ReviewResult, then \`galley reload\` to show your edits
+    review)    # act on the ReviewResult, then \`syneva reload\` to show your edits
       r=$(jq .result <<<"$ev") ;;
     closed)    exit 0 ;;    # the human ended the review in the browser - workflow over
   esac
 done
 \`\`\`
-- \`galley await [--timeout <s>]\` - block for the next event, print one tagged JSON envelope,
+- \`syneva await [--timeout <s>]\` - block for the next event, print one tagged JSON envelope,
   exit. No --timeout → holds open; --timeout <s> → empty stdout (204) after <s>s, re-poll. Exit
   non-zero = no live desk (start one) - including a desk that went silent mid-poll (closed or
   crashed; don't blind-restart a closed desk, see the closed event below). After handling ANY
   event, await again immediately - more
   may already be queued (the human keeps working while you act).
-- \`galley comment --path <f> --line <n> [--side additions|deletions] --body "…"\` - agent reply.
+- \`syneva comment --path <f> --line <n> [--side additions|deletions] --body "…"\` - agent reply.
   Live desk → posts over HTTP (~1.5s), threaded under the matching human comment; no desk →
   appended to the saved review. Match path/line/side. Agent comments are never echoed back as
   requestedChanges.
-- \`galley status --body "…"\` - ephemeral one-line "doing X now" beside the reviewer's spinner.
+- \`syneva status --body "…"\` - ephemeral one-line "doing X now" beside the reviewer's spinner.
   Cleared by your next comment; stale after ~90s (keep posting through long work); never
   persisted; exits 0 even with no desk.
-- \`galley reload [--guide <file>]\` - re-diff the working tree into the live desk (your edits are
+- \`syneva reload [--guide <file>]\` - re-diff the working tree into the live desk (your edits are
   NOT auto-re-diffed). Anything you edit resets to pending on reload - decisions, approvals, and
   skims alike; anything you left untouched carries over. --guide swaps the guide (one desk only -
   see Between rounds).
-- \`galley stop [--session <id> | --all]\` - shut down this repo's live desk(s) (--all = every
+- \`syneva stop [--session <id> | --all]\` - shut down this repo's live desk(s) (--all = every
   session). Idempotent, exits 0 with {stopped:[…]} whether or not a desk was running - call it
   yourself the same turn the session settles; never ask the human whether to stop, that prices
   an idle desk's closure at a whole LLM round-trip. The human's browser Close is the same
@@ -114,18 +114,18 @@ await yields exactly one:
   (arrival order; \`question\` is the oldest, kept for compatibility) - answer EACH, and on a Pi
   attachment answer each in its own read-only child, never in the owner session (see Question
   routing). A question wants
-  an ANSWER, not a code change: answering is READ-ONLY - read for context, reply with \`galley
+  an ANSWER, not a code change: answering is READ-ONLY - read for context, reply with \`syneva
   comment\` at path/lineNumber/side, and NEVER edit tracked files (the "Between rounds" rule) unless
-  the question's own text asks for a change (then edit + \`galley reload\`). lineNumber 0 (anchor
-  "file") = a whole-file question asked from the file header - reply with \`galley comment --path
+  the question's own text asks for a change (then edit + \`syneva reload\`). lineNumber 0 (anchor
+  "file") = a whole-file question asked from the file header - reply with \`syneva comment --path
   <f> --line 0 --body "…"\`. Questions are a live side-channel - never in a Send/ReviewResult
-  except openQuestions below. Slow answer → post \`galley status\` lines so the human sees progress.
+  except openQuestions below. Slow answer → post \`syneva status\` lines so the human sees progress.
 - {"kind":"review","result":{…ReviewResult…}} - reviewer clicked Send. Act on result.
 - {"kind":"closed","session":...} - the reviewer ended the review from the browser (the desk's
   Close, ⇧Q). The desk exits right after emitting it, so no await will ever answer again: end
   your round and DON'T restart the desk yourself (relaunch/reattach only when the human asks).
   A Send queued but never picked up live still left artifacts.resultJson (file-poll fallback);
-  all review state is saved, and a later \`galley --session\` restores it. A Pi attachment deals
+  all review state is saved, and a later \`syneva --session\` restores it. A Pi attachment deals
   with closed internally - it auto-detaches and notifies the session.
 
 ## ReviewResult
@@ -138,9 +138,9 @@ The \`result\` field of a review event:
   afterthought instruction for after applying (e.g. "run the formatter"). Not tied to any line.
 - stagedFiles[], approvedFiles[]
 - openQuestions[]: {path,lineNumber,side,body,mode,session} - questions you never answered, folded
-  into this Send (superseding queued live question events). Answer each with \`galley comment\`
+  into this Send (superseding queued live question events). Answer each with \`syneva comment\`
   (READ-ONLY, as a live question) while acting on the round.
-- artifacts: {resultJson, sessionDir} under ~/.galley/<repoHash>/<session>/ (repoHash =
+- artifacts: {resultJson, sessionDir} under ~/.syneva/<repoHash>/<session>/ (repoHash =
   sha256(abs repo root)[:16])
 The arrays above ARE the review - act on them directly; there's no prose summary to parse.
 Each changed file ends pending | approved (no objections → listed in approvedFiles) |
@@ -159,20 +159,20 @@ new Send). Live questions arrive only via await, so a file-poller sees Sends but
 - stagedFiles → already staged by the reviewer; don't touch unless a requested change requires it.
 In pr mode the diff is committed changes: amend the branch/commits to apply the review, leaving
 approved hunks as-is (rather than editing the working tree).
-Then \`galley reload\` to surface your edits. With the Pi attachment, return control; otherwise
-run \`galley await\` for the next round. When the round is fully handled and nothing needs the
+Then \`syneva reload\` to surface your edits. With the Pi attachment, return control; otherwise
+run \`syneva await\` for the next round. When the round is fully handled and nothing needs the
 reviewer's eyes anymore (no edits awaiting re-review, no open questions - e.g. a clean
-all-approved send already committed to an empty diff), call \`galley stop\` in the same turn:
+all-approved send already committed to an empty diff), call \`syneva stop\` in the same turn:
 never end a round by asking the human "say done to stop" - that buys an idle desk with one
 whole LLM round-trip for nothing.
 
 ## Guided review (optional)
-Attach with \`galley <mode> --guide <file>\`: an overview page + your files in order with per-file
-orientation (schema below). Galley validates + renders it (markdown in prose fields, raw HTML
+Attach with \`syneva <mode> --guide <file>\`: an overview page + your files in order with per-file
+orientation (schema below). Syneva validates + renders it (markdown in prose fields, raw HTML
 stripped) and runs no model - content and order are yours. Write the guide OUTSIDE the working tree
 (temp or gitignored): working mode surfaces untracked files, so an in-repo guide shows as a stray
 addition. Stamped to its diff and surviving reload/restart; once a reload advances past it it's
-flagged stale - regenerate and swap via \`galley reload --guide <new>\` (one desk only - see Between
+flagged stale - regenerate and swap via \`syneva reload --guide <new>\` (one desk only - see Between
 rounds).
 
 ### Guide JSON schema
@@ -231,13 +231,13 @@ naming the offending field.
 
 ## Between rounds - reload vs restart, and the desk lock
 - Don't edit tracked files mid-round: the reviewer wouldn't see the edits and their in-flight
-  decisions would be invalidated. Edit between rounds, then \`galley reload\`.
-- Full restart (Ctrl-C, then \`galley --session <id>\`) is only for changing the diff source
+  decisions would be invalidated. Edit between rounds, then \`syneva reload\`.
+- Full restart (Ctrl-C, then \`syneva --session <id>\`) is only for changing the diff source
   (working ↔ staged) or the mode.
 - A live desk writes <sessionDir>/desk.lock (with its url) and removes it on exit; trust a lock
   only if the server actually answers. The lock url is always loopback-reachable, so your
   subcommands work unchanged even when the desk is bound beyond loopback (--host <addr> /
-  GALLEY_HOST, for remote-dev - the browser url printed at start differs then; operator concern,
+  SYNEVA_HOST, for remote-dev - the browser url printed at start differs then; operator concern,
   not yours).
 - A desk with no open tab and no attached agent for 2h auto-exits (--idle-timeout <min> at start
   overrides; 0 = never). An in-flight await pins it alive. Nothing is lost - state persists on
@@ -259,10 +259,10 @@ naming the offending field.
   restarted desk's state. Finish pending actions and copy unsaved text before manually refreshing.
   The normal heartbeat without an instance stays compatible.
 - Tabs predating this refresh mechanism need one manual page refresh on their first upgrade.
-  This browser-only event does not alter galley await, ReviewResult, or legacy save-body tolerance.
+  This browser-only event does not alter syneva await, ReviewResult, or legacy save-body tolerance.
 
 ## Settings & errors
-- The human's display prefs live in a desk panel (persisted to ~/.galley/settings.json) - you
+- The human's display prefs live in a desk panel (persisted to ~/.syneva/settings.json) - you
   don't set them. Note: with "Approve stages file" OFF, approving is verdict-only and stagedFiles
   may be empty even for approved files. The "Open in editor" command ({repo}/{file}/{line}
   placeholders; known GUI editors only) has no effect on review state.

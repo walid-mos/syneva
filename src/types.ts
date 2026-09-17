@@ -36,7 +36,7 @@ export type ReviewComment = {
 	// just-in-time question answered live via the await stream; "note" = plain note.
 	intent?: 'note' | 'action' | 'question'
 	// "user" comments are the reviewer's; "agent" comments are replies posted
-	// back by the coding agent via `galley comment` between sessions.
+	// back by the coding agent via `syneva comment` between sessions.
 	role?: 'user' | 'agent'
 	// Exact text of the anchored line at creation time. Lets reload re-anchor the thread
 	// when the agent's edits shift the line (see reanchorComments).
@@ -294,7 +294,7 @@ export type ReviewerSave = Pick<
 // them in ReviewerSave: they describe the live desk process, not the durable review.
 export type AgentActivity = { body: string; at: string }
 export type DeskStatus = {
-	// Latest `galley status` line, or null when none posted or stale (past the TTL).
+	// Latest `syneva status` line, or null when none posted or stale (past the TTL).
 	agentActivity: AgentActivity | null
 	// An await long-poll is parked right now - something is listening for events.
 	agentListening: boolean
@@ -369,7 +369,7 @@ export type ReviewResult = {
 	// Questions still unanswered when the reviewer hit Send - folded into the round so an
 	// agent that missed the live await still owes an answer. Every open question comment
 	// (intent "question", no later agent reply in its thread), same shape as an await
-	// question. Answer each via `galley comment`; answering stays read-only - edits come
+	// question. Answer each via `syneva comment`; answering stays read-only - edits come
 	// only from the round's requested changes.
 	openQuestions: QuestionPayload[]
 	artifacts: { resultJson: string; sessionDir: string }
@@ -382,14 +382,14 @@ export type QuestionPayload = {
 	side: 'additions' | 'deletions'
 	body: string
 	// "file" on a whole-file question (reviewer asked from the file header): reply with
-	// `galley comment --path <f> --line 0` so the answer threads into that file header.
+	// `syneva comment --path <f> --line 0` so the answer threads into that file header.
 	anchor?: 'file'
 	mode: ReviewMode
 	session: string
 }
 
-// What `galley await` yields - a tagged event stream. The agent loops and branches:
-// "question" → answer it now with `galley comment`; "review" → act on the Send;
+// What `syneva await` yields - a tagged event stream. The agent loops and branches:
+// "question" → answer it now with `syneva comment`; "review" → act on the Send;
 // "closed" → the human ended the review from the browser (the desk's Close action).
 export type AwaitEvent =
 	| { kind: 'review'; result: ReviewResult }

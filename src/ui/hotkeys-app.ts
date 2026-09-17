@@ -160,7 +160,7 @@ export const HOTKEYS_APP: Hotkey[] = [
 	},
 	{
 		combo: '⇧Q',
-		desc: 'Close Galley (stops the desk)',
+		desc: 'Close Syneva (stops the desk)',
 		group: 'App',
 		test: shift('Q'),
 		when: navigable,

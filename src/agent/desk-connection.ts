@@ -23,7 +23,7 @@ export function localDeskUrl(lockUrl: string): URL {
 		url.username ||
 		url.password
 	)
-		throw new Error('Galley attachment requires a loopback HTTP desk URL.')
+		throw new Error('Syneva attachment requires a loopback HTTP desk URL.')
 	return url
 }
 
@@ -33,7 +33,7 @@ export async function connectDesk(target: DeskTarget): Promise<DeskConnection> {
 	const lock = await readDeskLock(repo, session)
 	if (!lock)
 		throw new Error(
-			`No Galley desk for ${repo} / ${session}. Start the desk first.`,
+			`No Syneva desk for ${repo} / ${session}. Start the desk first.`,
 		)
 	const url = localDeskUrl(lock.url)
 	const response = await fetch(new URL('/api/poll', url), {
@@ -41,7 +41,7 @@ export async function connectDesk(target: DeskTarget): Promise<DeskConnection> {
 		redirect: 'error',
 	})
 	if (!response.ok)
-		throw new Error(`Galley attachment failed: HTTP ${response.status}.`)
+		throw new Error(`Syneva attachment failed: HTTP ${response.status}.`)
 	const poll: unknown = await response.json()
 	if (
 		!poll ||
@@ -50,7 +50,7 @@ export async function connectDesk(target: DeskTarget): Promise<DeskConnection> {
 		typeof poll.agentListening !== 'boolean'
 	)
 		throw new Error(
-			'The desk did not return Galley agent status. Restart or update it.',
+			'The desk did not return Syneva agent status. Restart or update it.',
 		)
 	if (poll.agentListening)
 		throw new Error(
@@ -84,14 +84,14 @@ export async function receiveDeskEvent(
 	)
 	if (response.status === NO_CONTENT) return ''
 	if (!response.ok)
-		throw new Error(`Galley listener failed: HTTP ${response.status}.`)
+		throw new Error(`Syneva listener failed: HTTP ${response.status}.`)
 	const envelope: unknown = await response.json()
 	const kind =
 		typeof envelope === 'object' && envelope !== null && 'kind' in envelope
 			? String(envelope.kind)
 			: ''
 	if (!['question', 'review', 'closed'].includes(kind))
-		throw new Error('Galley returned an invalid event envelope.')
+		throw new Error('Syneva returned an invalid event envelope.')
 	const eventPath = path.join(
 		connection.directory,
 		`pi-event-${randomUUID()}.json`,

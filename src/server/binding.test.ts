@@ -10,7 +10,7 @@ void test('resolveBinding: the loopback default widens nothing and keeps both UR
 		assert.equal(b.browserHost, '127.0.0.1', `${host} browserHost`)
 		assert.equal(b.lockHost, '127.0.0.1', `${host} lockHost`)
 		// The property to guard jealously: a loopback bind trusts ONLY the loopback authorities - the
-		// machine hostname and GALLEY_ALLOWED_HOSTS never leak in.
+		// machine hostname and SYNEVA_ALLOWED_HOSTS never leak in.
 		assert.ok(
 			isDeepStrictEqual(b.allowedHosts, [
 				'127.0.0.1',

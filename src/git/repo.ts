@@ -75,7 +75,7 @@ export async function fileAt(
 
 // Git's blob object id for a piece of content: sha1 over "blob <byteLen>\0" + bytes, the exact
 // bytes git hashes, so this equals `git hash-object` for that content (barring clean/smudge
-// filters, which Galley doesn't use). Used as the file-level staleness key (contentHash) - the
+// filters, which Syneva doesn't use). Used as the file-level staleness key (contentHash) - the
 // same value git reports in `git diff --raw`, so the committed sides need no re-hashing (see
 // rawBlobOids) and only the working/untracked side is hashed here. SHA-1 only (git's default
 // object format); on a rare sha256 repo committed sides still carry their real 64-hex OIDs while

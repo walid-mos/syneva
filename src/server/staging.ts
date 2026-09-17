@@ -93,7 +93,7 @@ async function applyPatchToIndex(
 	const tmp = path.join(
 		// os.tmpdir(), not $TMPDIR-or-/tmp: Windows sets TEMP/TMP instead, so the old fallback
 		// resolved to a nonexistent C:\tmp and mkdtemp ENOENT'd - hunk staging failed there.
-		await fs.mkdtemp(path.join(os.tmpdir(), 'galley-')),
+		await fs.mkdtemp(path.join(os.tmpdir(), 'syneva-')),
 		`${crypto.randomUUID()}.diff`,
 	)
 	await fs.writeFile(tmp, patch, 'utf8')

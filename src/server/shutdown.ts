@@ -79,8 +79,8 @@ export function resolveShutdown(
 	return (reason: 'idle' | 'stop') => {
 		warn(
 			reason === 'idle'
-				? `Desk idle - shutting down. Restart with: galley --session ${session}`
-				: 'Desk stopped via galley stop.',
+				? `Desk idle - shutting down. Restart with: syneva --session ${session}`
+				: 'Desk stopped via syneva stop.',
 		)
 		process.exit(0)
 	}

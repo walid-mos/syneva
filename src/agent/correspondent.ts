@@ -38,7 +38,7 @@ export function buildCorrespondentPrompt(
 ): string {
 	const count = questions.length
 	return [
-		`Galley review question for repo ${JSON.stringify(target.repo)}, session ${JSON.stringify(target.session)}.`,
+		`Syneva review question for repo ${JSON.stringify(target.repo)}, session ${JSON.stringify(target.session)}.`,
 		`Read the complete event at ${JSON.stringify(eventPath)} (it holds these questions).`,
 		`Answer ${count === 1 ? 'it' : `all ${count} of them`} read-only: read the anchored code as needed to answer, never edit files, never run desk commands.`,
 		"Answer in the reviewer's language.",
@@ -127,7 +127,7 @@ function isDeskQuestion(candidate: unknown): candidate is DeskQuestion {
 	)
 }
 
-// Same wire shape the `galley comment` CLI posts, so replies show up live in the desk.
+// Same wire shape the `syneva comment` CLI posts, so replies show up live in the desk.
 export async function postDeskComment(
 	desk: DeskConnection,
 	question: DeskQuestion,

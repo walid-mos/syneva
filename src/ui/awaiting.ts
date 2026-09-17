@@ -2,7 +2,7 @@ import { S, esc } from './store'
 
 // The waiting indicator under an unanswered question has three states, derived per poll tick from
 // the desk-liveness fields: queued (the question never reached an agent - nothing is awaiting),
-// active (delivered, and the agent posted a `galley status` line), or plain waiting. Desk-global
+// active (delivered, and the agent posted a `syneva status` line), or plain waiting. Desk-global
 // by design: one desk, one agent.
 function awaitingParts(): {
 	isQueued: boolean

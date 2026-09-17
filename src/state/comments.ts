@@ -17,7 +17,7 @@ const BIGRAM_WIDTH = 2
 const SIMILARITY_FLOOR = 0.6
 const SIMILARITY_TIE = 0.05
 
-// The reviewer's fields of a new comment, as posted by `galley comment` / the UI composer.
+// The reviewer's fields of a new comment, as posted by `syneva comment` / the UI composer.
 export type CommentInput = {
 	path: string
 	side: 'additions' | 'deletions'

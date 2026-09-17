@@ -33,7 +33,7 @@ export type TokenPoolBootstrapOptions = {
 	highlighterOptions: {
 		theme?: WorkerRenderingOptions['theme']
 		lineDiffType?: WorkerRenderingOptions['lineDiffType']
-		// Accepted for @pierre call-shape parity; galley resolves languages lazily per task.
+		// Accepted for @pierre call-shape parity; syneva resolves languages lazily per task.
 		langs?: string[]
 	}
 }
@@ -101,7 +101,7 @@ export class TokenPoolManager {
 		return this.board.cachedFinal(diff.cacheKey)
 	}
 
-	// galley never constructs file-renderer instances (diff renderers only), so the file half of
+	// syneva never constructs file-renderer instances (diff renderers only), so the file half of
 	// the pinned surface stays inert rather than half-implemented.
 	getFileResultCache(): undefined {
 		return undefined
@@ -155,7 +155,7 @@ export class TokenPoolManager {
 		this.themeSubscribers.delete(instance)
 	}
 
-	// Stats feed dashboards galley doesn't run; a stable no-op subscription (pinned's shape).
+	// Stats feed dashboards syneva doesn't run; a stable no-op subscription (pinned's shape).
 	subscribeToStatChanges(): () => void {
 		return () => {}
 	}

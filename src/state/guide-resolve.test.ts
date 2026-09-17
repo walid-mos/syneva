@@ -329,7 +329,7 @@ void test('resolveSkim clears prior stamps so re-resolution is idempotent', () =
 })
 
 void test('reload parses the unified diff exactly once, shared across build + skim (issue 06)', async () => {
-	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'galley-parse-once-'))
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'syneva-parse-once-'))
 	const gitq = (...args: string[]): void => {
 		execFileSync('git', args, { cwd: dir, stdio: 'ignore' })
 	}

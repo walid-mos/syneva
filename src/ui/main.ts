@@ -54,7 +54,7 @@ AlpineJS.start()
 
 // Init
 ensureIcons() // file-tree icon sprite (folder/file/badges/stage)
-// Display preferences live in ~/.galley/settings.json (localStorage is per-origin and the port is
+// Display preferences live in ~/.syneva/settings.json (localStorage is per-origin and the port is
 // random, so it can't hold them). Fold the file over the defaults before first paint.
 const [prefs, state, tree] = await Promise.all([
 	loadPrefs(),
@@ -71,7 +71,7 @@ S.projectFiles = tree.files ?? []
 S.lastBaseDiffHash = S.state.baseDiffHash
 // Tab title: name the desk so multiple desks are distinguishable in the browser.
 const deskName = readDeskName(S.state)
-if (deskName) document.title = `Galley - ${deskName}`
+if (deskName) document.title = `Syneva - ${deskName}`
 // progress.ts prefixes the title with the review % - hand it the base to prefix.
 setBaseTitle(document.title)
 S.selected = {

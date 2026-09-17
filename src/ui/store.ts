@@ -24,7 +24,7 @@ export const S: Store = AlpineJS.reactive<Store>({
 	projectFiles: [],
 	expandedDirs: new Set<string>(),
 	collapsedDirs: new Set<string>(),
-	// Display preferences come from ~/.galley/settings.json (fetched in main.ts init),
+	// Display preferences come from ~/.syneva/settings.json (fetched in main.ts init),
 	// not localStorage - origins change with the random port, files don't.
 	diffStyle: 'split',
 	fileIndex: 0,
@@ -132,11 +132,11 @@ export const saver = createSaver(
 )
 // Instant auto-save: there is no manual Save button, so every state mutation
 // (decision, comment, stage/unstage, approval) MUST call persist() to write the
-// review to ~/.galley/<repoHash>/<session>/. Saves coalesce (see save.ts): at most one
+// review to ~/.syneva/<repoHash>/<session>/. Saves coalesce (see save.ts): at most one
 // in flight, rapid triggers collapse into a single trailing save.
 export const persist = (): void => saver.trigger()
 // Display preferences (settings panel + the Split/Stacked toggle) save to the global
-// ~/.galley/settings.json so they survive port/session changes. Last write wins.
+// ~/.syneva/settings.json so they survive port/session changes. Last write wins.
 export const persistPrefs = async (): Promise<void> => {
 	try {
 		await api('/api/settings', {

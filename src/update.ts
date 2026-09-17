@@ -16,7 +16,7 @@ import type { ChildProcess } from 'node:child_process'
 // failure path is silent or a one-line warning - an update check must never break
 // a launch.
 
-const PKG = 'galley-diff'
+const PKG = 'syneva'
 
 const SECONDS_PER_MINUTE = 60
 const MINUTES_PER_HOUR = 60
@@ -28,7 +28,7 @@ const CHECK_TTL_MS =
 	HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MS_PER_SECOND
 const FETCH_TIMEOUT_MS = 2500
 
-// Registry used when GALLEY_REGISTRY_URL is unset (tests point it at a local server).
+// Registry used when SYNEVA_REGISTRY_URL is unset (tests point it at a local server).
 const DEFAULT_REGISTRY = 'https://registry.npmjs.org'
 
 // x.y.z is exactly three dot-separated parts.
@@ -56,7 +56,7 @@ function toVersionPart(rawPart: string): number | null {
 }
 
 // Plain numeric x.y.z compare - no prerelease ordering (a prerelease segment makes the
-// numeric parse fail -> false). Good enough: galley publishes plain semver.
+// numeric parse fail -> false). Good enough: syneva publishes plain semver.
 function parseVersion(rawVersion: string): VersionParts | null {
 	const parts = rawVersion.trim().split('.')
 	if (parts.length !== SEMVER_PART_COUNT) return null
@@ -116,9 +116,9 @@ export function detectInstall(
 	return { kind: 'global', command: ['npm', 'i', '-g', `${PKG}@latest`] }
 }
 
-// ── 24h throttle cache (~/.galley/update-check.json) ─────────────────────────
+// ── 24h throttle cache (~/.syneva/update-check.json) ─────────────────────────
 function cachePath(): string {
-	return path.join(homeDir(process.cwd()), '.galley', 'update-check.json')
+	return path.join(homeDir(process.cwd()), '.syneva', 'update-check.json')
 }
 
 type CheckCache = { lastCheckedAt?: string; latest?: string }
@@ -157,10 +157,10 @@ export async function writeCheckCache(cache: CheckCache): Promise<void> {
 	}
 }
 
-// The registry to ask, overridable for tests/local mirrors. An empty GALLEY_REGISTRY_URL means
+// The registry to ask, overridable for tests/local mirrors. An empty SYNEVA_REGISTRY_URL means
 // "unset" (a shell can export it empty), so this is a presence check, not a nullish one.
 function registryBase(): string {
-	const configured = process.env.GALLEY_REGISTRY_URL
+	const configured = process.env.SYNEVA_REGISTRY_URL
 	if (configured) return configured
 	return DEFAULT_REGISTRY
 }
@@ -239,7 +239,7 @@ function waitForExit(child: ChildProcess): Promise<number> {
 // On a confirmed global update this re-execs the same command on the new version
 // and never returns (the parent lingers only to forward the child's exit code).
 export async function maybeOfferUpdate(): Promise<void> {
-	if (process.env.GALLEY_NO_UPDATE_CHECK || process.env.GALLEY_UPDATE_REEXEC)
+	if (process.env.SYNEVA_NO_UPDATE_CHECK || process.env.SYNEVA_UPDATE_REEXEC)
 		return
 	const current = currentVersion()
 	const latest = await resolveLatest()
@@ -257,13 +257,13 @@ export async function maybeOfferUpdate(): Promise<void> {
 	const isInteractive = process.stdin.isTTY && process.stderr.isTTY
 	if (!isInteractive || install.kind === 'local') {
 		warn(
-			`Galley update available: ${current} -> ${latest}. Run \`${suggestion}\`.`,
+			`Syneva update available: ${current} -> ${latest}. Run \`${suggestion}\`.`,
 		)
 		return
 	}
 
 	const isConfirmed = await promptYesNo(
-		`Galley ${latest} is available (you have ${current}). Update now? [Y/n] `,
+		`Syneva ${latest} is available (you have ${current}). Update now? [Y/n] `,
 	)
 	if (!isConfirmed) return
 
@@ -278,7 +278,7 @@ export async function maybeOfferUpdate(): Promise<void> {
 	warn(`Updated to ${latest} - relaunching...`)
 	const child = spawn(process.execPath, process.argv.slice(1), {
 		stdio: 'inherit',
-		env: { ...process.env, GALLEY_UPDATE_REEXEC: '1' },
+		env: { ...process.env, SYNEVA_UPDATE_REEXEC: '1' },
 	})
 	process.exit(await waitForExit(child))
 }

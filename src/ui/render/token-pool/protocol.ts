@@ -13,7 +13,7 @@ import type { WindowPositions } from './merge'
 import type { WindowSpec } from './windows'
 
 // Worker bootstrap: attach themes/langs as RESOLVED shiki data (the same payload @pierre's own
-// pool composes on the main thread by loading galley's curated grammars) and pin the render
+// pool composes on the main thread by loading syneva's curated grammars) and pin the render
 // options both sides agree on from then on.
 export type WorkerInitialize = {
 	type: 'initialize'
@@ -32,7 +32,7 @@ export type WorkerSetRenderOptions = {
 	resolvedThemes: ThemeRegistrationResolved[]
 }
 
-// A parsed diff handed ONCE per worker per job (structured clone of galley's FileDiffMetadata).
+// A parsed diff handed ONCE per worker per job (structured clone of syneva's FileDiffMetadata).
 // Window tasks reference it by cacheKey instead of re-posting megabytes of parsed content.
 export type WorkerOpenDiff = {
 	type: 'open-diff'

@@ -576,7 +576,7 @@ void test('the reviewer save slice never carries skim (changes are server-owned)
 // ── Staged bookkeeping (staging advances the review baseline) ────────────────
 
 void test('readStagedSnapshot keeps only reviewed files that are staged, and prunes vanished hunk keys', async () => {
-	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'galley-staged-'))
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'syneva-staged-'))
 	const g = (args: string[]): string =>
 		execFileSync('git', args, { cwd: root }).toString()
 	try {

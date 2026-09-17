@@ -36,56 +36,48 @@ void test('currentVersion reads the package version', () => {
 void test('detectInstall: project-local installs are notice-only', () => {
 	const cwd = '/work/repo'
 	const local = detectInstall(
-		'/work/repo/node_modules/galley-diff/dist/cli.js',
+		'/work/repo/node_modules/syneva/dist/cli.js',
 		cwd,
 	)
 	assert.equal(local.kind, 'local')
 	assert.ok(
-		isDeepStrictEqual(local.command, [
-			'npm',
-			'i',
-			'-D',
-			'galley-diff@latest',
-		]),
+		isDeepStrictEqual(local.command, ['npm', 'i', '-D', 'syneva@latest']),
 	)
 })
 
 void test('detectInstall: global installs pick the manager from the path', () => {
 	const cwd = '/work/repo'
 	assert.deepEqual(
-		detectInstall(
-			'/usr/local/lib/node_modules/galley-diff/dist/cli.js',
-			cwd,
-		),
+		detectInstall('/usr/local/lib/node_modules/syneva/dist/cli.js', cwd),
 		{
 			kind: 'global',
-			command: ['npm', 'i', '-g', 'galley-diff@latest'],
+			command: ['npm', 'i', '-g', 'syneva@latest'],
 		},
 	)
 	assert.deepEqual(
 		detectInstall(
-			'/Users/u/Library/pnpm/global/5/.pnpm/galley-diff@0.2.1/node_modules/galley-diff/dist/cli.js',
+			'/Users/u/Library/pnpm/global/5/.pnpm/syneva@0.2.1/node_modules/syneva/dist/cli.js',
 			cwd,
 		),
 		{
 			kind: 'global',
-			command: ['pnpm', 'add', '-g', 'galley-diff@latest'],
+			command: ['pnpm', 'add', '-g', 'syneva@latest'],
 		},
 	)
 	assert.deepEqual(
 		detectInstall(
-			'/Users/u/.bun/install/global/node_modules/galley-diff/dist/cli.js',
+			'/Users/u/.bun/install/global/node_modules/syneva/dist/cli.js',
 			cwd,
 		),
 		{
 			kind: 'global',
-			command: ['bun', 'add', '-g', 'galley-diff@latest'],
+			command: ['bun', 'add', '-g', 'syneva@latest'],
 		},
 	)
 })
 
 void test('update-check cache: round-trip; missing/corrupt read as {}', async () => {
-	const home = await fs.mkdtemp(path.join(os.tmpdir(), 'galley-update-'))
+	const home = await fs.mkdtemp(path.join(os.tmpdir(), 'syneva-update-'))
 	const prevHome = process.env.HOME
 	const prevProfile = process.env.USERPROFILE
 	process.env.HOME = home
@@ -101,7 +93,7 @@ void test('update-check cache: round-trip; missing/corrupt read as {}', async ()
 			latest: '9.9.9',
 		})
 		await fs.writeFile(
-			path.join(home, '.galley', 'update-check.json'),
+			path.join(home, '.syneva', 'update-check.json'),
 			'{nope',
 			'utf8',
 		)

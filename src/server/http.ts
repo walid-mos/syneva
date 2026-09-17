@@ -4,7 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { ApiFailure } from './failure.js'
 
 // The desk's HTTP status vocabulary. Named so every route spells the same code the same
-// way - the response codes are part of the agent contract (`galley spec`), not decoration.
+// way - the response codes are part of the agent contract (`syneva spec`), not decoration.
 export const HTTP_OK = 200
 export const HTTP_NO_CONTENT = 204
 export const HTTP_NOT_MODIFIED = 304

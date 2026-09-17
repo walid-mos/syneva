@@ -4,7 +4,7 @@ import { defineConfig } from 'oxlint'
 export default defineConfig({
 	extends: [standards],
 	// Setting ignorePatterns replaces oxlint's built-in ignore list, so
-	// node_modules/dist are listed explicitly next to Galley's build output,
+	// node_modules/dist are listed explicitly next to Syneva's build output,
 	// generated sources and runtime artifacts (desk locks, pi shims, scratch).
 	ignorePatterns: [
 		'node_modules/**',
@@ -21,7 +21,7 @@ export default defineConfig({
 		{
 			// The token pool's pinned-library seam: @pierre/diffs pins a nominal-class
 			// WorkerPoolManager (private fields, no structural half) and types helpers against the
-			// full shiki v3 barrel (DiffsHighlighter) while galley builds a lean shiki v4(core)
+			// full shiki v3 barrel (DiffsHighlighter) while syneva builds a lean shiki v4(core)
 			// instance; DOM libs also lack DedicatedWorkerGlobalScope so the worker scope needs a
 			// narrow view. Every assertion lives next to its seam and is documented there.
 			// Token-pool files also log failures (an unhighlighted desk must show WHY, not stay
@@ -88,7 +88,7 @@ export default defineConfig({
 				// The bench instruments (a page-side __bench projector, fetch/Worker hooks,
 				// measured-and-sequenced key presses) are inherently serialized and
 				// underscore-named on purpose: the page API surface they reach into is
-				// galley's own store singleton. Sequenced awaits (cold-open pipeline,
+				// syneva's own store singleton. Sequenced awaits (cold-open pipeline,
 				// latency probes, churn loops) measure sequences - parallelizing them would
 				// change the thing being measured.
 				'eslint/no-underscore-dangle': 'off',
@@ -99,7 +99,7 @@ export default defineConfig({
 			// The pi extension entry point default-exports its register function by
 			// design: pi's loader contract, the same class of exception as framework
 			// pages in the shared preset.
-			files: ['extensions/galley.ts'],
+			files: ['extensions/syneva.ts'],
 			rules: {
 				'import/no-default-export': 'off',
 			},

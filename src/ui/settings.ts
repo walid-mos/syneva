@@ -88,7 +88,7 @@ export const SANS_FONTS: Record<string, FontDef> = {
 	},
 }
 
-// Settings persist in ~/.galley/settings.json (via /api/settings), NOT localStorage -
+// Settings persist in ~/.syneva/settings.json (via /api/settings), NOT localStorage -
 // localStorage is keyed by origin and each desk binds a random port, so anything stored
 // there evaporates between sessions. The store initializes with these defaults and the
 // init sequence in main.ts folds the server file in before first paint.
@@ -154,7 +154,7 @@ function applyLineHighlight(level: Settings['lineHighlight']): void {
 // drive @pierre/diffs' own --diffs-font-* vars from the code font/size so the diff matches the
 // Code font setting (the lib has no font option, but reads these custom props in its shadow DOM).
 export function applyAppearance(s: Settings): void {
-	// A settings file written by hand (or by an older Galley) can name a font this build no longer
+	// A settings file written by hand (or by an older Syneva) can name a font this build no longer
 	// ships, so the lookup falls back to the shipped default rather than rendering nothing.
 	const f = FONTS[s.font] ?? FONTS['jetbrains-mono']
 	const sf = SANS_FONTS[s.uiFont] ?? SANS_FONTS['geist']

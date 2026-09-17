@@ -1,5 +1,5 @@
 // crypto.randomUUID() is secure-context-gated: on a plain-HTTP non-localhost origin
-// (GALLEY_HOST/tailnet desks, e.g. http://devbox:41443/) it's undefined and comment creation
+// (SYNEVA_HOST/tailnet desks, e.g. http://devbox:41443/) it's undefined and comment creation
 // would throw. crypto.getRandomValues() has no such gate, so build an RFC-4122 v4 UUID from it
 // when the native call isn't available - same shape as native, no Math.random fallback.
 

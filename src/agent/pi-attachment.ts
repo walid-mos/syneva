@@ -11,7 +11,7 @@ import type {
 import type { CorrespondentIo } from './correspondent.js'
 import type { DeskConnection, DeskTarget } from './desk-connection.js'
 
-const ATTACHMENT_ENTRY = 'galley-attachment'
+const ATTACHMENT_ENTRY = 'syneva-attachment'
 type SavedEntry = { type: string; customType?: string; data?: unknown }
 export type AttachmentContext = {
 	mode: ExtensionContext['mode']
@@ -75,7 +75,7 @@ export class PiDeskAttachment {
 
 	describe(): string {
 		if (this.failure) return `Disconnected: ${this.failure}`
-		if (!this.connection) return 'No Galley attachment.'
+		if (!this.connection) return 'No Syneva attachment.'
 		return `Listening: ${this.connection.repo} / ${this.connection.session}`
 	}
 
@@ -122,7 +122,7 @@ export class PiDeskAttachment {
 			const desk = await connectDesk(target)
 			if (attempt !== this.generation)
 				throw new Error(
-					'Pi session changed while Galley was connecting; attachment cancelled.',
+					'Pi session changed while Syneva was connecting; attachment cancelled.',
 				)
 			this.remember(ctx, { repo: desk.repo, session: desk.session })
 			this.connection = desk
@@ -137,10 +137,10 @@ export class PiDeskAttachment {
 	private requireAvailable(ctx: AttachmentContext): void {
 		if (ctx.mode !== 'tui' && ctx.mode !== 'rpc')
 			throw new Error(
-				'Attach Galley from the owning persistent Pi session, not a print/JSON one-shot child.',
+				'Attach Syneva from the owning persistent Pi session, not a print/JSON one-shot child.',
 			)
 		if (this.isConnecting)
-			throw new Error('A Galley attachment is already connecting.')
+			throw new Error('A Syneva attachment is already connecting.')
 		if (this.isConnected())
 			throw new Error(
 				`${this.describe()}. Detach before changing attachments.`,
@@ -176,7 +176,7 @@ export class PiDeskAttachment {
 		this.remember(ctx)
 		await this.stop()
 		ctx.ui.notify(
-			'Galley review closed by the reviewer - attachment detached.',
+			'Syneva review closed by the reviewer - attachment detached.',
 			'info',
 		)
 	}
@@ -238,7 +238,7 @@ export class PiDeskAttachment {
 	private reportFailure(error: unknown, ctx: AttachmentContext): void {
 		this.failure = error instanceof Error ? error.message : String(error)
 		ctx.ui.notify(
-			`Galley disconnected: ${this.failure}. Reattach with galley_agent.`,
+			`Syneva disconnected: ${this.failure}. Reattach with syneva_agent.`,
 			'error',
 		)
 	}

@@ -72,7 +72,7 @@ export async function awaitEvent({
 		res.writeHead(HTTP_NO_CONTENT)
 		res.end()
 	}, holdMs(url))
-	// A caller that hangs up (ctrl-C on `galley await`) unparks its waiter: the event must stay
+	// A caller that hangs up (ctrl-C on `syneva await`) unparks its waiter: the event must stay
 	// queued for the next await rather than vanish into a dead socket.
 	req.on('close', (): void => {
 		if (isSettled) return
@@ -87,7 +87,7 @@ export async function postStatus({
 	req,
 	res,
 }: RouteRequest): Promise<void> {
-	// Ephemeral agent activity (`galley status`): a one-line "what I'm doing now" while the agent
+	// Ephemeral agent activity (`syneva status`): a one-line "what I'm doing now" while the agent
 	// works on a question or review. Never persisted.
 	const body: unknown = JSON.parse(await readBody(req))
 	const text = parseStatusRequest(body)
@@ -103,7 +103,7 @@ export async function postStatus({
 }
 
 export async function stopDesk({ ctx, res }: RouteRequest): Promise<void> {
-	// `galley stop`, or the browser's Close action: exit after the response flushes, but first
+	// `syneva stop`, or the browser's Close action: exit after the response flushes, but first
 	// tell any parked waiter WHY the desk is going (a `closed` event) so an agent's loop learns
 	// the human ended the review instead of watching the socket die. The process exit handler
 	// removes the desk lock.

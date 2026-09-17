@@ -57,13 +57,13 @@ export async function serveDesk(
 
 function resolveHost(args: CliArgs): string {
 	if (typeof args.host === 'string') return args.host
-	const configuredHost = process.env.GALLEY_HOST
+	const configuredHost = process.env.SYNEVA_HOST
 	if (configuredHost) return configuredHost
 	return '127.0.0.1'
 }
 
 function readAllowedHosts(): string[] {
-	return (process.env.GALLEY_ALLOWED_HOSTS ?? '')
+	return (process.env.SYNEVA_ALLOWED_HOSTS ?? '')
 		.split(',')
 		.map(host => host.trim())
 		.filter(Boolean)
@@ -106,12 +106,12 @@ function warnDeskReady(state: ReviewState, url: string, host: string): void {
 		state.mode === 'repo'
 			? state.session
 			: `${state.mode}:${state.target ?? ''} [${state.session}]`
-	warn(`Galley ${label}: ${url}`)
+	warn(`Syneva ${label}: ${url}`)
 	// Bound beyond loopback: the desk API is unauthenticated and can run editor commands and
 	// mutate git, so anyone who can reach this address controls the desk. Warn every launch.
 	if (!LOOPBACK_HOSTS.has(host))
 		warn(
 			'⚠ Bound beyond loopback - the desk API is unauthenticated (runs editor commands, mutates git). Only expose it on a fully trusted network (e.g. a personal tailnet).',
 		)
-	warn('Live desk - the agent attaches with `galley await`. Ctrl-C to stop.')
+	warn('Live desk - the agent attaches with `syneva await`. Ctrl-C to stop.')
 }

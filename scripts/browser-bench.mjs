@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { performance } from 'node:perf_hooks'
 
-const REPO_ROOT = path.join('/tmp', 'galley-bench', 'repos')
+const REPO_ROOT = path.join('/tmp', 'syneva-bench', 'repos')
 // The bench redirects HOME (desk state isolation). Pin playwright's browser cache to the
 // user's real one before the redirect, or every launch would look in the tmp home first.
 if (!process.env.PLAYWRIGHT_BROWSERS_PATH && process.env.HOME)
@@ -30,7 +30,7 @@ const median = xs =>
 	xs.length ? xs.toSorted((a, b) => a - b)[Math.floor(xs.length / 2)] : 0
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-// Boot helper: fresh galley desk per repo/session (ports are `--port 0` randomized).
+// Boot helper: fresh syneva desk per repo/session (ports are `--port 0` randomized).
 // HOME is redirected so the desk's persisted review files never touch the user's state.
 async function spawnDesk(repo, session, env) {
 	const CLI = path.join(process.cwd(), 'dist', 'cli.js')
@@ -135,9 +135,9 @@ const ROWS_P = `(() => {
 })()`
 
 async function benchRepo(name) {
-	const HOME = mkdtempSync(path.join(tmpdir(), 'galley-bench-home-'))
+	const HOME = mkdtempSync(path.join(tmpdir(), 'syneva-bench-home-'))
 	process.env.HOME = HOME
-	process.env.GALLEY_NO_UPDATE_CHECK = '1'
+	process.env.SYNEVA_NO_UPDATE_CHECK = '1'
 
 	const session = `bench-${name}`
 	const { desk, url } = await spawnDesk(

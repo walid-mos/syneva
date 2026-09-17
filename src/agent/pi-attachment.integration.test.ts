@@ -41,7 +41,7 @@ function fakePiOwner(): Owner {
 		},
 	}
 	// Only the Pi boundary is faked; discovery, HTTP, event queue, persistence and
-	// attachment lifecycle below run against the real Galley server.
+	// attachment lifecycle below run against the real Syneva server.
 	const ctx: AttachmentContext = {
 		mode: 'rpc',
 		sessionManager: {
@@ -83,7 +83,7 @@ type Fixture = {
 	close(): Promise<void>
 }
 async function startFixture(): Promise<Fixture> {
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-pi-owner-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-pi-owner-'))
 	const handle = await startServer({
 		state: reviewState(root),
 		open: false,

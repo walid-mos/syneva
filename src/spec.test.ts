@@ -9,17 +9,17 @@ function count(re: RegExp): number {
 }
 
 // The SPEC string is the single source of truth for the agent contract (printed by
-// `galley spec`). These anchors guard that consolidating the skill/snippet into it didn't
+// `syneva spec`). These anchors guard that consolidating the skill/snippet into it didn't
 // silently hollow out a section - if you intentionally rename a section, update the anchor.
 const ANCHORS = [
 	// modes
 	'Review modes',
 	'repo (default)',
-	'galley file <path>',
-	'galley pr <ref>',
+	'syneva file <path>',
+	'syneva pr <ref>',
 	// Native attachment must not send Pi agents back to a one-shot waiting child.
 	'Pi attachment',
-	'galley_agent',
+	'syneva_agent',
 	'completed reviews, closed events, and failed question',
 	'Never delegate waiting to a one-shot subagent',
 	'Print/JSON sessions cannot attach',
@@ -30,10 +30,10 @@ const ANCHORS = [
 	'1 thread = 1 agent',
 	'VERBATIM',
 	// the loop + events
-	'galley await',
-	'galley comment',
-	'galley reload',
-	'galley status',
+	'syneva await',
+	'syneva comment',
+	'syneva reload',
+	'syneva status',
 	'"kind":"question"',
 	'"kind":"review"',
 	// the browser Close: the human can end the workflow (see the closed event)
@@ -78,7 +78,7 @@ const ANCHORS = [
 	'focused review',
 	'mechanical churn skimmed',
 	// desk lifecycle: explicit stop + the idle reaper (abandoned desks must not accumulate)
-	'galley stop',
+	'syneva stop',
 	'auto-exits',
 	'--idle-timeout',
 	// Browser projection and restart notification must stay distinct from the agent event stream.
@@ -102,7 +102,7 @@ void test('SPEC carries every consolidated section', () => {
 	for (const anchor of ANCHORS) {
 		assert.ok(
 			SPEC.includes(anchor),
-			`galley spec is missing the "${anchor}" anchor`,
+			`syneva spec is missing the "${anchor}" anchor`,
 		)
 	}
 })

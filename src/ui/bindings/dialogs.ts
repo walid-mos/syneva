@@ -105,14 +105,14 @@ const CLOSE_SAVE_FLUSH_MS = 800
 const CLOSE_WINDOW_DELAY_MS = 250
 
 // The browser Close: the human ends the whole desk, not just the round. The server tells any
-// parked agent listener ({kind:"closed"}) before exiting, so this is `galley stop` with its
+// parked agent listener ({kind:"closed"}) before exiting, so this is `syneva stop` with its
 // proper paperwork. State is saved continuously; nothing else to hand over.
 function installCloseBinding(): void {
 	// Confirm-first: one click loses the workspace, so the header button routes through the
 	// same destructive-action dialog the ⇧Q hotkey uses.
 	S.confirmClose = () => {
 		askConfirm(
-			'Close the desk? Galley stops; the review state is saved and the agent is told the review ended.',
+			'Close the desk? Syneva stops; the review state is saved and the agent is told the review ended.',
 			() => void S.closeDesk?.(),
 		)
 	}

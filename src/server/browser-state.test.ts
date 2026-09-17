@@ -108,7 +108,7 @@ function review(root: string): ReviewState {
 async function withDesk(
 	run: (url: string, state: ReviewState) => Promise<void>,
 ): Promise<void> {
-	const root = await mkdtemp(path.join(tmpdir(), 'galley-wire-'))
+	const root = await mkdtemp(path.join(tmpdir(), 'syneva-wire-'))
 	execFileSync('git', ['init', '-q'], { cwd: root })
 	execFileSync(
 		'git',

@@ -11,7 +11,7 @@ const iconSymbols = Object.entries(ICON_DATA)
 	)
 	.join('')
 
-export const ICON_SPRITE = `<svg data-galley-icons aria-hidden="true" width="0" height="0" style="position:absolute">${iconSymbols}</svg>`
+export const ICON_SPRITE = `<svg data-syneva-icons aria-hidden="true" width="0" height="0" style="position:absolute">${iconSymbols}</svg>`
 
 let hasInjected = false
 export function ensureIcons(): void {

@@ -28,13 +28,13 @@ const shimPath = fileURLToPath(
 const emptyModule = 'export default {}; export {};'
 // Named-export stub for worker.js's static oniguruma import - never called with 'shiki-js'.
 const onigurumaStubModule =
-	'export function createOnigurumaEngine() { throw new Error("oniguruma wasm engine was stubbed out of galley\'s worker bundle (preferredHighlighter must be shiki-js)") }'
+	'export function createOnigurumaEngine() { throw new Error("oniguruma wasm engine was stubbed out of syneva\'s worker bundle (preferredHighlighter must be shiki-js)") }'
 const fromPierre = importer => importer.includes('@pierre/diffs')
 
 // @pierre/diffs imports shiki v3's full barrel (`from "shiki"`), which statically pulls ~180
 // grammars + a 607 KB inlined oniguruma wasm - a second, near-complete shiki alongside the lean
 // one markdown.ts builds from shiki/core. Reroute ONLY @pierre/diffs' bare `shiki` specifier to a
-// local shim backed by the curated set; Galley's own deep imports (shiki/core, shiki/engine/*,
+// local shim backed by the curated set; Syneva's own deep imports (shiki/core, shiki/engine/*,
 // shiki/dist/*) are left untouched so they keep resolving to the real v4 package. `shiki/wasm`
 // (referenced by @pierre's never-taken oniguruma path) resolves to an empty stub so the wasm
 // engine can't be bundled - the shim forces the JS regex engine regardless.
@@ -56,7 +56,7 @@ const makeShikiShimPlugin = ({ stubOniguruma = false } = {}) => ({
 					: emptyModule,
 		}))
 		// worker.js statically imports `shiki/engine/oniguruma` and only calls it when the pool
-		// was configured with `preferredHighlighter: 'shiki-wasm'` - Galley always pins 'shiki-js'.
+		// was configured with `preferredHighlighter: 'shiki-wasm'` - Syneva always pins 'shiki-js'.
 		// Stub it so the wasm runtime (wasmoon) can't reach the worker bundle; if the path is ever
 		// taken anyway the stub throws loudly rather than rendering silently unhighlighted. Only
 		// the WORKER build needs this: no main-bundle module imports the oniguruma engine.

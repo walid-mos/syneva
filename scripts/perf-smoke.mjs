@@ -37,7 +37,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
 const bigLines = tag =>
 	`${Array.from({ length: 6000 }, (_, i) => `${tag} line ${i}`).join('\n')}\n`
 
-// The desk prints `Galley <session>: http://127.0.0.1:<port>/` to stderr once it's listening.
+// The desk prints `Syneva <session>: http://127.0.0.1:<port>/` to stderr once it's listening.
 // Read that line (accumulating chunks - it can arrive split) and return the origin without the
 // trailing slash, so BASE + "/api/..." is well-formed.
 const waitForDeskUrl = child =>
@@ -131,13 +131,13 @@ async function waitForPoll(base, attemptsLeft) {
 try {
 	// Point HOME at a throwaway dir so the persisted review file lands somewhere we control and
 	// clean up, hermetic like src/server.test.ts.
-	homeDir = mkdtempSync(path.join(tmpdir(), 'galley-perf-home-'))
+	homeDir = mkdtempSync(path.join(tmpdir(), 'syneva-perf-home-'))
 	process.env.HOME = homeDir
 
 	// Throwaway ~1,000-file repo: committed base, then every file edited in the working tree,
 	// plus one oversized generated file (>5000 changed lines), as covered by
 	// the buildDiffSource fixtures in src/diffsource.test.ts.
-	tmp = mkdtempSync(path.join(tmpdir(), 'galley-perf-repo-'))
+	tmp = mkdtempSync(path.join(tmpdir(), 'syneva-perf-repo-'))
 	const git = (...a) => execFileSync('git', a, { cwd: tmp, stdio: 'ignore' })
 	git('init', '-q')
 	git('config', 'user.email', 's@s.dev')
@@ -170,7 +170,7 @@ try {
 		{
 			// stderr piped so we can read the bound URL; stdout ignored.
 			stdio: ['ignore', 'ignore', 'pipe'],
-			env: { ...process.env, GALLEY_NO_UPDATE_CHECK: '1' },
+			env: { ...process.env, SYNEVA_NO_UPDATE_CHECK: '1' },
 		},
 	)
 	BASE = await waitForDeskUrl(desk)
@@ -223,11 +223,11 @@ try {
 		'every file carries a changeKind stamp',
 	)
 
-	// The persisted review file under $HOME/.galley - same content-free bar as /api/state.
-	const [repoHashDir] = readdirSync(path.join(homeDir, '.galley'))
-	const sessionDir = path.join(homeDir, '.galley', repoHashDir, ID)
+	// The persisted review file under $HOME/.syneva - same content-free bar as /api/state.
+	const [repoHashDir] = readdirSync(path.join(homeDir, '.syneva'))
+	const sessionDir = path.join(homeDir, '.syneva', repoHashDir, ID)
 	const persistedName = readdirSync(sessionDir).find(n => n.endsWith('.json'))
-	assert.ok(persistedName, 'a persisted review file exists under ~/.galley')
+	assert.ok(persistedName, 'a persisted review file exists under ~/.syneva')
 	const persistedPath = path.join(sessionDir, persistedName)
 	const persistedBytes = statSync(persistedPath).size
 	budget({
@@ -262,7 +262,7 @@ try {
 		note: '(belt-and-suspenders with the build gate)',
 	})
 
-	// `galley reload` after a working-tree touch.
+	// `syneva reload` after a working-tree touch.
 	writeFileSync(
 		path.join(dirA, 'file-0.txt'),
 		`line one 0 CHANGED AGAIN\nline two 0\nline three 0\n`,

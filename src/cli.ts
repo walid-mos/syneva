@@ -17,19 +17,19 @@ import { currentVersion } from './update.js'
 
 import type { CliArgs } from './cli/args.js'
 
-const HELP = `galley - an integrated review environment (IRE) for code you didn't write by hand.
+const HELP = `syneva - an integrated review environment (IRE) for code you didn't write by hand.
 
 Usage:
-  galley [--diff working|staged]    Review the working-tree (default) or staged diff
-  galley file <path>                Review a single file or artifact (tracked or not)
-  galley pr <ref|number|url>        Review a branch's commits vs its merge-base
-  galley comment --path <f> --line <n> --body "..."   Post an agent reply into the desk
-  galley status --body "..."        Post an ephemeral "what I'm doing" line into the desk
-  galley await [--timeout <s>]      Block for the next desk event (question | review)
-  galley reload [--guide <file>]    Re-diff the working tree into the open desk
+  syneva [--diff working|staged]    Review the working-tree (default) or staged diff
+  syneva file <path>                Review a single file or artifact (tracked or not)
+  syneva pr <ref|number|url>        Review a branch's commits vs its merge-base
+  syneva comment --path <f> --line <n> --body "..."   Post an agent reply into the desk
+  syneva status --body "..."        Post an ephemeral "what I'm doing" line into the desk
+  syneva await [--timeout <s>]      Block for the next desk event (question | review)
+  syneva reload [--guide <file>]    Re-diff the working tree into the open desk
                                     (--guide swaps the attached review guide too)
-  galley stop [--session <id>|--all]  Stop this repo's live desk(s); idempotent
-  galley spec                       Print the full agent contract (modes, loop, ReviewResult, guide schema)
+  syneva stop [--session <id>|--all]  Stop this repo's live desk(s); idempotent
+  syneva spec                       Print the full agent contract (modes, loop, ReviewResult, guide schema)
 
 Common flags:
   --repo <path>     Repo to review (default: cwd)
@@ -44,11 +44,11 @@ Common flags:
   -v, --version     Show version
 
 Env:
-  GALLEY_NO_UPDATE_CHECK=1   Skip the new-version check at desk start
-  GALLEY_HOST=<addr>         Default --host when the flag is absent
-  GALLEY_ALLOWED_HOSTS=a,b   Extra Host authorities to accept when bound beyond loopback
+  SYNEVA_NO_UPDATE_CHECK=1   Skip the new-version check at desk start
+  SYNEVA_HOST=<addr>         Default --host when the flag is absent
+  SYNEVA_ALLOWED_HOSTS=a,b   Extra Host authorities to accept when bound beyond loopback
 
-Docs: https://github.com/ymansurozer/galley`
+Docs: https://github.com/walid-mos/syneva`
 
 // process.argv is [node, script, ...userArgs] - the CLI only ever sees the trailing args.
 const USER_ARG_START_INDEX = 2
@@ -105,7 +105,7 @@ async function runFile(
 	args: CliArgs,
 ): Promise<void> {
 	if (!positional) {
-		warn('Usage: galley file <path>')
+		warn('Usage: syneva file <path>')
 		process.exitCode = 1
 		return
 	}
@@ -114,7 +114,7 @@ async function runFile(
 
 function unknownCommand(sub: string): void {
 	warn(
-		`Unknown command "${sub}". Use: galley | galley file <path> | galley pr <ref|number|url> | comment | status | await | reload | stop | spec.`,
+		`Unknown command "${sub}". Use: syneva | syneva file <path> | syneva pr <ref|number|url> | comment | status | await | reload | stop | spec.`,
 	)
 	process.exitCode = 1
 }
@@ -136,9 +136,9 @@ async function runMain(): Promise<void> {
 	}
 }
 
-// Run only when executed as the bin (`galley` / `node dist/cli.js`), not when cli.test.ts
+// Run only when executed as the bin (`syneva` / `node dist/cli.js`), not when cli.test.ts
 // imports this module to reach deskAlive() - otherwise import alone would launch a desk. npm
-// installs the bin as a SYMLINK (.bin/galley -> dist/cli.js); Node resolves import.meta.url
+// installs the bin as a SYMLINK (.bin/syneva -> dist/cli.js); Node resolves import.meta.url
 // through the symlink to the real path, but leaves process.argv[1] as the symlink path - so
 // argv[1] must be realpath'd before comparing, or the guard never fires under the published
 // bin and the CLI silently no-ops. try/catch guards a dangling/unusual argv[1].

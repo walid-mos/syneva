@@ -5,11 +5,11 @@ export type ServerOptions = {
 	state: ReviewState
 	port?: number
 	// Bind address. Defaults to 127.0.0.1 (loopback-only) - the desk stays local unless explicitly
-	// opted into a broader bind (--host / GALLEY_HOST). See resolveBinding for how this shapes the
+	// opted into a broader bind (--host / SYNEVA_HOST). See resolveBinding for how this shapes the
 	// origin guard, the printed URL, and the lock-file URL.
 	host?: string
 	// Extra host names (beyond the machine's hostname/bound address) whose authority the origin guard
-	// trusts when bound non-loopback - GALLEY_ALLOWED_HOSTS, for exotic names like a MagicDNS FQDN.
+	// trusts when bound non-loopback - SYNEVA_ALLOWED_HOSTS, for exotic names like a MagicDNS FQDN.
 	allowedHosts?: string[]
 	open?: boolean
 	// Test seam: lets server.test.ts assert the resolved editor invocation without
@@ -37,5 +37,5 @@ export type ServerHandle = {
 	lockUrl: string
 }
 
-// The bind address when --host / GALLEY_HOST says nothing.
+// The bind address when --host / SYNEVA_HOST says nothing.
 export const DEFAULT_HOST = '127.0.0.1'

@@ -30,7 +30,7 @@ export function fileThreadMeta(): ThreadMeta | null {
 	}
 }
 
-// Is the whole-file comment worth surfacing on this desk? A single-file desk (`galley file
+// Is the whole-file comment worth surfacing on this desk? A single-file desk (`syneva file
 // <path>`) puts every comment on the one file already, so a file-level scope adds nothing -
 // the trigger hides there (any existing whole-file threads keep rendering).
 export function fileCommentsEnabled(): boolean {

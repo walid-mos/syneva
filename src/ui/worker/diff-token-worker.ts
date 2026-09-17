@@ -1,5 +1,5 @@
 import { renderDiffWithHighlighter } from '@pierre/diffs'
-// Galley's own tokenization worker entry. @pierre's worker script tokenizes a whole diff per
+// Syneva's own tokenization worker entry. @pierre's worker script tokenizes a whole diff per
 // task (~2 ms per line-unit; a 16k-line file costs tens of seconds in one structured clone);
 // this one splits a diff into windows (a task carries a slot range plus its hunk slice),
 // builds the structural slice (hunk clones, context segments clipped - no jsdiff, no re-parse)
@@ -137,7 +137,7 @@ async function adoptRenderOptions(
 		engine: createJavaScriptRegexEngine(),
 	})
 	// The worker only ever loads RESOLVED data (the manager resolves theme/grammar JSON through
-	// galley's curated shim and ships the result) - no language loader ever runs worker-side.
+	// syneva's curated shim and ships the result) - no language loader ever runs worker-side.
 	for (const theme of themes) highlighter.loadThemeSync(theme)
 	attachLanguages(highlighter, languages)
 	renderOptions = options

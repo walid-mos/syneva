@@ -43,7 +43,7 @@ function fakeDesk(): DeskConnection {
 		repo: '/repo',
 		session: 'review',
 		url: 'http://127.0.0.1:47121/',
-		directory: '/galley/review',
+		directory: '/syneva/review',
 	}
 }
 
@@ -69,7 +69,7 @@ function fakeIo(behavior: {
 }
 
 async function writeEventFile(questions: unknown[]): Promise<string> {
-	const dir = await mkdtemp(path.join(tmpdir(), 'galley-event-'))
+	const dir = await mkdtemp(path.join(tmpdir(), 'syneva-event-'))
 	const file = path.join(dir, 'pi-event-x.json')
 	await writeFile(file, JSON.stringify({ kind: 'question', questions }))
 	return file
@@ -103,12 +103,12 @@ void test('review events wake the owner; the wake text is router-free', () => {
 	assert.equal(delivered.length, 1)
 	const text = delivered[0] ?? ''
 	assert.match(text, /\/events\/review\.json/)
-	assert.match(text, /follow galley spec/)
+	assert.match(text, /follow syneva spec/)
 	assert.match(
 		text,
-		/act on the feedback in this session, then galley reload/,
+		/act on the feedback in this session, then syneva reload/,
 	)
-	assert.match(text, /galley_agent \{action:'detach'\}/)
+	assert.match(text, /syneva_agent \{action:'detach'\}/)
 	// The child-routing instructions left with the old contract.
 	assert.doesNotMatch(text, /NEVER answer a question/)
 	assert.match(text, /answered automatically by the desk correspondent/i)
@@ -128,7 +128,7 @@ void test('a correspondent failure adds an actionable fallback to the owner wake
 		text,
 		/correspondent failure: the desk correspondent failed \(boom\)/,
 	)
-	assert.match(text, /answer the questions yourself with galley comment/i)
+	assert.match(text, /answer the questions yourself with syneva comment/i)
 	assert.match(text, /VERBATIM/)
 })
 
@@ -231,7 +231,7 @@ async function expectFallbackWake(
 	assert.match(text, /correspondent failure:/, label)
 	assert.match(
 		text,
-		/answer the questions yourself with galley comment/i,
+		/answer the questions yourself with syneva comment/i,
 		label,
 	)
 	assert.match(text, /VERBATIM/, label)
@@ -424,7 +424,7 @@ void test('reload restores the same owner but forks cannot inherit the parent li
 	const entries = [
 		{
 			type: 'custom',
-			customType: 'galley-attachment',
+			customType: 'syneva-attachment',
 			data: { owner: 'parent', target: { repo: '/repo', session: 's' } },
 		},
 	]
@@ -439,12 +439,12 @@ void test('explicit detach prevents a later resume from resurrecting the listene
 	const entries = [
 		{
 			type: 'custom',
-			customType: 'galley-attachment',
+			customType: 'syneva-attachment',
 			data: { owner: 'parent', target: { repo: '/repo', session: 's' } },
 		},
 		{
 			type: 'custom',
-			customType: 'galley-attachment',
+			customType: 'syneva-attachment',
 			data: { owner: 'parent', target: undefined },
 		},
 	]

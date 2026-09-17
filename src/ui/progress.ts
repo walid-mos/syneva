@@ -12,7 +12,7 @@ const COUNT_UP_MS = 450
 const EASE_POWER = 3
 const FULL_PERCENT = 100
 
-// Tab title carries progress too ("(58%) Galley - repo"), so it reads from other tabs.
+// Tab title carries progress too ("(58%) Syneva - repo"), so it reads from other tabs.
 // main.ts names the base title at init; updateProgress stamps the prefix.
 let baseTitle = document.title
 export function setBaseTitle(title: string): void {

@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { hash, sanitizeSession } from './identity.js'
 
-const GALLEY_DIR = '.galley'
+const SYNEVA_DIR = '.syneva'
 const SETTINGS_FILE = 'settings.json'
 const DESK_LOCK_FILE = 'desk.lock'
 const JSON_INDENT = 2
@@ -26,7 +26,7 @@ export function homeDir(fallback: string): string {
 	return fallback
 }
 
-// Where a desk's reviews for one repo+session live: ~/.galley/<repo hash>/<session>. Created on
+// Where a desk's reviews for one repo+session live: ~/.syneva/<repo hash>/<session>. Created on
 // demand - every writer of a review or a lock starts here.
 export async function reviewDir(
 	root: string,
@@ -34,7 +34,7 @@ export async function reviewDir(
 ): Promise<string> {
 	const dir = path.join(
 		homeDir(root),
-		GALLEY_DIR,
+		SYNEVA_DIR,
 		hash(root),
 		sanitizeSession(session),
 	)
@@ -75,9 +75,9 @@ function isDeskProcessAlive(pid: number): boolean {
 // Live desks for this repo (across all sessions), used to auto-target
 // await/comment/reload when --session isn't given. A lock whose pid is dead is
 // debris from a crash/SIGKILL (only a clean exit unlinks it) - sweep it here so
-// stale locks don't accumulate under ~/.galley across sessions.
+// stale locks don't accumulate under ~/.syneva across sessions.
 export async function findLiveDesks(root: string): Promise<DeskLock[]> {
-	const base = path.join(homeDir(root), GALLEY_DIR, hash(root))
+	const base = path.join(homeDir(root), SYNEVA_DIR, hash(root))
 	const sessions = await fs.readdir(base).catch(() => [])
 	const locks = await Promise.all(
 		sessions.map(session => readLiveDesk(root, session)),
@@ -100,11 +100,11 @@ async function readLiveDesk(
 	return null
 }
 
-// Global display preferences (~/.galley/settings.json) - deliberately NOT per-repo or
+// Global display preferences (~/.syneva/settings.json) - deliberately NOT per-repo or
 // per-session: these are the reviewer's, and the desk's random port makes browser
 // localStorage useless for them (origin changes every launch).
 export function globalSettingsPath(): string {
-	return path.join(homeDir(process.cwd()), GALLEY_DIR, SETTINGS_FILE)
+	return path.join(homeDir(process.cwd()), SYNEVA_DIR, SETTINGS_FILE)
 }
 
 export async function readGlobalSettings(): Promise<Record<string, unknown>> {

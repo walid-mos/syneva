@@ -21,7 +21,7 @@ export type PollWithStatus = PollPayload & Partial<DeskStatus>
 export const POLL_INTERVAL_MS = 1500
 
 // Consecutive unreachable polls before the tab declares the desk gone (human Close, agent
-// `galley stop`, crash). One miss is a tick of load jitter; three ≈ 4.5s of silence is closure.
+// `syneva stop`, crash). One miss is a tick of load jitter; three ≈ 4.5s of silence is closure.
 const DESK_GONE_TICKS = 3
 
 let serverInstanceId: string | undefined
@@ -105,7 +105,7 @@ async function pollOnce(): Promise<PollPayload | BrowserRefreshEvent | null> {
 		updateAwaitingDom()
 		return lite
 	} catch {
-		// The desk stopped answering (Close, `galley stop`, crash): a cover says so once the
+		// The desk stopped answering (Close, `syneva stop`, crash): a cover says so once the
 		// misses outlast a plausible jitter window. Clearing on the next success covers a
 		// same-origin restart racing the detection.
 		missedPolls++

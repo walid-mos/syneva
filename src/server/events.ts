@@ -11,7 +11,7 @@ export type EventStream = {
 	queuedCounts(): { questions: number; reviews: number }
 }
 
-// The desk's tagged event stream: `galley await` is a stream of "question" (reviewer clicked Ask,
+// The desk's tagged event stream: `syneva await` is a stream of "question" (reviewer clicked Ask,
 // wants an answer now) and "review" (reviewer hit Send). An event hands straight to a parked waiter,
 // else queues (FIFO) until one arms.
 //

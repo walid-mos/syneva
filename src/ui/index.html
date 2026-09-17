@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
-		<title>Galley</title>
+		<title>Syneva</title>
 		<link
 			rel="icon"
 			type="image/svg+xml"
@@ -3496,7 +3496,7 @@
 								<feGaussianBlur stdDeviation="4.6505" />
 							</filter>
 						</defs></svg
-					><span>Galley</span>
+					><span>Syneva</span>
 				</div>
 				<div class="toggles">
 					<div
@@ -3568,7 +3568,7 @@
 						<kbd>⇧S</kbd></button
 					><button
 						class="btn danger"
-						data-tip="Close Galley - stop the desk (⇧Q)"
+						data-tip="Close Syneva - stop the desk (⇧Q)"
 						@click="$store.g.confirmClose()"
 					>
 						Close
@@ -3600,13 +3600,13 @@
 				<div class="desk-closed-card">
 					<strong>Desk closed.</strong>
 					<p>
-						The Galley desk stopped. All review state is saved on
+						The Syneva desk stopped. All review state is saved on
 						disk; the attached agent was told the review ended.
 					</p>
 					<p>
 						Reopen it in the repo with
 						<code
-							x-text="'galley --session ' + ($store.g.state ? $store.g.state.session : '')"
+							x-text="'syneva --session ' + ($store.g.state ? $store.g.state.session : '')"
 						></code>
 						.
 					</p>

@@ -1,4 +1,4 @@
-export const DOCS = 'Run `galley spec` for the full agent contract.'
+export const DOCS = 'Run `syneva spec` for the full agent contract.'
 
 // The wire shape of an error response, and the only place a route failure is described. `fix`
 // is what the agent-facing callers act on, so it must say what to do next.

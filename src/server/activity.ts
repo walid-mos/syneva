@@ -2,7 +2,7 @@ import { nowIso } from '../state/identity.js'
 
 import type { AgentActivity } from '../types.js'
 
-// The `galley status` line is a one-liner; anything longer is a client bug, not a message.
+// The `syneva status` line is a one-liner; anything longer is a client bug, not a message.
 export const MAX_ACTIVITY_CHARS = 200
 
 export type DeskActivity = {
@@ -11,7 +11,7 @@ export type DeskActivity = {
 	read(): AgentActivity | null
 }
 
-// Ephemeral "what the agent is doing now" line (`galley status`). Lives only in this process -
+// Ephemeral "what the agent is doing now" line (`syneva status`). Lives only in this process -
 // never on `state`, which persistReview serializes verbatim. Staleness is checked on read (no
 // timers): a crashed agent's last line must not show as live activity forever. An agent comment
 // clears it - the reply the reviewer waited for has landed, so the line is obsolete.

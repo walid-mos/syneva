@@ -21,20 +21,20 @@ export function wakeDeskOwner(
 ): void {
 	pi.sendMessage(
 		{
-			customType: 'galley-event',
+			customType: 'syneva-event',
 			content: [
-				`Galley feedback for repo ${JSON.stringify(target.repo)}, session ${JSON.stringify(target.session)}.`,
-				`Read the complete event at ${JSON.stringify(eventPath)} and follow galley spec (read it once per session).`,
+				`Syneva feedback for repo ${JSON.stringify(target.repo)}, session ${JSON.stringify(target.session)}.`,
+				`Read the complete event at ${JSON.stringify(eventPath)} and follow syneva spec (read it once per session).`,
 				'Questions on this desk are answered automatically by the desk correspondent; do not answer them in this session. This wake is for a review event (or a correspondent failure):',
-				'- review events: act on the feedback in this session, then galley reload.',
-				"- closed events: detach with galley_agent {action:'detach'} and return control - the human closed the review; restart the desk never.",
+				'- review events: act on the feedback in this session, then syneva reload.',
+				"- closed events: detach with syneva_agent {action:'detach'} and return control - the human closed the review; restart the desk never.",
 				...(extra
 					? [
-							`- correspondent failure: ${extra}. Answer the questions yourself with galley comment,`,
+							`- correspondent failure: ${extra}. Answer the questions yourself with syneva comment,`,
 							"posting each answer VERBATIM at the question's own path/line/side; answering is READ-ONLY.",
 						]
 					: []),
-				'The native listener stays attached across turns. Never launch galley await or a child whose job is to wait. Return control after handling feedback; further events wake this session automatically.',
+				'The native listener stays attached across turns. Never launch syneva await or a child whose job is to wait. Return control after handling feedback; further events wake this session automatically.',
 			].join('\n'),
 			display: true,
 			details: { ...target, eventPath },

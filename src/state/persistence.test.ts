@@ -12,7 +12,7 @@ import type { ReviewState } from '../types.js'
 // ── Lean persistence (issue 04) ──────────────────────────────────────────────
 
 void test('writeFileAtomic writes the content and leaves no temp file behind', async () => {
-	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'galley-atomic-'))
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'syneva-atomic-'))
 	try {
 		const target = path.join(dir, 'review.json')
 		await writeFileAtomic(target, '{"ok":true}\n')
@@ -30,7 +30,7 @@ void test('writeFileAtomic writes the content and leaves no temp file behind', a
 })
 
 void test('persistReview writes a lean review - no file contents on disk', async () => {
-	const home = await fs.mkdtemp(path.join(os.tmpdir(), 'galley-persist-'))
+	const home = await fs.mkdtemp(path.join(os.tmpdir(), 'syneva-persist-'))
 	const oldHome = process.env.HOME
 	process.env.HOME = home
 	try {

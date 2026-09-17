@@ -74,7 +74,7 @@ function samePaths(current: string[], next: string[]): boolean {
 	)
 }
 
-// Display preferences, stored globally in ~/.galley/settings.json - the desk's random port makes
+// Display preferences, stored globally in ~/.syneva/settings.json - the desk's random port makes
 // browser localStorage (per-origin) useless for them.
 export async function serveSettings({ res }: RouteRequest): Promise<void> {
 	json(res, HTTP_OK, await readGlobalSettings())

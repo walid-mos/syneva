@@ -102,7 +102,7 @@ export function loadGuideArg(
 		)
 		return null
 	}
-	const SCHEMA = 'Run `galley spec` for the full guide schema.'
+	const SCHEMA = 'Run `syneva spec` for the full guide schema.'
 	let parsed: unknown
 	try {
 		parsed = JSON.parse(readFileSync(guideFlag, 'utf8'))
@@ -120,7 +120,7 @@ export function loadGuideArg(
 	return validation.guide
 }
 
-// A `galley pr <ref>` target is a PR number (`123`) or a GitHub PR URL when it matches these;
+// A `syneva pr <ref>` target is a PR number (`123`) or a GitHub PR URL when it matches these;
 // anything else is treated as a plain branch name (the original behavior).
 export function isPrRef(ref: string): boolean {
 	return (

@@ -1,14 +1,14 @@
 /**
- * Galley pi extension.
+ * Syneva pi extension.
  *
- * Makes this package's `galley` CLI available to agent sessions with zero
+ * Makes this package's `syneva` CLI available to agent sessions with zero
  * global package-manager state:
  * - verifies `dist/cli.js` exists (runs a one-shot build if missing),
- * - keeps a `galley` shim in `~/.pi/agent/bin` (first directory on PATH)
+ * - keeps a `syneva` shim in `~/.pi/agent/bin` (first directory on PATH)
  *   pointing at this checkout, so prompts, skills, shells, and terminals
- *   can all invoke plain `galley`.
- * - registers a `/galley` status command for quick health checks,
- * - registers galley_agent: a session-owned listener that wakes this Pi session
+ *   can all invoke plain `syneva`.
+ * - registers a `/syneva` status command for quick health checks,
+ * - registers syneva_agent: a session-owned listener that wakes this Pi session
  *   for questions and completed reviews without a one-shot waiting child.
  *
  * Desks still start via the CLI. Listener resources start only on explicit
@@ -33,14 +33,14 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const CLI = join(PACKAGE_ROOT, 'dist', 'cli.js')
 const BIN_DIR = join(homedir(), '.pi', 'agent', 'bin')
-const SHIM = join(BIN_DIR, 'galley')
+const SHIM = join(BIN_DIR, 'syneva')
 // Both the create mode and the explicit chmod need the shim to stay executable.
 const SHIM_MODE = 0o755
 
 function shimBody(): string {
 	return [
 		'#!/bin/sh',
-		'# galley - pi package shim; owned by the galley pi extension (idempotent).',
+		'# syneva - pi package shim; owned by the syneva pi extension (idempotent).',
 		`exec node ${JSON.stringify(CLI)} "$@"`,
 		'',
 	].join('\n')
@@ -85,24 +85,24 @@ function setup(): Report {
 	return { version, shim, cli: CLI }
 }
 
-export default function registerGalleyExtension(pi: ExtensionAPI): void {
+export default function registerSynevaExtension(pi: ExtensionAPI): void {
 	registerDeskBridge(pi)
 	let report: Report | undefined
 	try {
 		report = setup()
 	} catch (error) {
 		process.stderr.write(
-			`[galley-pi] setup failed: ${error instanceof Error ? error.message : String(error)} - ` +
-				`the /review and /plan prompts still work; they fall back to "pnpm add -g galley-diff".\n`,
+			`[syneva-pi] setup failed: ${error instanceof Error ? error.message : String(error)} - ` +
+				`the /review and /plan prompts still work; they fall back to "pnpm add -g syneva".\n`,
 		)
 	}
-	pi.registerCommand('galley', {
-		description: 'Galley review desk status - CLI, shim, package paths',
+	pi.registerCommand('syneva', {
+		description: 'Syneva review desk status - CLI, shim, package paths',
 		handler: async (_args, ctx) => {
 			ctx.ui.notify(
 				report
-					? `galley v${report.version} - shim: ${SHIM} (${report.shim}) - cli: ${report.cli}`
-					: 'galley setup failed - see pi startup stderr',
+					? `syneva v${report.version} - shim: ${SHIM} (${report.shim}) - cli: ${report.cli}`
+					: 'syneva setup failed - see pi startup stderr',
 				report ? 'info' : 'warning',
 			)
 		},

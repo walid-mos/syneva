@@ -32,7 +32,7 @@ export type Binding = {
 // URLs on 127.0.0.1 - byte-for-byte the pre-flag behavior. A wildcard bind (0.0.0.0/::) advertises
 // the machine's hostname to the browser but keeps the lock on loopback (still reachable). A specific
 // non-loopback bind can't be reached over loopback, so both URLs use that exact address. os.hostname()
-// and any GALLEY_ALLOWED_HOSTS (a MagicDNS FQDN differs from the short hostname) widen the guard.
+// and any SYNEVA_ALLOWED_HOSTS (a MagicDNS FQDN differs from the short hostname) widen the guard.
 export function resolveBinding(
 	host: string,
 	hostname: string,
@@ -63,9 +63,9 @@ export function resolveBinding(
 // diff off-machine (the dropped wildcard CORS). The Host check defeats DNS-rebinding - a rebinding
 // attack arrives with the attacker's hostname in Host - so only the desk's own authorities pass.
 // `allowedHosts` is the loopback set by default (a loopback bind), EXTENDED with the machine's
-// hostname / bound address / GALLEY_ALLOWED_HOSTS when bound beyond loopback (see resolveBinding),
+// hostname / bound address / SYNEVA_ALLOWED_HOSTS when bound beyond loopback (see resolveBinding),
 // never widened otherwise. The Origin check blocks cross-site POSTs; header-less callers (curl and
-// the `galley await`/`comment`/`reload`/`status` CLI, which target 127.0.0.1 and send no Origin) stay
+// the `syneva await`/`comment`/`reload`/`status` CLI, which target 127.0.0.1 and send no Origin) stay
 // allowed. Returns false once it has answered 403.
 export function originAllowed(
 	req: IncomingMessage,

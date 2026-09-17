@@ -16,7 +16,7 @@ import {
 import { sanitizeSession, stablePort } from './identity.js'
 
 void test('global settings: write→read round-trip; missing and corrupt files read as {}', async () => {
-	const home = await fs.mkdtemp(path.join(os.tmpdir(), 'galley-settings-'))
+	const home = await fs.mkdtemp(path.join(os.tmpdir(), 'syneva-settings-'))
 	const prevHome = process.env.HOME
 	const prevProfile = process.env.USERPROFILE
 	process.env.HOME = home
@@ -41,7 +41,7 @@ void test('global settings: write→read round-trip; missing and corrupt files r
 })
 
 void test('findLiveDesks sweeps locks whose pid is dead and keeps live ones', async () => {
-	const home = await fs.mkdtemp(path.join(os.tmpdir(), 'galley-locks-'))
+	const home = await fs.mkdtemp(path.join(os.tmpdir(), 'syneva-locks-'))
 	const prevHome = process.env.HOME
 	const prevProfile = process.env.USERPROFILE
 	process.env.HOME = home

@@ -80,15 +80,15 @@ void test('postReload posts {} without a guide and the guide verbatim with one',
 	}
 })
 
-// Regression: npm installs the published bin as a SYMLINK (.bin/galley -> dist/cli.js). Node
+// Regression: npm installs the published bin as a SYMLINK (.bin/syneva -> dist/cli.js). Node
 // resolves import.meta.url through the symlink to cli.ts's real path, but leaves
 // process.argv[1] as the symlink path - an entry-point guard that compares the two directly
 // (no realpath) never fires under a symlinked invocation, and the CLI silently no-ops (exits 0,
 // no output). Reproduce that exact shape here: symlink to the real src/cli.ts and run it through
 // `node --import tsx` the same way the built bin runs through node directly.
 void test('running cli.ts through a symlink (npm bin shape) still runs main()', async () => {
-	const dir = await mkdtemp(path.join(tmpdir(), 'galley-cli-symlink-'))
-	const link = path.join(dir, 'galley')
+	const dir = await mkdtemp(path.join(tmpdir(), 'syneva-cli-symlink-'))
+	const link = path.join(dir, 'syneva')
 	const cliPath = fileURLToPath(new URL('./cli.ts', import.meta.url))
 	try {
 		await symlink(cliPath, link)
@@ -102,7 +102,7 @@ void test('running cli.ts through a symlink (npm bin shape) still runs main()', 
 		assert.equal(helpRun.status, 0)
 		assert.match(
 			helpRun.stdout,
-			/galley - an integrated review environment/,
+			/syneva - an integrated review environment/,
 		)
 	} finally {
 		await rm(dir, { recursive: true, force: true })

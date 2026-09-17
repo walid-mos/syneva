@@ -31,12 +31,12 @@ type CommentPayload = {
 }
 
 const COMMENT_USAGE =
-	'Usage: galley comment --path <file> --line <n> [--side additions|deletions] --body "..."\n' +
+	'Usage: syneva comment --path <file> --line <n> [--side additions|deletions] --body "..."\n' +
 	'       (--line 0 replies into the file header thread; omit --side there) [--session <id>] [--repo <path>]'
 const STATUS_USAGE =
-	'Usage: galley status --body "..." [--session <id>] [--repo <path>]'
+	'Usage: syneva status --body "..." [--session <id>] [--repo <path>]'
 
-// `galley comment --path <file> --line <n> [--side additions] --body "..."`
+// `syneva comment --path <file> --line <n> [--side additions] --body "..."`
 // Posts an agent reply. If a live desk is running for the session, it goes over
 // HTTP so the open tab updates immediately; otherwise it is appended to the
 // saved review for the next time the desk opens.
@@ -84,7 +84,7 @@ function parseCommentPayload(args: CliArgs): CommentPayload | null {
 	}
 }
 
-// `galley status --body "..."` - post an ephemeral "what I'm doing now" line that
+// `syneva status --body "..."` - post an ephemeral "what I'm doing now" line that
 // shows next to the reviewer's waiting indicator. Unlike comment there is no
 // offline fallback: ephemeral status is meaningless without a live desk, and it
 // must never fail the agent loop - no desk just reports { live: false }, exit 0.
@@ -116,7 +116,7 @@ type StopOutcome =
 	| { kind: 'unreachable'; session: string; pid: number }
 	| { kind: 'swept'; session: string }
 
-// `galley stop [--session <id> | --all]` - shut down this repo's live desk(s). Idempotent:
+// `syneva stop [--session <id> | --all]` - shut down this repo's live desk(s). Idempotent:
 // exit 0 whether or not anything was running, so agents can call it unconditionally when a
 // review session ends. Shutdown goes over HTTP (the desk exits after acking, removing its
 // own lock) - never a bare kill(pid), which risks PID reuse. A lock whose pid is dead is
@@ -167,18 +167,18 @@ function isProcessAlive(pid: number): boolean {
 	}
 }
 
-// `galley await --session <id>` - block until the next desk event, then print it
+// `syneva await --session <id>` - block until the next desk event, then print it
 // to stdout as a tagged envelope and exit. The event is either
 //   {"kind":"question","question":{path,lineNumber,side,body,mode,session}}  - answer it now
 //   {"kind":"review","result":{…ReviewResult…}}                              - the reviewer hit Send
-// Call in a loop and branch on `kind`. Answer a question with `galley comment`.
+// Call in a loop and branch on `kind`. Answer a question with `syneva comment`.
 export async function runAwait(args: CliArgs): Promise<void> {
 	const root = await resolveRoot(args)
 	const session = await resolveActionSession(root, args)
 	const lock = await readDeskLock(root, session)
 	if (!lock) {
 		warn(
-			`No live desk for session "${session}". Start it with: galley --session ${session}`,
+			`No live desk for session "${session}". Start it with: syneva --session ${session}`,
 		)
 		process.exitCode = 1
 		return
@@ -186,7 +186,7 @@ export async function runAwait(args: CliArgs): Promise<void> {
 	const response = await httpGetJson(awaitUrl(lock.url, args))
 	if (response.status === NO_CONTENT || !response.body) {
 		// A timed-out wait (204) leaves the loop alive; a dead/unreachable desk must NOT
-		// return empty-and-0, or the spec's `while ev=$(galley await)` loop would spin
+		// return empty-and-0, or the spec's `while ev=$(syneva await)` loop would spin
 		// against a corpse - exit non-zero so the caller re-checks liveness instead.
 		if (response.status !== NO_CONTENT) {
 			warn(
@@ -211,7 +211,7 @@ function awaitUrl(deskUrl: string, args: CliArgs): string {
 	return timeout > 0 ? `${base}?timeout=${timeout}` : base
 }
 
-// `galley reload --session <id> [--guide <file>]` - re-diff the working tree into the
+// `syneva reload --session <id> [--guide <file>]` - re-diff the working tree into the
 // live desk so the agent's edits show up in the open tab without a restart; --guide
 // swaps the attached review guide in the same round-trip.
 export async function runReload(args: CliArgs): Promise<void> {
@@ -220,7 +220,7 @@ export async function runReload(args: CliArgs): Promise<void> {
 	const lock = await readDeskLock(root, session)
 	if (!lock) {
 		warn(
-			`No live desk for session "${session}" to reload. Start it with: galley --session ${session}`,
+			`No live desk for session "${session}" to reload. Start it with: syneva --session ${session}`,
 		)
 		process.exitCode = 1
 		return

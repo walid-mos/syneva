@@ -23,7 +23,7 @@ import type { WalkRow } from './walkthrough'
 export type Side = 'additions' | 'deletions'
 export type DiffStyle = 'split' | 'unified'
 
-// User preferences (persisted to ~/.galley/settings.json via /api/settings), applied live.
+// User preferences (persisted to ~/.syneva/settings.json via /api/settings), applied live.
 // diffStyle stays separate (its own toolbar toggle); these are the rest of the settings panel.
 export type Settings = {
 	lineDiffType: 'word-alt' | 'word' | 'char' | 'none'

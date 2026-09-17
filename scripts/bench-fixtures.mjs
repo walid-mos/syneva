@@ -35,7 +35,7 @@ const rewriteLines = (text, share, salt) => {
 		.join('\n')
 }
 
-// Fully rewritten file (every line): galley's worst parse path while still small enough to
+// Fully rewritten file (every line): syneva's worst parse path while still small enough to
 // render (2,400 lines * 2 sides < the 5,000 changed-line stamp).
 const fullyUpdated = n =>
 	Array.from(
@@ -133,6 +133,6 @@ export function buildFixtures(root) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-	const root = path.join('/tmp', 'galley-bench', 'repos')
+	const root = path.join('/tmp', 'syneva-bench', 'repos')
 	console.log(buildFixtures(root).join('\n'))
 }

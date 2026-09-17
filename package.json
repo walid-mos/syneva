@@ -1,5 +1,5 @@
 {
-  "name": "galley-diff",
+  "name": "syneva",
   "version": "0.7.4",
   "description": "An integrated review environment (IRE) for code you didn't write by hand — review a git diff in the browser, then hand a structured review back to your coding agent.",
   "keywords": [
@@ -12,15 +12,18 @@
     "cli",
     "pi-package"
   ],
-  "homepage": "https://github.com/ymansurozer/galley#readme",
+  "homepage": "https://github.com/walid-mos/syneva#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ymansurozer/galley.git"
+    "url": "git+https://github.com/walid-mos/syneva.git"
   },
   "bugs": {
-    "url": "https://github.com/ymansurozer/galley/issues"
+    "url": "https://github.com/walid-mos/syneva/issues"
   },
-  "author": "Yusuf Mansur Özer",
+  "author": "Walid Mostefaoui",
+  "contributors": [
+    "Yusuf Mansur Özer"
+  ],
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.33.2",
@@ -38,7 +41,7 @@
       "extensions"
     ],
     "skills": [
-      "skills/galley"
+      "skills/syneva"
     ],
     "prompts": [
       "prompts"
@@ -50,7 +53,7 @@
     }
   },
   "bin": {
-    "galley": "./dist/cli.js"
+    "syneva": "./dist/cli.js"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

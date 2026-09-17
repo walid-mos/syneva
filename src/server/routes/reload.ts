@@ -30,6 +30,6 @@ function invalidGuide(reason: string): ApiFailure {
 		status: HTTP_UNPROCESSABLE,
 		code: 'INVALID_GUIDE',
 		error: `Invalid guide: ${reason}.`,
-		fix: 'Run `galley spec` for the guided-review schema.',
+		fix: 'Run `syneva spec` for the guided-review schema.',
 	}
 }

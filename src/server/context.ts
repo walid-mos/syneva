@@ -64,7 +64,7 @@ export function createDeskContext(
 		// a file) stitched from two snapshots - a baseDiffHash that no longer agrees with the
 		// decisions/changes beside it, or a reviewer save silently overwritten by a reload built from
 		// a pre-save snapshot. This is the exact window the two-actor design opens (an agent calls
-		// `galley reload` while the reviewer hits Send). Read-only routes (/api/state, /api/poll,
+		// `syneva reload` while the reviewer hits Send). Read-only routes (/api/state, /api/poll,
 		// /api/file*, /api/tree) stay OUTSIDE the queue, and the /api/await-send long-poll MUST stay
 		// out - it parks for the length of a round, so serializing it would wedge every mutation
 		// behind a waiter that only a mutation releases.

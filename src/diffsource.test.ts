@@ -30,7 +30,7 @@ const contentsOf = (
 	readFileContents(state({ root: repoDir, ...over }), file)
 
 before(() => {
-	root = mkdtempSync(path.join(tmpdir(), 'galley-ds-'))
+	root = mkdtempSync(path.join(tmpdir(), 'syneva-ds-'))
 	git(['init', '-q'])
 	git(['config', 'user.email', 't@t.co'])
 	git(['config', 'user.name', 'tester'])
@@ -185,7 +185,7 @@ void test('repo mode: staged diff ignores untracked files', async () => {
 // and so we can force `diff.renames=false` - proving detection rides our explicit -M, not config.
 
 function freshRepo(isRenamesOff: boolean): { dir: string; main: string } {
-	const dir = mkdtempSync(path.join(tmpdir(), 'galley-rn-'))
+	const dir = mkdtempSync(path.join(tmpdir(), 'syneva-rn-'))
 	const g = (args: string[]): string =>
 		execFileSync('git', args, { cwd: dir }).toString()
 	g(['init', '-q'])
@@ -456,7 +456,7 @@ const longBody = (tag: string): string =>
 	`${Array.from({ length: 6000 }, (_, i) => `${tag} line ${i}`).join('\n')}\n`
 
 void test('buildDiffSource stamps oversized on a large-diff file, not on ordinary ones (issue 05)', async () => {
-	const dir = mkdtempSync(path.join(tmpdir(), 'galley-oversized-'))
+	const dir = mkdtempSync(path.join(tmpdir(), 'syneva-oversized-'))
 	const repo = (args: string[]): void => {
 		execFileSync('git', args, { cwd: dir, stdio: 'ignore' })
 	}

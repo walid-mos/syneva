@@ -2,7 +2,7 @@ import type { FileDiffMetadata } from '@pierre/diffs'
 import type { Side } from './types'
 
 // ── Raw ↔ display line mapping ───────────────────────────────────────────────
-// Galley keeps every persisted anchor (decisions, comments, ChangeState) in RAW
+// Syneva keeps every persisted anchor (decisions, comments, ChangeState) in RAW
 // coordinates: line numbers in the actual old/new file, as the unresolved diff
 // numbers them. But the rendered diff is the *replayed* one, and @pierre's
 // resolveRegion renumbers it on every resolution: an accepted block's additions

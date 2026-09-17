@@ -6,7 +6,7 @@
 // shiki-themes.ts) built on shiki/core (v4) with the JavaScript regex engine - no wasm, no unused
 // grammars.
 //
-// Galley's own deep imports (shiki/core, shiki/engine/javascript, shiki/dist/*) are NOT rerouted
+// Syneva's own deep imports (shiki/core, shiki/engine/javascript, shiki/dist/*) are NOT rerouted
 // here - only @pierre/diffs' bare `shiki` specifier is.
 import {
 	codeToHtml,
@@ -53,7 +53,7 @@ export function createHighlighter(options: {
 }
 
 // Never reached in practice: every @pierre code path defaults preferredHighlighter to "shiki-js"
-// (the JS regex engine) and Galley never overrides it. But shared_highlighter.js statically
+// (the JS regex engine) and Syneva never overrides it. But shared_highlighter.js statically
 // references this symbol, so we must export it - and we force the JS engine rather than throw, so
 // even a hypothetical "shiki-wasm" selection keeps working without pulling the oniguruma wasm.
 // (The `import("shiki/wasm")` argument @pierre passes is aliased to an empty stub in the build.)
@@ -73,7 +73,7 @@ function plainGrammar(lang: string): {
 } {
 	return {
 		name: lang,
-		scopeName: `source.galley-plain.${lang.replace(/[^a-zA-Z0-9_.-]/g, '-')}`,
+		scopeName: `source.syneva-plain.${lang.replace(/[^a-zA-Z0-9_.-]/g, '-')}`,
 		patterns: [],
 	}
 }
@@ -148,7 +148,7 @@ export const bundledLanguages: Record<string, LangLoader> = new Proxy(
 )
 
 // Curated theme loaders, keyed by theme name. resolveTheme requires theme.name === key, which holds
-// (CURATED_THEMES is keyed by each theme's own name). Galley only ever requests these dark names
+// (CURATED_THEMES is keyed by each theme's own name). Syneva only ever requests these dark names
 // plus pierre-light/pierre-dark, which @pierre registers itself as custom themes (checked first).
 type ThemeLoader = () => Promise<{ default: unknown }>
 const curatedThemes: Record<string, ThemeLoader> = {}
