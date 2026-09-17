@@ -15,13 +15,7 @@ import {
 	fileCommentsEnabled,
 } from '../file-comments'
 import { currentGuideEntry, hasGuide } from '../guide'
-import { renderMarkdown } from '../markdown'
-import {
-	isFileSkim,
-	isFileSkimCollapsed,
-	movedFrom,
-	toggleFileSkim,
-} from '../skim'
+import { movedFrom } from '../renames'
 import { S } from '../store'
 import { unanchoredStrip } from '../unanchored'
 
@@ -137,16 +131,6 @@ export function headerActions(): HTMLElement {
 	// The chip lists what keeps the file from Approved (rejected hunks, open change
 	// requests) with jump-to actions - rendered whenever objections exist, finished or not.
 	const chip = blockersChip()
-	// A skim-flagged file that's been expanded gets a quiet re-collapse control (the counterpart
-	// to the collapsed strip's Expand), so the reviewer can fold it back after a look.
-	if (isFileSkim(filePath) && !isFileSkimCollapsed(filePath)) {
-		const collapse = document.createElement('button')
-		collapse.className = 'diff-header-action skim-collapse'
-		collapse.textContent = 'Collapse'
-		collapse.title = 'Collapse this skimmed file'
-		collapse.addEventListener('click', () => toggleFileSkim(filePath))
-		wrap.appendChild(collapse)
-	}
 	if (fileFinished(filePath)) {
 		// The file-tree badge carries the approved / changes-requested state; the header just
 		// offers a quiet Reset to undo the sign-off (plus the blockers chip when relevant).
@@ -222,29 +206,18 @@ function headerRow(file: FileDiffMetadata): HTMLElement {
 	return row
 }
 
-// Row 2, when a guide is attached: the category chip and the agent's guidance for this file. The
-// prose fields render as markdown (renderMarkdown sanitizes) - the guidance is the main reading
-// content of a guided review, so identifiers/lists the agent writes survive.
+// Row 2, when a grouping is attached: the section this file is listed under. It restates the
+// Walkthrough heading beside the file itself, so the reviewer never has to look sideways to know
+// which domain they're in.
 function guideRow(): HTMLElement | null {
 	const entry = currentGuideEntry()
 	if (!entry) return null
 	const guide = document.createElement('div')
 	guide.className = 'ghdr-guide'
 	const chip = document.createElement('span')
-	chip.className = `ghdr-cat${entry.flag ? ' crit' : ''}`
+	chip.className = 'ghdr-cat'
 	chip.textContent = entry.category
 	guide.appendChild(chip)
-	const explanation = document.createElement('div')
-	explanation.className = 'ghdr-expl md'
-	explanation.innerHTML = renderMarkdown(entry.orientation)
-	guide.appendChild(explanation)
-	// A flagged file gets its own readable callout within the card.
-	if (entry.flag) {
-		const flag = document.createElement('div')
-		flag.className = 'ghdr-flag'
-		flag.innerHTML = `<svg class="ic"><use href="#gly-flag"></use></svg><div class="md">${renderMarkdown(entry.flag)}</div>`
-		guide.appendChild(flag)
-	}
 	return guide
 }
 

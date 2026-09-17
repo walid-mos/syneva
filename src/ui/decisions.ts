@@ -81,8 +81,8 @@ export async function approveCurrentFile(): Promise<void> {
 	if (isClean && S.settings.stageOnAccept) await stageApprovedFile(file, path)
 	persist()
 	const label = isClean ? 'Approved' : 'Marked reviewed'
-	// The review-complete gate is over in-flow files only (issue 01/07): fully-skimmed files and
-	// pure renames left the flow, so they never block completion (and are never auto-approved).
+	// The review-complete gate is over in-flow files only (issue 01): pure renames left the flow,
+	// so they never block completion (and are never auto-approved).
 	// One flow-index pass instead of per-file predicate rescans (see flow-index.ts).
 	const ix = flowIndex()
 	const scope = state.files.filter(f => !ix.outOfFlow.has(f.path))

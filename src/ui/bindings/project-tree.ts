@@ -1,12 +1,12 @@
+import { toggleRenamedGroup } from '../renames'
 import { toggleReviewedGroup } from '../reviewed'
-import { toggleSkimGroup } from '../skim'
 import { S } from '../store'
 import { allDirPaths, touchedDirPaths, treeRows } from '../tree'
 
 import type { TreeRow } from '../types'
 
 // The file-tree bindings the Alpine chrome calls as $store.g.*: the row list, folder open/close,
-// collapse-all / expand-all, the test-group carets and the Skimmed group.
+// collapse-all / expand-all, the test-group carets and the two fold groups.
 export function installProjectTreeBindings(): void {
 	S.treeRows = treeRows
 	// Changed folders open by default -> toggle via collapsedDirs; unchanged closed -> expandedDirs.
@@ -33,14 +33,14 @@ export function installProjectTreeBindings(): void {
 		if (S.expandedDirs.has(key)) S.expandedDirs.delete(key)
 		else S.expandedDirs.add(key)
 	}
-	S.toggleSkimGroup = toggleSkimGroup
+	S.toggleRenamedGroup = toggleRenamedGroup
 	S.toggleReviewedGroup = toggleReviewedGroup
-	// One click handler for every row kind: the Skimmed/Reviewed group headers, a folder, an
+	// One click handler for every row kind: the Renamed/Reviewed group headers, a folder, an
 	// unchanged file (open it as a preview) or a changed one (select it in the review).
 	S.rowClick = (row: TreeRow) => {
-		if (row.kind === 'skimgrp') {
+		if (row.kind === 'foldgrp') {
 			if (row.group === 'reviewed') S.toggleReviewedGroup?.()
-			else S.toggleSkimGroup?.()
+			else S.toggleRenamedGroup?.()
 		} else if (row.kind === 'dir') S.toggleDir?.(row.full, row.changed)
 		else if (typeof row.fileIndex === 'number')
 			S.selectFile?.(row.fileIndex)

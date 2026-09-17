@@ -80,9 +80,8 @@ await test('deriveChanges takes a block status from its explicit decision record
 	assert.equal(derived[1].reviewedHash, 'hash-at-review')
 })
 
-await test('deriveChanges carries skim/stage metadata forward for a block that keeps its id', () => {
+await test('deriveChanges carries stage metadata forward for a block that keeps its id', () => {
 	const first = deriveChanges(diff(BASE, NEXT), 'alpha.ts')
-	first[1].skim = { reason: 'generated' }
 	first[1].stageable = true
 	first[1].contentHash = 'content-hash'
 	const again = deriveChanges(
@@ -91,18 +90,16 @@ await test('deriveChanges carries skim/stage metadata forward for a block that k
 		[],
 		previousFor(first),
 	)
-	assert.deepEqual(again[1].skim, { reason: 'generated' })
 	assert.equal(again[1].stageable, true)
 	assert.equal(again[1].contentHash, 'content-hash')
 })
 
 await test('deriveChanges carries nothing onto a block whose id changed', () => {
 	// The identity is the block's position and line counts - a block that moved gets a new id, so
-	// the previous record (and its skim/stage metadata) does not follow it.
+	// the previous record (and its stage metadata) does not follow it.
 	const previous = previousFor(deriveChanges(diff(BASE, NEXT), 'alpha.ts'))
 	const [moved] = deriveChanges(diff(NEXT, LATER), 'alpha.ts', [], previous)
 	assert.notEqual(moved.id, previous.get(`alpha.ts:${moved.stableKey}`)?.id)
-	assert.equal(moved.skim, undefined)
 	assert.equal(moved.stageable, undefined)
 	assert.equal(moved.contentHash, undefined)
 })

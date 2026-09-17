@@ -4,9 +4,10 @@
 // unit-testable without the Alpine store. guide.ts holds the thin store-reading wrappers.
 
 // The nav order the wrap/approve-advance seeks walk: guide order first (when guided), then any
-// diff file the guide didn't list, in file-array order. Fully-skimmed files (inFlow(i) === false)
-// are excluded HERE - the single choke point - so no seek ever lands on one (issue 07). Pure, so
-// seek.test can prove the exclusion; guide.ts's navOrder is the thin store-reading wrapper.
+// diff file the guide didn't list, in file-array order. Files out of the flow (pure renames,
+// inFlow(i) === false) are excluded HERE - the single choke point - so no seek ever lands on one
+// (issue 01). Pure, so seek.test can prove the exclusion; guide.ts's navOrder is the thin
+// store-reading wrapper.
 export function navFileOrder(
 	fileCount: number,
 	guideOrder: number[] | null,

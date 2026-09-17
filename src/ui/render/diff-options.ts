@@ -3,7 +3,6 @@ import { currentSplittable } from '../changes'
 import { restorePendingComposerFocus } from '../composer'
 import { invalidateCursorRows } from '../cursor'
 import { handleDiffSelection, handleLineNumberClick } from '../selection'
-import { applySkimCollapse } from '../skim'
 import { D, S } from '../store'
 
 import { createDiffHeader, headerActions } from './file-header'
@@ -47,9 +46,7 @@ export function diffOptions(view: DiffView): FileDiffOptions<AnnotationMeta> {
 		onLineSelectionEnd: handleDiffSelection,
 		renderHeaderMetadata: headerActions,
 		// @pierre's own post-render signal - fires once the diff rows are committed to the shadow
-		// DOM (mount and every update). This is where skim collapse must run: on a COLD mount the
-		// render() promise resolves before the rows are queryable, so the afterRender pass finds
-		// nothing; onPostRender fires when they exist. (afterRender still runs it too, for the
+		// DOM (mount and every update). (afterRender still runs the viewport work below.)
 		// warm/cached path where rows are already present - both are idempotent.)
 		onPostRender: (_node, instance, phase) => {
 			if (instance !== D.instance) return
@@ -57,7 +54,6 @@ export function diffOptions(view: DiffView): FileDiffOptions<AnnotationMeta> {
 			// which never routes through our render()), so the cursor's cached row list is stale.
 			invalidateCursorRows()
 			if (phase === 'unmount') return
-			applySkimCollapse()
 			activeViewport()?.afterPaint()
 			requestAnimationFrame(restorePendingComposerFocus)
 			if (!isPreviewing && isExpandedUnchanged) scheduleOverviewRuler()

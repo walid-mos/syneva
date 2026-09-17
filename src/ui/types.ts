@@ -110,29 +110,24 @@ export type FileRow = {
 	changeType: 'new' | 'modified' | 'deleted' | null
 	// Single review-state badge (null = unchanged file / showing the test caret instead).
 	state: FileReviewState | null
-	// The guide marked this whole file skimmable - a muted indicator, not a state shout.
-	skim: boolean
-	// Pure rename (issue 01): the old path, shown as a "← old" arrow in the Skimmed group.
+	// Pure rename (issue 01): the old path, shown as a "← old" arrow in the Renamed group.
 	movedFrom?: string
 }
 
-// The collapsed "Skimmed · N files" group header at the bottom of the tree (issue 07). Fully-
-// skimmed files leave the main listing and gather under it; clicking toggles per-session expand,
-// and its member FileRows follow only while `open`.
-// The collapsible trailing group of files that left the reviewer's listing: the Skimmed
-// group (files the agent skimmed / pure renames) and - with the hide-reviewed pref on - the
-// Reviewed group (fully-approved files the lens distills). Same shape, different label and
-// expand key; `group` says which.
-export type SkimGroupRow = {
-	kind: 'skimgrp'
+// The collapsible trailing group of files that left the reviewer's listing: the Renamed group
+// (pure renames, issue 01) and - with the hide-reviewed pref on - the Reviewed group
+// (fully-approved files the lens distills). Same shape, different label and expand key; `group`
+// says which. Its member FileRows follow only while `open`.
+export type FoldGroupRow = {
+	kind: 'foldgrp'
 	key: string
 	count: number
 	open: boolean
 	caret: string
-	group: 'skimmed' | 'reviewed'
+	group: 'renamed' | 'reviewed'
 }
 
-export type TreeRow = DirRow | FileRow | SkimGroupRow
+export type TreeRow = DirRow | FileRow | FoldGroupRow
 
 // Internal nodes used while building the tree (not rendered directly).
 export type TreeFile = {
@@ -181,18 +176,7 @@ export type ComposerMeta = {
 	lineNumber: number
 	path: string
 }
-// The collapse/expand strip standing in for a skimmed change block. Anchored at the block's
-// last display line (like the change bar); when collapsed, skim.ts hides the block's rows so
-// the strip is all that shows. `collapsed` flips the caret/label and whether rows are hidden.
-export type SkimMeta = {
-	type: 'skim'
-	id: string
-	side: Side
-	lineNumber: number
-	label: string
-	collapsed: boolean
-}
-export type AnnotationMeta = ThreadMeta | ChangeMeta | ComposerMeta | SkimMeta
+export type AnnotationMeta = ThreadMeta | ChangeMeta | ComposerMeta
 // Our annotation payload handed to @pierre/diffs' renderAnnotation. The library's
 // DiffLineAnnotation distributes over a union metadata type (one member per variant), so an
 // annotation value is built as the member matching its metadata and the distributed union is the
@@ -292,9 +276,10 @@ export interface Store {
 	// True once the diff pane is scrolled past its header - reveals the floating Approve button
 	// so sign-off is reachable without scrolling back up to the header. Reset on every file switch.
 	diffScrolled: boolean
-	// Per-session skim expand state: change ids (block-level) and `file:<path>` keys (file-level)
-	// the reviewer expanded. Not persisted - collapse is display-only and resets each session.
-	skimExpanded: Set<string>
+	// Per-session expand state of the two collapsible trailing sidebar groups (Renamed, and
+	// Reviewed under the hide-reviewed pref), keyed `group:<name>`. Not persisted - folding is
+	// display-only and resets each session.
+	foldExpanded: Set<string>
 	// Paths of oversized files the reviewer chose to "Load diff anyway" on (issue 05). Once loaded,
 	// a file renders its real diff for the rest of the session instead of the summary card. Per-
 	// session and never persisted - the oversized stamp is server-owned and re-derived on reload.
@@ -307,7 +292,7 @@ export interface Store {
 	toggleAllDirs?: () => void
 	treeAnyOpen?: () => boolean
 	toggleTestDir?: (key: string) => void
-	toggleSkimGroup?: () => void
+	toggleRenamedGroup?: () => void
 	toggleReviewedGroup?: () => void
 	rowClick?: (r: TreeRow) => void
 	setStyle?: (style: DiffStyle) => void

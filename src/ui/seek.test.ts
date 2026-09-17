@@ -94,22 +94,22 @@ void test('wrapPrevTarget cycles to the last file when everything is reviewed', 
 	assert.equal(wrapPrevTarget([3, 1, 4], finishedIn([3, 1, 4])), 4)
 })
 
-void test('navFileOrder without a guide is the file array minus fully-skimmed files', () => {
-	// Files 1 and 3 are fully skimmed (out of flow) → excluded from the seek order entirely.
+void test('navFileOrder without a guide is the file array minus out-of-flow files', () => {
+	// Files 1 and 3 are pure renames (out of flow) → excluded from the seek order entirely.
 	const order = navFileOrder(5, null, i => i !== 1 && i !== 3)
 	assert.ok(isDeepStrictEqual(order, [0, 2, 4]))
 })
 
-void test('navFileOrder with a guide keeps guide order, appends unlisted, drops skimmed', () => {
-	// Guide lists 2 then 0; files 1,3,4 are unlisted (appended in array order). File 4 is fully
-	// skimmed → dropped; file 1 is skimmed too → dropped; so the seek order is [2, 0, 3].
+void test('navFileOrder with a guide keeps guide order, appends unlisted, drops out-of-flow files', () => {
+	// Guide lists 2 then 0; files 1,3,4 are unlisted (appended in array order). File 4 is out of
+	// flow → dropped; file 1 too → dropped; so the seek order is [2, 0, 3].
 	const order = navFileOrder(5, [2, 0], i => i !== 4 && i !== 1)
 	assert.ok(isDeepStrictEqual(order, [2, 0, 3]))
 })
 
-void test('seeks over the skim-excluded order never land on a fully-skimmed file', () => {
-	// With fully-skimmed files already excluded from navFileOrder, the wrap/advance seeks can only
-	// return in-flow indices - the issue-07 guarantee, expressed at the choke point.
+void test('seeks over the out-of-flow-excluded order never land on a pure rename', () => {
+	// With out-of-flow files already excluded from navFileOrder, the wrap/advance seeks can only
+	// return in-flow indices - the issue-01 guarantee, expressed at the choke point.
 	const order = navFileOrder(5, [2, 0], i => i !== 4 && i !== 1) // [2, 0, 3]
 	const finished = finishedIn([2]) // only file 2 signed off
 	assert.equal(nextUnreviewed(order, 2, finished), 0)
@@ -119,7 +119,10 @@ void test('seeks over the skim-excluded order never land on a fully-skimmed file
 		nextUnreviewed(order, 2, finished),
 		wrapNextTarget(order, finished),
 	])
-		assert.ok(t !== 1 && t !== 4, 'a skimmed index is never a seek target')
+		assert.ok(
+			t !== 1 && t !== 4,
+			'an out-of-flow index is never a seek target',
+		)
 })
 
 void test('empty order yields no target', () => {

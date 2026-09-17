@@ -61,7 +61,7 @@ export const S: Store = AlpineJS.reactive<Store>({
 	treeDrawerOpen: false,
 	fileView: 'rendered',
 	diffScrolled: false,
-	skimExpanded: new Set<string>(),
+	foldExpanded: new Set<string>(),
 	loadedOversized: new Set<string>(),
 })
 

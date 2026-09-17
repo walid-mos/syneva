@@ -7,16 +7,11 @@ import { hasGuide, renderOverview } from './guide'
 import { renderMarkdownFile } from './mdfile'
 import { isOversizedPlaceholder, renderOversizedCard } from './oversized'
 import { updateProgress } from './progress'
+import { fileMovedPure, renderMovedPure } from './renames'
 import { diffKey } from './render/diff-key'
 import { isExpandCapped, newLines } from './render/expand-cap'
 import { clearOverviewRuler } from './render/overview-ruler'
 import { applyActiveRow, applyLayoutClasses } from './sidebar-dom'
-import {
-	fileMovedPure,
-	isFileSkimCollapsed,
-	renderFileSkim,
-	renderMovedPure,
-} from './skim'
 import { $, D, esc, S } from './store'
 
 import type * as DiffIsland from './render/diff-instance'
@@ -113,16 +108,16 @@ function renderContentsError(path: string): void {
 	detachDiffInstance()
 	applyLayoutClasses()
 	$('diff').innerHTML =
-		`<div class="file-skim"><div class="file-skim-strip moved">
+		`<div class="file-note"><div class="file-note-strip moved">
     <svg class="ic"><use href="#gly-flag"></use></svg>
-    <span>couldn't load <span class="file-skim-name">${esc(path)}</span></span>
-    <span class="file-skim-meta">reload the desk to retry</span>
+    <span>couldn't load <span class="file-note-name">${esc(path)}</span></span>
+    <span class="file-note-meta">reload the desk to retry</span>
   </div></div>`
 }
 
 // Which replacement view (if any) takes over #diff for this file, after the contents fetch - none
 // of them read the contents, but the fetch still warms the per-file cache for a later switch.
-type ReplacementView = 'markdown' | 'moved' | 'skim'
+type ReplacementView = 'markdown' | 'moved'
 
 function replacementView(
 	file: ReviewFile,
@@ -140,9 +135,6 @@ function replacementView(
 	// A pure rename (identical content, distinct paths) has no diff to show - the muted
 	// "renamed old -> new, no changes" row replaces it.
 	if (!isPreviewing && fileMovedPure(file.path)) return 'moved'
-	// A skim-flagged file collapses its whole diff behind one expandable strip (guide-driven,
-	// display only). Expanding drops back to the normal render.
-	if (!isPreviewing && isFileSkimCollapsed(file.path)) return 'skim'
 	return null
 }
 
@@ -156,8 +148,7 @@ function renderReplacementView(
 	detachDiffInstance()
 	applyLayoutClasses()
 	if (view === 'markdown') renderMarkdownFile()
-	else if (view === 'moved') renderMovedPure()
-	else renderFileSkim()
+	else renderMovedPure()
 	return true
 }
 
@@ -179,7 +170,7 @@ async function renderCenter(sequence: number): Promise<void> {
 		return
 	}
 	// Pull this file's contents from the per-file endpoint before rendering anything that reads
-	// them (the markdown/moved/skim/diff views all follow). A "stale" result means the reviewer
+	// them (the markdown/moved/diff views all follow). A "stale" result means the reviewer
 	// switched files mid-fetch - abort silently, a newer render() is already handling the current
 	// file. An "error" means the contents can't be fetched (git object gone after a rebase); show an
 	// error card naming the file so navigation to other files keeps working.
@@ -204,7 +195,7 @@ async function renderDiffIsland(
 		if (sequence !== renderSequence || file !== currentFileOrNull()) return
 		detachDiffInstance()
 		const message = document.createElement('div')
-		message.className = 'file-skim'
+		message.className = 'file-note'
 		message.textContent =
 			'The diff renderer could not load. Refresh this tab to retry.'
 		$('diff').replaceChildren(message)

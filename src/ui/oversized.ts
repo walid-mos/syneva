@@ -12,8 +12,8 @@ import {
 	fileCommentsEnabled,
 } from './file-comments'
 import { currentGuideEntry, hasGuide } from './guide'
+import { movedFrom } from './renames'
 import { deferRender } from './render'
-import { isFileSkim, fileSkimReason, movedFrom } from './skim'
 import { S, $, esc } from './store'
 
 import type { ReviewState } from './types'
@@ -137,24 +137,15 @@ function headSection(file: ReviewFile): HTMLElement {
 	return head
 }
 
-// Guide badges the file would normally show: category chip, skim note, flag callout.
-function badgesSection(entry: GuideEntry, path: string): HTMLElement | null {
-	if (!entry && !isFileSkim(path)) return null
+// The section this file is grouped under, as a chip on the card (the diff header shows the same one).
+function badgesSection(entry: GuideEntry): HTMLElement | null {
+	if (!entry) return null
 	const badges = document.createElement('div')
 	badges.className = 'ovsz-badges'
-	if (entry) {
-		const cat = document.createElement('span')
-		cat.className = `ovsz-cat${entry.flag ? ' crit' : ''}`
-		cat.textContent = entry.category
-		badges.appendChild(cat)
-	}
-	if (isFileSkim(path)) {
-		const skim = document.createElement('span')
-		skim.className = 'ovsz-skim'
-		const reason = fileSkimReason(path)
-		skim.innerHTML = `<svg class="ic"><use href="#gly-collapse-all"></use></svg><span>${reason ? `skimmed · ${esc(reason)}` : 'skimmed'}</span>`
-		badges.appendChild(skim)
-	}
+	const cat = document.createElement('span')
+	cat.className = 'ovsz-cat'
+	cat.textContent = entry.category
+	badges.appendChild(cat)
 	return badges
 }
 
@@ -173,15 +164,6 @@ function statsSection(file: ReviewFile): HTMLElement {
 	counts.innerHTML = `<span class="a">+${file.added}</span><span class="d">-${file.removed}</span>`
 	stats.appendChild(counts)
 	return stats
-}
-
-// The flag reads as a callout below the note (same amber-box idiom as the guide header's flag).
-function flagSection(entry: GuideEntry): HTMLElement | null {
-	if (!entry?.flag) return null
-	const flag = document.createElement('div')
-	flag.className = 'ovsz-flag'
-	flag.innerHTML = `<svg class="ic"><use href="#gly-flag"></use></svg><div>${esc(entry.flag)}</div>`
-	return flag
 }
 
 function actionsSection(path: string): HTMLElement {
@@ -204,7 +186,7 @@ export function renderOversizedCard(): void {
 	const card = document.createElement('div')
 	card.className = `oversized-card ct-${kindClass(file.changeKind)}`
 	card.appendChild(headSection(file))
-	const badges = badgesSection(entry, file.path)
+	const badges = badgesSection(entry)
 	if (badges) card.appendChild(badges)
 	card.appendChild(statsSection(file))
 	const note = document.createElement('p')
@@ -212,8 +194,6 @@ export function renderOversizedCard(): void {
 	note.textContent =
 		'This file is large. Its diff is hidden to keep the desk responsive.'
 	card.appendChild(note)
-	const flag = flagSection(entry)
-	if (flag) card.appendChild(flag)
 	// The oversized card is the file's whole verdict surface - a whole-file comment naturally
 	// lives here too (its thread renders inside the card like any file header section).
 	const fc = fileCommentSection()

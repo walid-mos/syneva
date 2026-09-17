@@ -66,14 +66,11 @@ function deriveChange(
 		stageable: prev?.stageable,
 		contentHash: prev?.contentHash,
 		reviewedHash: decision?.reviewedHash ?? prev?.reviewedHash,
-		// Server-stamped skim rides on the change's identity; carry it across client
-		// re-derivation. A rewritten block gets a new id → no prev → skim drops on its own.
-		skim: prev?.skim,
 	}
 }
 
 // The change records of one parsed diff. `decisions` is the live decision list (the source of
-// truth for a block's status); `previous` carries skim/stage metadata forward to blocks whose
+// truth for a block's status); `previous` carries stage/review metadata forward to blocks whose
 // identity survives the re-derivation.
 export function deriveChanges(
 	diff: FileDiffMetadata,

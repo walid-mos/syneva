@@ -10,8 +10,7 @@ import {
 import { buildCommentThread } from './comment-thread'
 import { buildComposer } from './composer'
 import { acceptChange } from './decisions'
-import { toggleSkimBlock } from './skim'
-import { S, requireState, esc } from './store'
+import { S, requireState } from './store'
 import { isUnanchored } from './unanchored'
 
 import type {
@@ -166,19 +165,6 @@ export function renderAnnotation(a: { metadata: AnnotationMeta }): HTMLElement {
 		const el = document.createElement('div')
 		el.className = 'annotation composer-annotation'
 		el.appendChild(buildComposer())
-		return el
-	}
-	// The skim collapse/expand strip standing in for a skimmable block (skim.ts hides the rows
-	// while collapsed). One click toggles; it re-renders as an annotation, so it survives in
-	// both split and stacked views.
-	if (c.type === 'skim') {
-		const el = document.createElement('div')
-		el.className = `annotation skim-strip${c.collapsed ? ' collapsed' : ' expanded'}`
-		el.innerHTML = `<button class="skim-toggle"><span class="skim-caret">${c.collapsed ? '▸' : '▾'}</span><span class="skim-label">${esc(c.label)}</span><span class="skim-action">${c.collapsed ? 'Expand' : 'Collapse'}</span></button>`
-		el.querySelector<HTMLButtonElement>('.skim-toggle')?.addEventListener(
-			'click',
-			() => toggleSkimBlock(c.id),
-		)
 		return el
 	}
 	const change = changeFor(c)

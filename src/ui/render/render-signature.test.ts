@@ -26,15 +26,13 @@ const FILE: {
 	newPath: null,
 }
 
-function change(over: {
-	id?: string
-	status?: ChangeState['status']
-	skimCollapsed?: boolean
-}): { id: string; status: ChangeState['status']; skimCollapsed: boolean } {
+function change(over: { id?: string; status?: ChangeState['status'] }): {
+	id: string
+	status: ChangeState['status']
+} {
 	return {
 		id: 'c1',
 		status: 'pending',
-		skimCollapsed: false,
 		...over,
 	}
 }
@@ -63,7 +61,6 @@ function digest(over: {
 	changes?: {
 		id: string
 		status: ChangeState['status']
-		skimCollapsed: boolean
 	}[]
 	comments?: ReviewComment[]
 	composer?: {
@@ -180,12 +177,6 @@ void test("a comment's resolution state repaints", () => {
 	const open = digest({ comments: [comment({})] })
 	const resolved = digest({ comments: [comment({ status: 'resolved' })] })
 	assert.notEqual(open, resolved)
-})
-
-void test('a skim block toggle repaints', () => {
-	const expanded = digest({ changes: [change({ skimCollapsed: false })] })
-	const collapsed = digest({ changes: [change({ skimCollapsed: true })] })
-	assert.notEqual(expanded, collapsed)
 })
 
 void test('content change repaints (contentHash)', () => {

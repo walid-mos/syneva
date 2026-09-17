@@ -8,7 +8,7 @@ import type { FileRow, TreeRow } from './types'
 // ── Distill reviewed material (the multi-round lens) ────────────────────────
 // settings.hideReviewed reshapes round 2/3 reviews: accepted change bands drop out of the
 // rendered diff (render/distill.ts) and fully-approved files fold out of the tree and
-// walkthrough into a collapsed "Reviewed" group (the Skimmed-group pattern, flow-index).
+// walkthrough into a collapsed "Reviewed" group (the Renamed-group pattern, flow-index).
 // Display only: decisions, comments, progress and the review-complete gate are untouched.
 // The pref is persisted (~/.syneva/settings.json) so the lens survives tab/round/OS, and
 // every surface reads it off the same flag at render time - nothing is cached session-side.
@@ -32,18 +32,18 @@ export function toggleHideReviewed(): void {
 	)
 }
 
-// Per-session expand state for the collapsed "Reviewed" group, keyed beside the skim
-// group's sentinel in S.skimExpanded. Not persisted: only folding is display-only.
+// Per-session expand state for the collapsed "Reviewed" group, keyed beside the Renamed
+// group's sentinel in S.foldExpanded. Not persisted: only folding is display-only.
 const REVIEWED_GROUP_KEY = 'group:reviewed'
 
 export function isReviewedGroupExpanded(): boolean {
-	return S.skimExpanded.has(REVIEWED_GROUP_KEY)
+	return S.foldExpanded.has(REVIEWED_GROUP_KEY)
 }
 
 export function toggleReviewedGroup(): void {
-	if (S.skimExpanded.has(REVIEWED_GROUP_KEY))
-		S.skimExpanded.delete(REVIEWED_GROUP_KEY)
-	else S.skimExpanded.add(REVIEWED_GROUP_KEY)
+	if (S.foldExpanded.has(REVIEWED_GROUP_KEY))
+		S.foldExpanded.delete(REVIEWED_GROUP_KEY)
+	else S.foldExpanded.add(REVIEWED_GROUP_KEY)
 	// Tree/walkthrough rows re-derive reactively; the render refreshes the Overview page.
 	void render()
 }
@@ -57,7 +57,7 @@ export function reviewedPaths(): string[] {
 }
 
 // ── The "Reviewed" tree group ──────────────────────────────────────────────────
-// Lives beside the Skimmed group's tree builder: same collapsed flat-group pattern
+// Lives beside the Renamed group's tree builder: same collapsed flat-group pattern
 // (the test-fold precedent), different label. Its rows stay the plain file rows with the
 // APPROVED badge - that's why they were folded, not because they're unworthy of a badge.
 
@@ -78,7 +78,6 @@ function approvedFileRow(path: string, fileIndex: number | undefined): FileRow {
 		testCaret: CARET_CLOSED,
 		changeType: null,
 		state: 'approved',
-		skim: false,
 		movedFrom: '',
 	}
 }
@@ -93,7 +92,7 @@ export function pushReviewedGroup(
 	if (!reviewed.length) return
 	const isOpen = isReviewedGroupExpanded()
 	rows.push({
-		kind: 'skimgrp',
+		kind: 'foldgrp',
 		key: 'group:reviewed',
 		count: reviewed.length,
 		open: isOpen,

@@ -1,12 +1,11 @@
-import { DIFFS_TAG_NAME, FileDiff } from '@pierre/diffs'
+import { DIFFS_TAG_NAME } from '@pierre/diffs'
 
-import { currentChanges } from '../changes'
-import { isBlockSkimCollapsed } from '../skim'
 import { $, D } from '../store'
 
 import { bindVirtualDiff, createVirtualizer, VirtualDiff } from './virtual-diff'
 import { diffWorkerPool } from './worker-pool'
 
+import type { FileDiff } from '@pierre/diffs'
 import type {
 	FileDiffMetadata,
 	FileDiffOptions,
@@ -47,11 +46,8 @@ export function acquireEntry(
 	wrapper.className = 'diff-wrap'
 	const { scrollTop } = $('diff')
 	$('diff').replaceChildren(wrapper)
-	const canWindow = !currentChanges().some(isBlockSkimCollapsed)
-	const inst = canWindow
-		? createWindowedDiff(wrapper, options)
-		: new FileDiff(options, diffWorkerPool())
-	wrapper.dataset.windowed = String(canWindow)
+	const inst = createWindowedDiff(wrapper, options)
+	wrapper.dataset.windowed = 'true'
 	const entry = { wrapper, inst }
 	D.diffCache.set(key, entry)
 	$('diff').scrollTop = scrollTop

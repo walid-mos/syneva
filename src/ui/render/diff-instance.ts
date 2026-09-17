@@ -4,7 +4,6 @@ import { cursorResync } from '../cursor'
 import { revealThreadLines } from '../expand'
 import { markdownRevision } from '../markdown'
 import { attachDiffSelectionHandlers } from '../selection'
-import { applySkimCollapse, isBlockSkimCollapsed } from '../skim'
 import { $, D, S } from '../store'
 
 import { acquireEntry, paintEntry } from './diff-entry'
@@ -25,7 +24,6 @@ let lastRenderedSignature: string | undefined
 
 function afterRender(view: DiffView): void {
 	if (!view.isPreviewing) {
-		applySkimCollapse()
 		revealThreadLines()
 	}
 	attachDiffSelectionHandlers()
@@ -44,7 +42,6 @@ export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
 			currentChanges().map(change => ({
 				id: change.id,
 				status: change.status,
-				skimCollapsed: isBlockSkimCollapsed(change),
 			})),
 			{ comments: currentComments(), composer: S },
 		)

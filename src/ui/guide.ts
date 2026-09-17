@@ -1,6 +1,6 @@
 import { flowIndex } from './changes'
 import { isGuideBaseStale } from './guide-derive'
-import { renderMarkdown } from './markdown'
+import { isRenamedGroupExpanded } from './renames'
 import { isReviewedGroupExpanded } from './reviewed'
 import {
 	navFileOrder,
@@ -8,7 +8,6 @@ import {
 	wrapNextTarget,
 	wrapPrevTarget,
 } from './seek'
-import { isSkimGroupExpanded } from './skim'
 import { $, esc, requireState, S } from './store'
 import { lineStats, walkthroughGroups, walkRows } from './walkthrough'
 
@@ -31,8 +30,8 @@ export function guideOrder(): number[] {
 		.filter((i): i is number => typeof i === 'number')
 }
 
-// Where "Start guided review" lands - the first in-flow file in nav order (fully-skimmed files
-// are excluded from navOrder), else, when every file is skimmed, the first file so Start still
+// Where "Start Review" lands - the first in-flow file in nav order (files out of the flow are
+// excluded from navOrder), else, when every file is out of the flow, the first file so Start still
 // opens something.
 export function firstGuideIndex(): number {
 	const nav = navOrder()
@@ -41,20 +40,20 @@ export function firstGuideIndex(): number {
 	return order.length ? order[0] : 0
 }
 
-// Plain next/prev stepping skips fully-skimmed files - they've left the flow - UNLESS the
-// reviewer is currently on one (opened from the Skimmed group), in which case stepping walks the
-// skimmed band so the group's siblings stay reachable. `outOfBand(i)` is true for a file in the
-// opposite band from `cur`. Off either band's end returns null and the caller wraps (guideNext/
-// guidePrev), where the wrap seeks (navOrder) only ever target the in-flow band.
+// Plain next/prev stepping skips files out of the flow (pure renames) - they've left the
+// listing - UNLESS the reviewer is currently on one (opened from the Renamed group), in which
+// case stepping walks that band so the group's siblings stay reachable. `outOfBand(i)` is true
+// for a file in the opposite band from `cur`. Off either band's end returns null and the caller
+// wraps (guideNext/guidePrev), where the wrap seeks (navOrder) only ever target the in-flow band.
 function outOfBand(cur: number): (i: number) => boolean {
 	// The returned predicate runs per candidate file while stepping - one flow-index pass here
 	// instead of a per-candidate rescan (see flow-index.ts).
 	const { outOfFlow } = flowIndex()
 	const path = S.state?.files.at(cur)?.path
-	const curSkimmed = !!path && outOfFlow.has(path)
+	const curOutOfFlow = !!path && outOfFlow.has(path)
 	return i => {
 		const p = S.state?.files.at(i)?.path
-		return (!!p && outOfFlow.has(p)) !== curSkimmed
+		return (!!p && outOfFlow.has(p)) !== curOutOfFlow
 	}
 }
 
@@ -105,10 +104,10 @@ export function prevFileIndex(cur: number): number | null {
 // The order file navigation walks and wraps around. Without a guide it's the file array; with
 // one it's the guide order followed by every changed file the guide DIDN'T list (the
 // walkthrough's "Other" group), in file-array order - so the seek reaches unlisted files and
-// never dead-ends on a partial guide. Fully-skimmed files are excluded (issue 07): this is the
-// single choke point that keeps the wrap/approve-advance seeks off files that left the flow.
-// Plain mid-list stepping (nextFileIndex) reads its own band order, not this; only the seek/wrap
-// helpers read this extended order.
+// never dead-ends on a partial guide. Files out of the flow (pure renames) are excluded: this is
+// the single choke point that keeps the wrap/approve-advance seeks off files with nothing to
+// review. Plain mid-list stepping (nextFileIndex) reads its own band order, not this; only the
+// seek/wrap helpers read this extended order.
 // The seeks below classify every file per call, so each public entry builds ONE flow-index
 // pass and threads it through (per-file predicate rescans froze big desks - see flow-index.ts).
 function navOrderWith(ix: FlowIndex): number[] {
@@ -167,8 +166,8 @@ function locByPath(): Map<string, number> {
 }
 
 // Guide categories + their files (plus the trailing "Other" group of unlisted diff files) -
-// the data behind the Walkthrough sidebar tab and the Overview file list. The hide-reviewed
-// lens folds fully-approved files into a trailing "Reviewed" group alongside it.
+// the data behind the Walkthrough sidebar tab. Two trailing fold groups ride along: pure
+// renames, and - with the hide-reviewed lens on - fully-approved files.
 export function walkGroups(): WalkGroup[] {
 	const { state } = S
 	if (!state?.guide?.files.length) return []
@@ -179,17 +178,20 @@ export function walkGroups(): WalkGroup[] {
 		state.guide.files,
 		state.files,
 		p => ix.reviewState(p),
-		{ skim: p => ix.outOfFlow.has(p), distilled: p => ix.distilled.has(p) },
+		{
+			renamed: p => ix.outOfFlow.has(p),
+			distilled: p => ix.distilled.has(p),
+		},
 	)
 }
 
 // Flat rows for the Walkthrough tab's x-for. The "active" highlight is deliberately NOT derived
 // here (activePath = null): reading S.fileIndex/S.preview/S.overviewOpen made every file switch
 // re-run this whole x-for. applyActiveRow (tree.ts) patches the class imperatively for both
-// sidebars. The trailing "Skimmed"/"Reviewed" groups' file rows appear only while expanded.
+// sidebars. The trailing "Renamed"/"Reviewed" groups' file rows appear only while expanded.
 export function walkthroughRows(): WalkRow[] {
 	return walkRows(walkGroups(), null, {
-		skim: isSkimGroupExpanded(),
+		renamed: isRenamedGroupExpanded(),
 		reviewed: isReviewedGroupExpanded(),
 	})
 }
@@ -212,9 +214,9 @@ export function guideProgress(): {
 		done = 0,
 		approved = 0
 	for (const f of S.state?.files ?? []) {
-		// Fully-skimmed files carry no progress weight - they left the flow (issue 07). The
-		// hide-reviewed lens folds approved files out the same way: they're already 'done',
-		// so shedding them from both done and total leaves the percentage unchanged.
+		// Files out of the flow (pure renames) carry no progress weight - there is nothing in them
+		// to review. The hide-reviewed lens folds approved files out the same way: they're already
+		// 'done', so shedding them from both done and total leaves the percentage unchanged.
 		if (ix.outOfFlow.has(f.path) || ix.distilled.has(f.path)) continue
 		// LOC-weighted progress counts a file's changed lines; file-weighted counts it as 1.
 		const weight = linesPerFile ? (linesPerFile.get(f.path) ?? 1) : 1
@@ -223,7 +225,7 @@ export function guideProgress(): {
 		if (st !== 'pending') done += weight
 		if (st === 'approved') approved += weight
 	}
-	// total === 0 means every changed file is fully skimmed (a desk always has ≥1 file, and the
+	// total === 0 means every changed file is out of the flow (a desk always has ≥1 file, and the
 	// strip is hidden when there are none): nothing needs review, so the bar reads complete rather
 	// than a misleading 0%.
 	return {
@@ -261,26 +263,21 @@ export function guideStale(): boolean {
 	return isGuideBaseStale(state.baseDiffHash, state.guide.baseDiffHash)
 }
 
-// Render the Overview page into #diff: overview → optional PR description → Start. No file
-// list - the sidebar (tree/walkthrough, including the Skimmed group) already lists every file,
-// so repeating them here was redundant; per-file orientation renders in each file's header.
+// Render the landing card into #diff: what this review is, a note when the grouping predates the
+// current diff, and Start. No file list - the sidebar (tree/walkthrough) already lists every file,
+// so repeating them here was redundant - and no agent prose: a grouping is labels and order only.
 // Called by render() when overviewOpen && hasGuide().
 export function renderOverview(): void {
 	const state = requireState()
-	const g = state.guide
-	if (!g) return
-	// '' counts as absent: a guide without a title still names the desk's target ref.
-	const title = [g.title, state.target].find(Boolean) ?? 'Review'
+	// '' counts as absent: fall back to a plain heading when the desk has no target ref.
+	const title = state.target?.trim() ? state.target : 'Review'
 	$('diff').innerHTML = `<div class="guide-overview"><div class="go-card">
     <h1>${esc(title)}</h1>
     <div class="go-sub">${esc(state.mode)} · ${esc(state.session)} · ${state.files.length} files</div>
-    ${g.focused ? `<div class="go-focused"><svg class="ic"><use href="#gly-collapse-all"></use></svg> Focused review - mechanical churn skimmed</div>` : ''}
-    ${guideStale() ? `<div class="go-stale"><svg class="ic"><use href="#gly-warn"></use></svg> This guide was generated for an earlier version of the diff. Regenerate it and restart the desk with <code>--guide</code> to refresh.</div>` : ''}
-    <div class="go-overview md">${renderMarkdown(g.overview)}</div>
-    ${g.prDescription ? `<div class="go-pr"><b>PR description</b><div class="md">${renderMarkdown(g.prDescription)}</div></div>` : ''}
+    ${guideStale() ? `<div class="go-stale"><svg class="ic"><use href="#gly-warn"></use></svg> This grouping was made for an earlier version of the diff - regenerate it and reload with <code>--guide</code> to refresh the sections.</div>` : ''}
     <div class="go-actions"><button class="btn primary" id="guideStart">Start Review <kbd>↵</kbd></button></div>
   </div></div>`
 	const start = $('diff').querySelector<HTMLButtonElement>('#guideStart')
-	// The Overview markup is rebuilt on every render, so this cannot stack listeners.
+	// The landing markup is rebuilt on every render, so this cannot stack listeners.
 	start?.addEventListener('click', () => S.startGuided?.())
 }

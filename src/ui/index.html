@@ -887,44 +887,8 @@
 				height: 13px;
 			}
 
-			/* The guidance is the primary reading content of a guided review — ink, not muted,
-       one step above the header's text-sm. */
-			.ghdr .ghdr-expl.md {
-				margin-top: 0;
-				max-width: 72ch;
-				color: var(--ink);
-				font-size: var(--text-md);
-				line-height: 1.6;
-			}
-
-			/* The flag is a bordered amber callout box (not a bare text row) — the one thing on the
-       card that says "decide this before approving". */
-			.ghdr .ghdr-flag {
-				display: flex;
-				align-items: flex-start;
-				gap: 8px;
-				max-width: 74ch;
-				margin-top: 5px;
-				padding: 8px 11px;
-				border: 1px solid rgba(224, 175, 104, 0.35);
-				background: rgba(224, 175, 104, 0.06);
-				border-radius: var(--radius-sm);
-				color: var(--amber);
-			}
-
-			.ghdr .ghdr-flag > .ic {
-				width: 13px;
-				height: 13px;
-				margin-top: 3px;
-				fill: currentColor;
-			}
-
-			.ghdr .ghdr-flag .md {
-				margin-top: 0;
-				color: var(--amber-fg);
-				font-size: var(--text-md);
-				line-height: 1.5;
-			}
+			/* The grouping is order and labels only - a guide no longer carries per-file prose or a
+       flag callout, so the header holds the category chip and the diff stats. */
 
 			.ghdr .ghdr-readonly {
 				flex: 0 0 auto;
@@ -1575,82 +1539,35 @@
 				animation: blocker-flash 1.2s ease-out;
 			}
 
-			/* Skim (issue 06): a muted, low-attention treatment — the opposite of the amber flag.
-       skim LOWERS scrutiny, so it reads gray, never as a state shout. */
-			.ic.skim {
-				color: var(--muted);
-				width: 12px;
-				height: 12px;
-				opacity: 0.7;
-			}
-
-			/* Fully-skimmed group (issue 07): a quiet collapsed row at the bottom of the tree/walkthrough
-       gathering files that left the flow. Reads like the walk-cat header — muted, never a shout. */
-			.node.skimgrp {
+			/* Renamed group (issue 01): a quiet collapsed row at the bottom of the tree/walkthrough
+       gathering pure renames that left the flow. Reads like the walk-cat header — muted, never
+       a shout. */
+			.node.foldgrp {
 				color: var(--ghost);
 			}
 
-			.node.skimgrp .skimgrp-name {
+			.node.foldgrp .foldgrp-name {
 				color: var(--muted);
 			}
 
-			.node.skimgrp .skimgrp-count,
-			.node.walk-skim .walk-skim-count {
+			.node.foldgrp .foldgrp-count,
+			.node.walk-fold .walk-fold-count {
 				margin-left: auto;
 				font-size: var(--text-2xs);
 				color: var(--ghost);
 			}
 
-			.node.walk-skim .chev {
+			.node.walk-fold .chev {
 				width: 12px;
 			}
 
-			/* Block collapse/expand strip — a diff annotation standing in for a skimmed change block. */
-			.annotation.skim-strip {
-				min-height: 0;
-			}
-
-			.skim-strip .skim-toggle {
-				display: flex;
-				align-items: center;
-				gap: 8px;
-				width: 100%;
-				padding: 4px 12px;
-				font-family: var(--sans);
-				font-size: var(--text-xs);
-				color: var(--muted);
-				background: var(--panel);
-				border: 0;
-				border-top: 1px solid var(--line);
-				border-bottom: 1px solid var(--line);
-				cursor: pointer;
-				text-align: left;
-			}
-
-			.skim-strip .skim-toggle:hover {
-				background: var(--panel3);
-				color: var(--ink);
-			}
-
-			.skim-strip .skim-caret {
-				flex: 0 0 auto;
-				width: 1em;
-			}
-
-			.skim-strip .skim-label {
-				flex: 1 1 auto;
-			}
-
-			.skim-strip .skim-action {
-				opacity: 0.75;
-			}
-
-			/* File-level collapse card: the whole diff folds behind one expandable strip. */
-			.file-skim {
+			/* The muted note standing in for a file the desk can't render as a diff: a pure rename
+       (nothing to show) or a file whose contents failed to load. */
+			.file-note {
 				padding: 12px;
 			}
 
-			.file-skim-strip {
+			.file-note-strip {
 				display: flex;
 				align-items: center;
 				gap: 8px;
@@ -1666,35 +1583,31 @@
 				text-align: left;
 			}
 
-			.file-skim-strip:hover {
+			.file-note-strip:hover {
 				background: var(--panel3);
 				color: var(--ink);
 			}
 
-			.file-skim-strip .file-skim-name {
+			.file-note-strip .file-note-name {
 				font-family: var(--mono);
 				color: var(--ink);
 			}
 
-			.file-skim-strip .file-skim-meta {
+			.file-note-strip .file-note-meta {
 				flex: 1 1 auto;
 			}
 
-			.file-skim-strip .file-skim-expand {
-				color: var(--cyan);
-			}
-
 			/* Pure-rename row: a static note (identical content, nothing to expand), not a toggle. */
-			.file-skim-strip.moved {
+			.file-note-strip.moved {
 				cursor: default;
 			}
 
-			.file-skim-strip.moved:hover {
+			.file-note-strip.moved:hover {
 				background: var(--panel);
 				color: var(--muted);
 			}
 
-			.file-skim-strip.moved .ic {
+			.file-note-strip.moved .ic {
 				flex: 0 0 auto;
 				width: 14px;
 				height: 14px;
@@ -1797,22 +1710,6 @@
 			.oversized-card .ovsz-cat.crit {
 				color: var(--amber);
 			}
-
-			.oversized-card .ovsz-skim {
-				display: inline-flex;
-				align-items: center;
-				gap: 4px;
-				font-size: var(--text-2xs);
-				text-transform: uppercase;
-				letter-spacing: 0.06em;
-				color: var(--muted);
-			}
-
-			.oversized-card .ovsz-skim .ic {
-				width: 12px;
-				height: 12px;
-			}
-
 			.oversized-card .ovsz-stats {
 				display: flex;
 				align-items: baseline;
@@ -1847,31 +1744,6 @@
 				font-size: var(--text-sm);
 				color: var(--muted);
 				line-height: 1.5;
-			}
-
-			/* Flag callout — the amber bordered box the guide header uses, restated here (its rules are
-       scoped under .ghdr, so they don't reach the card). "Decide this before approving." */
-			.oversized-card .ovsz-flag {
-				display: flex;
-				align-items: flex-start;
-				gap: 8px;
-				margin-top: 14px;
-				padding: 8px 11px;
-				border: 1px solid rgba(224, 175, 104, 0.35);
-				background: rgba(224, 175, 104, 0.06);
-				border-radius: var(--radius-sm);
-				font-size: var(--text-sm);
-				line-height: 1.5;
-				color: var(--amber-fg);
-			}
-
-			.oversized-card .ovsz-flag .ic {
-				flex: 0 0 auto;
-				width: 13px;
-				height: 13px;
-				margin-top: 2px;
-				color: var(--amber);
-				fill: currentColor;
 			}
 
 			.oversized-card .ovsz-actions {
@@ -2000,7 +1872,7 @@
 				pointer-events: none;
 			}
 
-			/* "← old path" arrow on a pure-rename row in the Skimmed tree/walkthrough group. */
+			/* "← old path" arrow on a pure-rename row in the Renamed tree/walkthrough group. */
 			.node .moved-from {
 				margin-left: 6px;
 				overflow: hidden;
@@ -3177,54 +3049,6 @@
 				margin-bottom: 14px;
 			}
 
-			/* Focused-review badge (issue 04): a muted pill telling the human churn was deliberately skimmed. */
-			.guide-overview .go-focused {
-				display: inline-flex;
-				align-items: center;
-				gap: 6px;
-				margin: -6px 0 14px;
-				padding: 3px 10px;
-				border: 1px solid var(--line);
-				border-radius: 999px;
-				background: var(--panel);
-				color: var(--muted);
-				font-size: var(--text-2xs);
-			}
-
-			.guide-overview .go-focused .ic {
-				width: 13px;
-				height: 13px;
-				color: var(--muted);
-			}
-
-			.guide-overview .go-overview {
-				color: var(--ink);
-				line-height: 1.55;
-				margin: 0 0 12px;
-				font-size: var(--text-md);
-			}
-
-			.guide-overview .go-pr {
-				border: 1px solid var(--line);
-				background: var(--bg);
-				border-radius: var(--radius-lg);
-				padding: 9px 12px;
-				margin: 0 0 12px;
-			}
-
-			.guide-overview .go-pr b {
-				color: var(--ink);
-				display: block;
-				font-size: var(--text-2xs);
-				text-transform: uppercase;
-				letter-spacing: 0.1em;
-				margin-bottom: 4px;
-			}
-
-			.guide-overview .go-pr .md {
-				margin-top: 0;
-			}
-
 			.guide-overview .go-actions {
 				display: flex;
 				align-items: center;
@@ -3673,14 +3497,14 @@
 							<div
 								class="node"
 								:data-key="r.key"
-								:class="[r.cls, r.kind==='skimgrp' ? 'skimgrp' : '']"
+								:class="[r.cls, r.kind==='foldgrp' ? 'foldgrp' : '']"
 								:style="r.style"
 								@click="$store.g.rowClick(r)"
 							>
 								<svg
 									class="ic chev"
 									:class="{open: r.open}"
-									x-show="r.kind==='dir' || r.kind==='skimgrp'"
+									x-show="r.kind==='dir' || r.kind==='foldgrp'"
 								>
 									<use href="#gly-chevron"></use>
 								</svg>
@@ -3700,7 +3524,7 @@
 								</svg>
 								<span
 									class="nm"
-									x-show="r.kind!=='skimgrp'"
+									x-show="r.kind!=='foldgrp'"
 									x-text="r.name"
 								></span>
 								<span
@@ -3710,23 +3534,16 @@
 									:title="'moved from '+r.movedFrom"
 								></span>
 								<span
-									class="nm skimgrp-name"
-									x-show="r.kind==='skimgrp'"
-									x-text="r.group==='reviewed' ? 'Reviewed' : 'Skimmed'"
-									>Skimmed</span
+									class="nm foldgrp-name"
+									x-show="r.kind==='foldgrp'"
+									x-text="r.group==='reviewed' ? 'Reviewed' : 'Renamed'"
+									>Renamed</span
 								>
 								<span
-									class="skimgrp-count"
-									x-show="r.kind==='skimgrp'"
+									class="foldgrp-count"
+									x-show="r.kind==='foldgrp'"
 									x-text="r.count + (r.count===1 ? ' file' : ' files')"
 								></span>
-								<svg
-									class="ic skim"
-									x-show="(r.kind==='file' || r.kind==='test') && r.skim"
-									title="Skimmed"
-								>
-									<use href="#gly-collapse-all"></use>
-								</svg>
 								<span
 									class="testcaret"
 									x-show="r.testToggle"
@@ -3776,14 +3593,14 @@
 							<div
 								class="node"
 								:data-key="r.key"
-								:class="[r.kind==='cat' ? 'walk-cat' : r.cls, r.kind==='cat' && (r.skimmed || r.reviewed) ? 'walk-skim' : '']"
+								:class="[r.kind==='cat' ? 'walk-cat' : r.cls, r.kind==='cat' && (r.renamed || r.reviewed) ? 'walk-fold' : '']"
 								:style="r.kind==='cat' ? '' : r.style"
-								@click="r.kind!=='cat' ? $store.g.selectFile(r.fileIndex) : (r.skimmed ? $store.g.toggleSkimGroup() : (r.reviewed ? $store.g.toggleReviewedGroup() : $store.g.selectFile(r.jumpIndex)))"
+								@click="r.kind!=='cat' ? $store.g.selectFile(r.fileIndex) : (r.renamed ? $store.g.toggleRenamedGroup() : (r.reviewed ? $store.g.toggleReviewedGroup() : $store.g.selectFile(r.jumpIndex)))"
 							>
 								<svg
 									class="ic chev"
 									:class="{open: r.open}"
-									x-show="r.kind==='cat' && (r.skimmed || r.reviewed)"
+									x-show="r.kind==='cat' && (r.renamed || r.reviewed)"
 								>
 									<use href="#gly-chevron"></use>
 								</svg>
@@ -3794,8 +3611,8 @@
 									:title="r.category"
 								></span>
 								<span
-									class="walk-skim-count"
-									x-show="r.kind==='cat' && (r.skimmed || r.reviewed)"
+									class="walk-fold-count"
+									x-show="r.kind==='cat' && (r.renamed || r.reviewed)"
 									x-text="r.total + (r.total===1 ? ' file' : ' files')"
 								></span>
 								<!-- File status leads the row (empty circle = to do); ± stay flush right below. -->
@@ -3832,22 +3649,8 @@
 									x-text="'← '+r.movedFrom"
 									:title="'moved from '+r.movedFrom"
 								></span>
-								<svg
-									class="ic crit"
-									x-show="r.kind==='file' && r.flag"
-									:title="r.flag"
-								>
-									<use href="#gly-flag"></use>
-								</svg>
-								<svg
-									class="ic skim"
-									x-show="r.kind==='file' && r.skim"
-									title="Skimmed"
-								>
-									<use href="#gly-collapse-all"></use>
-								</svg>
 								<!-- Hidden on cat rows: an empty status-pack still carries margin-left:auto, and two
-                   auto margins would split the free space and strand the skim-group count mid-row. -->
+                   auto margins would split the free space and strand the fold-group count mid-row. -->
 								<span
 									class="status-pack"
 									x-show="r.kind==='file'"

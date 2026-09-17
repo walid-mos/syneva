@@ -54,7 +54,7 @@ function isViewOnly(isPreviewing: boolean): boolean {
 // The memo key covers everything buildDiffMetadata consumes: file identity (paths, contentHash,
 // old-side content digest + lengths), the view flags that change the parse, and the non-pending
 // decision set (the replay filters pending). Comments are NOT in the scope: they anchor
-// separately (annotations), and skim collapse is applied without touching metadata.
+// separately (annotations).
 type MetadataMemo = { diff: FileDiffMetadata; lineMap: LineMap | null }
 const METADATA_CAP = 8
 const metadataMemo = new Map<string, MetadataMemo>()

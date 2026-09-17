@@ -1,6 +1,5 @@
-import { currentChanges, currentSplittable } from '../changes'
+import { currentSplittable } from '../changes'
 import { currentGuideEntry } from '../guide'
-import { isBlockSkimCollapsed } from '../skim'
 import { S } from '../store'
 
 import type { ReviewState } from '../types'
@@ -32,7 +31,6 @@ export function diffKey(file: ReviewFile, view: DiffView): string {
 		S.settings.font,
 		S.settings.fontSize,
 		S.settings.tabSize,
-		currentChanges().some(isBlockSkimCollapsed),
 		currentGuideEntry(),
 	])
 }

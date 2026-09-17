@@ -6,8 +6,8 @@ import { deriveFlowIndex } from './flow-index'
 
 import type { ChangeState, ReviewComment, ReviewState } from './types'
 
-// flow-index is the bulk mirror of the per-path predicates (fileFullySkimmed/fileOutOfFlow in
-// skim.ts, fileFinished/fileObjections/fileReviewState in changes.ts). Those read the live store,
+// flow-index is the bulk mirror of the per-path predicates (fileOutOfFlow in renames.ts,
+// fileFinished/fileObjections/fileReviewState in changes.ts). Those read the live store,
 // so parity is pinned here against hand-derived expectations over a fixture that exercises every
 // classification the originals encode.
 
@@ -54,9 +54,7 @@ function file(path: string, over: Partial<IndexedFile> = {}): IndexedFile {
 const state = {
 	files: [
 		file('plain.ts'), // in flow, pending
-		file('guide-skim.ts'), // guide file-level skim → fully skimmed
-		file('block-skim.ts'), // every block skim-stamped → fully skimmed
-		file('part-skim.ts'), // one of two blocks skimmed → in flow
+		file('changed.ts'), // two change blocks → in flow
 		file('pure-rename.ts', {
 			renamePure: true,
 			oldPath: 'old.ts',
@@ -69,23 +67,9 @@ const state = {
 	],
 	changes: [
 		change({ id: 'c1', path: 'plain.ts' }),
-		change({
-			id: 'c2',
-			path: 'block-skim.ts',
-			skim: { reason: 'gen' },
-		}),
-		change({
-			id: 'c3',
-			path: 'block-skim.ts',
-			skim: { reason: 'gen' },
-		}),
-		change({
-			id: 'c4',
-			path: 'part-skim.ts',
-			skim: { reason: 'gen' },
-		}),
-		change({ id: 'c5', path: 'part-skim.ts' }),
-		change({ id: 'c6', path: 'rejected.ts' }),
+		change({ id: 'c2', path: 'changed.ts' }),
+		change({ id: 'c3', path: 'changed.ts' }),
+		change({ id: 'c4', path: 'rejected.ts' }),
 	],
 	comments: [
 		comment({ id: 'm1', path: 'commented.ts', intent: 'action' }), // open user change → objection
@@ -123,37 +107,14 @@ const state = {
 		'commented.ts': 'H-commented.ts',
 		'stale.ts': 'OLD-HASH', // agent rewrote it since sign-off
 	},
-	guide: {
-		overview: 'o',
-		files: [
-			{
-				path: 'guide-skim.ts',
-				category: 'Core',
-				order: 0,
-				orientation: 'x',
-				skim: true,
-			},
-		],
-	},
 } satisfies NonNullable<Parameters<typeof deriveFlowIndex>[0]>
 
-void test('flow-index: skim/rename flow classification mirrors the per-path predicates', () => {
+void test('flow-index: only pure renames leave the flow', () => {
 	const ix = deriveFlowIndex(state)
-	const fullySkimmed = [...ix.fullySkimmed]
-	fullySkimmed.sort()
-	const expectedFullySkimmed = ['block-skim.ts', 'guide-skim.ts']
-	assert.ok(isDeepStrictEqual(fullySkimmed, expectedFullySkimmed))
-	const outOfFlow = [...ix.outOfFlow]
-	outOfFlow.sort()
-	const expectedOutOfFlow = [
-		'block-skim.ts',
-		'guide-skim.ts',
-		'pure-rename.ts',
-	]
-	assert.ok(isDeepStrictEqual(outOfFlow, expectedOutOfFlow))
-	// Partial skim and plain files stay in flow.
-	assert.ok(!ix.outOfFlow.has('part-skim.ts'))
+	assert.ok(isDeepStrictEqual([...ix.outOfFlow], ['pure-rename.ts']))
+	// Pending work stays in the flow - nothing else folds a file out of the listings.
 	assert.ok(!ix.outOfFlow.has('plain.ts'))
+	assert.ok(!ix.outOfFlow.has('changed.ts'))
 })
 
 void test('flow-index: finished/reviewState mirror fileFinished/fileObjections/fileReviewState', () => {
@@ -170,7 +131,7 @@ void test('flow-index: finished/reviewState mirror fileFinished/fileObjections/f
 
 void test('flow-index: groups changes and comments by path; absent paths have no entry', () => {
 	const ix = deriveFlowIndex(state)
-	assert.equal(ix.changesByPath.get('block-skim.ts')?.length, 2)
+	assert.equal(ix.changesByPath.get('changed.ts')?.length, 2)
 	assert.equal(ix.commentsByPath.get('rejected.ts')?.length, 1)
 	assert.equal(ix.changesByPath.get('approved.ts'), undefined)
 })

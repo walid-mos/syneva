@@ -1,6 +1,7 @@
 import { flowIndex } from './changes'
+import { movedFrom } from './renames'
+import { isRenamedGroupExpanded } from './renames'
 import { pushReviewedGroup } from './reviewed'
-import { movedFrom, isSkimGroupExpanded } from './skim'
 import { S } from './store'
 import {
 	CARET_CLOSED,
@@ -187,7 +188,6 @@ function fileRow(
 		testCaret: signals.areTestsOpen ? CARET_OPEN : CARET_CLOSED,
 		changeType: signals.changeType,
 		state: stateBadge(signals),
-		skim: file.changed && build.ix.fullySkimmed.has(file.path),
 	})
 	if (!signals.areTestsOpen) return
 	// A changed test sorts above its unchanged siblings, then by name.
@@ -226,10 +226,10 @@ function walk(build: TreeBuild, node: TreeNode, depth: number): void {
 	for (const file of node.files) fileRow(build, file, depth, false)
 }
 
-// A flat, muted row for a fully-skimmed file inside the collapsed group: no state badge and no
-// "changed" cyan (it's out of the flow), just the skim indicator. Clicking opens it like any
-// file - its file/block skim strips render as issue 06 built.
-function skimFileRow(build: TreeBuild, path: string): FileRow {
+// A flat, muted row for a pure rename inside the collapsed group: no state badge and no
+// "changed" cyan (it's out of the flow), just the "← old path" arrow. Clicking opens it like any
+// file (which shows the muted "renamed · no changes" note in place of a diff).
+function renamedFileRow(build: TreeBuild, path: string): FileRow {
 	const movedFromPath = movedFrom(path)
 	return {
 		key: `file:${path}`,
@@ -245,32 +245,30 @@ function skimFileRow(build: TreeBuild, path: string): FileRow {
 		testCaret: CARET_CLOSED,
 		changeType: null,
 		state: null,
-		// A pure rename shows a "← old" arrow instead of the skim indicator (it's moved, not
-		// skimmed); movedFrom() returns '' when the path isn't a rename, which the template's
-		// truthy check reads as absent (the same convention the walkthrough rows use).
-		skim: !movedFromPath,
+		// A pure rename shows a "← old" arrow - movedFrom() returns '' when the path isn't a
+		// rename, which the template's truthy check reads as absent.
 		movedFrom: movedFromPath,
 	}
 }
 
-// The collapsed "Skimmed · N files" group at the very bottom - the test-fold precedent, but a
-// flat group (no nesting). Expand state is per-session (isSkimGroupExpanded); reviewed.ts
+// The collapsed "Renamed · N files" group at the very bottom - the test-fold precedent, but a
+// flat group (no nesting). Expand state is per-session (isRenamedGroupExpanded); reviewed.ts
 // builds a matching "Reviewed" group of approved files.
-function appendSkimGroup(build: TreeBuild, skimmedPaths: string[]): void {
-	if (!skimmedPaths.length) return
-	const isOpen = isSkimGroupExpanded()
+function appendRenamedGroup(build: TreeBuild, renamedPaths: string[]): void {
+	if (!renamedPaths.length) return
+	const isOpen = isRenamedGroupExpanded()
 	build.rows.push({
-		kind: 'skimgrp',
-		key: 'group:skimmed',
-		count: skimmedPaths.length,
+		kind: 'foldgrp',
+		key: 'group:renamed',
+		count: renamedPaths.length,
 		open: isOpen,
 		caret: isOpen ? CARET_OPEN : CARET_CLOSED,
-		group: 'skimmed',
+		group: 'renamed',
 	})
 	if (!isOpen) return
-	const ordered = [...skimmedPaths]
+	const ordered = [...renamedPaths]
 	ordered.sort((a, b) => a.localeCompare(b))
-	for (const path of ordered) build.rows.push(skimFileRow(build, path))
+	for (const path of ordered) build.rows.push(renamedFileRow(build, path))
 }
 
 // Pure data: the flat, ordered list of tree rows the template renders with x-for.
@@ -283,16 +281,17 @@ export function treeRows(): TreeRow[] {
 	const ix = flowIndex()
 	const changedPaths = S.state.files.map(f => f.path)
 	const changedIndex = new Map(S.state.files.map((f, i) => [f.path, i]))
-	// Files out of the main flow (fully skimmed, or pure renames - issue 01/07) leave the main
-	// listing and gather in the collapsed group at the bottom - so they don't mark their folders as
-	// changed and don't clutter the tree.
-	const skimmedPaths = changedPaths.filter(path => ix.outOfFlow.has(path))
-	const skimmedSet = new Set(skimmedPaths)
+	// Files out of the main flow (pure renames - issue 01) leave the main listing and gather in the
+	// collapsed group at the bottom - so they don't mark their folders as changed and don't clutter
+	// the tree.
+	const renamedPaths = changedPaths.filter(path => ix.outOfFlow.has(path))
+	const renamedSet = new Set(renamedPaths)
 	// The hide-reviewed lens folds fully-approved files the same way (a separate "Reviewed"
-	// group) - a file already approved AND skimmed stays in the skimmed group (skim wins).
+	// group) - a file already approved AND renamed stays in the renamed group (a pure rename has
+	// no blocks, so it can never be approved anyway).
 	const reviewedPaths = S.settings.hideReviewed
 		? changedPaths.filter(
-				path => !skimmedSet.has(path) && ix.distilled.has(path),
+				path => !renamedSet.has(path) && ix.distilled.has(path),
 			)
 		: []
 	const reviewedSet = new Set(reviewedPaths)
@@ -314,12 +313,12 @@ export function treeRows(): TreeRow[] {
 	}
 	const root = emptyNode('', '')
 	for (const path of listed) {
-		if (skimmedSet.has(path) || reviewedSet.has(path)) continue
+		if (renamedSet.has(path) || reviewedSet.has(path)) continue
 		insertFile(root, path, changedIndex.get(path))
 	}
 	root.files = foldTestFiles(root, S.state.stagedFiles)
 	walk(build, root, 0)
-	appendSkimGroup(build, skimmedPaths)
+	appendRenamedGroup(build, renamedPaths)
 	pushReviewedGroup(build.rows, reviewedPaths, path => changedIndex.get(path))
 	return build.rows
 }

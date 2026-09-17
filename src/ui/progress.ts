@@ -84,7 +84,7 @@ export function reviewStats(): {
 	comments: number
 	rejections: number
 } {
-	// Files out of the flow - fully skimmed or pure renames (issue 01/07) - stay out of the
+	// Files out of the flow - pure renames (issue 01) - stay out of the
 	// completion receipt's file and line totals so the numbers match the progress bar and the gate.
 	// One flow-index pass instead of a per-file rescan (see flow-index.ts).
 	const { outOfFlow } = flowIndex()

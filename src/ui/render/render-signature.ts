@@ -2,9 +2,9 @@ import type { ReviewComment, ReviewState, Store } from '../types'
 import type { DiffView } from './diff-key'
 
 // The identity of a rendered diff OUTCOME: the same file (identity, paths, content), the same
-// reviewer decisions and skim collapses, and the same comment threads encode the exact same
-// #diff paint. Pure over the store-projected inputs (see renderDiffInstance) - structural on
-// DiffView, no cycle back from diff-instance, and Node tests run it without a DOM.
+// reviewer decisions, and the same comment threads encode the exact same #diff paint. Pure over
+// the store-projected inputs (see renderDiffInstance) - structural on DiffView, no cycle back from
+// diff-instance, and Node tests run it without a DOM.
 // The file slice is the member set the digest reads, not ReviewFile wholesale.
 type SignedFile = {
 	path: string
@@ -20,17 +20,15 @@ const FIELD = '\u001f'
 const RECORD = '\u0000'
 const GROUP = '\u0001'
 
-// Change digest. `skimCollapsed` is the isBlockSkimCollapsed outcome (the per-session toggles
-// + file-skim default the rows visibly fold) - projected by the caller, because skim state is
-// store-side and this fn is pure.
+// Change digest. The id identifies the block (position + identity) and the status is what the
+// reviewer decided about it.
 type ChangeRecord = {
 	id: string
 	status: ReviewState['changes'][number]['status']
-	skimCollapsed: boolean
 }
 
 function changeSignature(change: ChangeRecord): string {
-	return [change.id, change.status, String(change.skimCollapsed)].join(FIELD)
+	return [change.id, change.status].join(FIELD)
 }
 
 // updatedAt covers in-place body edits; ids/status/position cover set membership and thread
