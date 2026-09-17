@@ -12,7 +12,7 @@ Treat **`galley spec`** as the authoritative contract — run it once before you
 4. **Start the desk in the background** (file mode):
    ```bash
    rm -f /tmp/galley-<slug>.log; nohup galley file .pi/galley/plans/<slug>.md > /tmp/galley-<slug>.log 2>&1 &
-   sleep 2; cat /tmp/galley-<slug>.log
+   url=""; for _ in $(seq 1 40); do url=$(grep -m1 -o 'http://[^ ]*' /tmp/galley-<slug>.log); [ -n "$url" ] && break; sleep 0.25; done; echo "${url:-no URL after 10s - read /tmp/galley-<slug>.log}"
    ```
    Report the printed URL to the user.
 5. **Attach the owning Pi session** with `galley_agent` as documented in `galley spec`, then return control. Never delegate waiting to a one-shot subagent. If the tool is unavailable, report the missing native attachment rather than claim the desk will wake an idle agent. Incoming native messages point to the complete event JSON; read it before handling the event:
