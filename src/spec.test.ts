@@ -57,26 +57,16 @@ const ANCHORS = [
 	'--line 0',
 	'whole-file',
 	'How to act on a review',
-	// guided review schema (folded in from the old guide-spec)
+	// the guide is a domain grouping - the guided-review prose, flags and skim are gone
+	'Grouping the review (optional)',
 	'Guide JSON schema',
-	'one-paragraph changeset overview',
 	'files (required, non-empty array)',
-	'repo-relative; must be a file in the diff',
-	'Orientation, not a changelog',
-	// skimmable review (issue 06) - the fields and the "only on request / opposite of flag" rule
-	'skimBlocks?',
-	'new-file-side [start, end] span',
-	'Skim LOWERS attention',
-	'When to skim',
-	// fully-skimmed files leave the flow (issue 07)
-	'drops into a collapsed',
-	'genuinely needs no eyes',
-	// moved-file handling documented in the contract (issues 01-03)
-	'movedFrom',
-	'renamed old → new',
-	// focused-review definition + flag (issue 04)
-	'focused review',
-	'mechanical churn skimmed',
+	'repo-relative.',
+	'category?',
+	'order? - ascending review order',
+	'Every other key is ignored',
+	'trailing "Other" section',
+	'aborts the launch naming the offending field',
 	// desk lifecycle: explicit stop + the idle reaper (abandoned desks must not accumulate)
 	'syneva stop',
 	'auto-exits',
@@ -144,4 +134,21 @@ void test('SPEC has no dangling references to the old skill/command', () => {
 		!SPEC.includes('SKILL.md'),
 		"SPEC must be self-contained - no 'see the skill' pointers",
 	)
+})
+
+void test('SPEC no longer advertises the retired guided-review surface', () => {
+	// The guide groups files; the agent-written prose, flags and skim instructions left the
+	// contract. A resurrected mention would tell agents to write fields the desk now ignores.
+	for (const retired of [
+		'skimBlocks',
+		'movedFrom',
+		'orientation',
+		'prDescription',
+		'focused review',
+		'skim',
+	])
+		assert.ok(
+			!SPEC.includes(retired),
+			`syneva spec still mentions "${retired}"`,
+		)
 })

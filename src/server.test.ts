@@ -612,7 +612,7 @@ void test('/api/stage: paths[] stages a move pair as a rename; legacy {path} sti
 	})
 })
 
-void test('/api/reload: a guide-declared move merges into a rename entry; a bad one is 422, desk untouched (issue 03)', async () => {
+void test('/api/reload: a posted grouping replaces the carried guide, is stamped to the new diff, and an invalid one is 422 (desk untouched)', async () => {
 	await withServer(async (handle, root, st) => {
 		const g = (args: string[]): string =>
 			execFileSync('git', args, { cwd: root }).toString()
@@ -622,39 +622,53 @@ void test('/api/reload: a guide-declared move merges into a rename entry; a bad 
 		await writeFile(path.join(root, 'a.ts'), 'l1\nl2\nl3\n')
 		g(['add', '.'])
 		g(['commit', '-qm', 'init'])
-		// Plain mv + edit: a.ts deleted in the worktree, b.ts untracked with one changed line.
-		await rm(path.join(root, 'a.ts'))
-		await writeFile(path.join(root, 'b.ts'), 'l1\nCHANGED\nl3\n')
+		await writeFile(path.join(root, 'a.ts'), 'l1\nCHANGED\nl3\n')
+		await writeFile(path.join(root, 'b.ts'), 'brand new\n')
 		const reload = (guide: unknown): Promise<Response> =>
 			fetch(`${handle.url}api/reload`, {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ guide }),
 			})
-		// Declared move resolves → one rename-changed entry at b.ts, a.ts gone.
+		// A posting replaces the carried guide, stamped with the diff it describes as of now, so a
+		// freshly regenerated grouping is never born stale.
 		const ok = await reload({
-			overview: 'o',
-			files: [
-				{
-					path: 'b.ts',
-					orientation: 'moved and edited',
-					movedFrom: 'a.ts',
-				},
-			],
+			files: [{ path: 'b.ts', order: 0, category: 'New' }],
 		})
 		assert.equal(ok.status, 200)
-		assert.ok(st.files.some(f => f.path === 'b.ts' && f.oldPath === 'a.ts'))
-		assert.ok(!st.files.some(f => f.path === 'a.ts'))
-		// A movedFrom naming a file that isn't a deletion → 422, and the live desk is left as it was.
-		const before = st.files.map(f => f.path).toSorted()
-		const bad = await reload({
-			overview: 'o',
-			files: [{ path: 'b.ts', orientation: 'x', movedFrom: 'ghost.ts' }],
-		})
-		assert.equal(bad.status, 422)
+		const attached = st.guide
 		assert.ok(
-			isDeepStrictEqual(st.files.map(f => f.path).toSorted(), before),
+			attached,
+			'the reload should have attached the posted grouping',
 		)
+		assert.equal(attached.baseDiffHash, st.baseDiffHash)
+		assert.ok(
+			isDeepStrictEqual(attached.files, [
+				{ path: 'b.ts', order: 0, category: 'New' },
+			]),
+		)
+		// A guide written against the retired guided-review schema still attaches: unknown keys are
+		// dropped, the grouping survives.
+		const legacy = await reload({
+			overview: 'o',
+			focused: true,
+			files: [
+				{ path: 'a.ts', orientation: 'x', flag: 'risky', skim: true },
+			],
+		})
+		assert.equal(legacy.status, 200)
+		const regrouped = st.guide
+		assert.ok(regrouped, 'the legacy guide should have been attached')
+		assert.ok(
+			isDeepStrictEqual(regrouped.files, [
+				{ path: 'a.ts', order: 0, category: 'Changes' },
+			]),
+		)
+		// An invalid guide is refused before anything is written - the live grouping is untouched.
+		const before = structuredClone(regrouped)
+		const bad = await reload({ files: [{ path: '  ' }] })
+		assert.equal(bad.status, 422)
+		assert.ok(isDeepStrictEqual(st.guide, before))
 	})
 })
 

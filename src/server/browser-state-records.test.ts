@@ -18,7 +18,6 @@ const records = {
 			stableKey: 'k',
 			contentHash: 'H',
 			reviewedHash: 'H',
-			skim: { reason: 'generated' },
 		},
 	],
 	decisions: [
@@ -54,17 +53,12 @@ const records = {
 	stagedChangeKeys: ['a:k'],
 	decisionFiles: ['a'],
 	guide: {
-		overview: 'Review the change',
-		focused: true,
 		baseDiffHash: 'base',
 		files: [
 			{
 				path: 'a',
 				order: 0,
 				category: 'Core',
-				orientation: 'Check behavior',
-				flag: 'Risky',
-				skimBlocks: [{ lines: [1, 2], reason: 'generated' }],
 			},
 		],
 	},
@@ -85,7 +79,7 @@ const state: ReviewState = {
 	files: [],
 	...records,
 }
-void test('the browser projection retains reviewer records, staging metadata, and guide instructions', () => {
+void test('the browser projection retains reviewer records, staging metadata, and the guide grouping', () => {
 	const projected = browserState(state)
 	// These records are part of the browser contract even when no file is currently in the diff
 	// (e.g. an accepted block staged out of the working tree). Do not drop or rebuild them.

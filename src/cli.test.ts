@@ -65,14 +65,16 @@ void test('postReload posts {} without a guide and the guide verbatim with one',
 		const address = server.address()
 		const port = typeof address === 'object' && address ? address.port : 0
 		const deskUrl = `http://127.0.0.1:${port}/`
-		const guide: Guide = { overview: 'skim the lockfile', files: [] }
+		const guide: Guide = {
+			files: [{ path: 'pnpm-lock.yaml', order: 0, category: 'Lockfile' }],
+		}
 		await postReload(deskUrl, undefined)
 		await postReload(deskUrl, guide)
 		assert.deepEqual(received, [
 			{ url: '/api/reload', body: '{}' },
 			{
 				url: '/api/reload',
-				body: '{"guide":{"overview":"skim the lockfile","files":[]}}',
+				body: '{"guide":{"files":[{"path":"pnpm-lock.yaml","order":0,"category":"Lockfile"}]}}',
 			},
 		])
 	} finally {

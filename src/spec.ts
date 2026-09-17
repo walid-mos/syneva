@@ -97,8 +97,8 @@ done
   Cleared by your next comment; stale after ~90s (keep posting through long work); never
   persisted; exits 0 even with no desk.
 - \`syneva reload [--guide <file>]\` - re-diff the working tree into the live desk (your edits are
-  NOT auto-re-diffed). Anything you edit resets to pending on reload - decisions, approvals, and
-  skims alike; anything you left untouched carries over. --guide swaps the guide (one desk only -
+  NOT auto-re-diffed). Anything you edit resets to pending on reload - decisions and approvals
+  alike; anything you left untouched carries over. --guide swaps the grouping (one desk only -
   see Between rounds).
 - \`syneva stop [--session <id> | --all]\` - shut down this repo's live desk(s) (--all = every
   session). Idempotent, exits 0 with {stopped:[…]} whether or not a desk was running - call it
@@ -166,68 +166,30 @@ all-approved send already committed to an empty diff), call \`syneva stop\` in t
 never end a round by asking the human "say done to stop" - that buys an idle desk with one
 whole LLM round-trip for nothing.
 
-## Guided review (optional)
-Attach with \`syneva <mode> --guide <file>\`: an overview page + your files in order with per-file
-orientation (schema below). Syneva validates + renders it (markdown in prose fields, raw HTML
-stripped) and runs no model - content and order are yours. Write the guide OUTSIDE the working tree
-(temp or gitignored): working mode surfaces untracked files, so an in-repo guide shows as a stray
-addition. Stamped to its diff and surviving reload/restart; once a reload advances past it it's
-flagged stale - regenerate and swap via \`syneva reload --guide <new>\` (one desk only - see Between
-rounds).
+## Grouping the review (optional)
+By default the desk lists the changed files in diff order. Attach a grouping with
+\`syneva <mode> --guide <file>\` to give the reviewer a reading order and domain sections in the
+Walkthrough tab (schema below). Syneva validates + renders it and runs no model - order and labels
+are yours. Write the guide OUTSIDE the working tree (temp or gitignored): working mode surfaces
+untracked files, so an in-repo guide shows as a stray addition. It is a grouping, not a review: it
+carries no prose, and the reviewer's decisions, comments and Send are unaffected by it. Stamped to
+its diff and surviving reload/restart; once a reload advances past it the desk notes the grouping
+may be out of date - regenerate and swap via \`syneva reload --guide <new>\` (one desk only - see
+Between rounds). A guide is optional: without one the desk reviews the diff in file order.
 
 ### Guide JSON schema
 One JSON object:
-- title? - overview heading; falls back to branch/ref.
-- overview (required, non-empty) - one-paragraph changeset overview.
-- prDescription? - author/PR intent, shown on the overview page.
 - files (required, non-empty array) - one entry per reviewed file:
-  - path (required, non-empty) - repo-relative; must be a file in the diff.
-  - orientation (required, non-empty) - the lens to read this file with: its role, the
-    problem it solves, what to expect before opening it, what's non-obvious or worth
-    scrutinizing. Orientation, not a changelog - the reviewer already sees the diff. Shown
-    in the file's diff header.
+  - path (required, non-empty) - repo-relative.
+  - category? - the Walkthrough section this file is listed under (default "Changes"). Files
+    group by adjacency in review order, so a label repeated non-adjacently makes a second
+    section - keep a category's files together.
   - order? - ascending review order; defaults to array position.
-  - category? - group label (default "Changes"). Files group by adjacency in review order, so a
-    label repeated non-adjacently makes a second section - keep a category's files together.
-  - flag? - raises a flag on the file for closer scrutiny; the text is the note (what to
-    double-check, what's risky). Omit unless the file genuinely warrants it.
-  - skim? / skimReason? - mark the WHOLE file skimmable; skimReason is a short why ("generated",
-    "lockfile churn"). See "When to skim / focused review".
-  - skimBlocks? - collapse PARTS of the file: an array of { lines, reason? } where lines is a
-    new-file-side [start, end] span (or a single line number) of the diff you read, and reason is a
-    short label ("import-only"). The server resolves each span to the enclosing change block(s).
-  - movedFrom? - repo-relative OLD path of a file you moved AND edited (this entry's \`path\` is the
-    NEW path). The desk merges the deletion + untracked addition into one rename-changed entry so
-    only the real edits show, with a "moved from" badge; its blocks are verdict-only (no per-block
-    staging), and whole-file Approve stages both old and new paths as one rename. Working repo mode
-    only; may carry a whole-file \`skim\` but NOT \`skimBlocks\`. On a new guide an unresolvable
-    movedFrom aborts the launch naming it; on a carried-forward guide it drops silently, the pair
-    falling back to delete+add. Pure (unedited) renames need no declaration - git detects committed
-    ones and the desk auto-pairs identical-content working moves, both shown as a muted
-    "renamed old → new · no changes" row (see the collapse note above).
-- focused? - top-level boolean; badges the overview ("focused review - mechanical churn skimmed")
-  so the human knows attention was deliberately shaped. Display-only.
-A skimmed part collapses behind a one-click "expand" strip (nothing is ever hidden). A file skimmed
-whole (or every block skimmed), or a pure rename, leaves the default flow - it drops into a collapsed
-"Skimmed" group with no progress or completion weight, so skim only what genuinely needs no eyes.
+Every other key is ignored, so a guide written for an older Syneva still attaches. Files the guide
+doesn't list land in a trailing "Other" section, so nothing is hidden from the reviewer.
 
-### When to skim / focused review
-Skim ONLY on request ("give me a focused review"; "ignore the import churn, show me the real
-changes") - a plain guided review skims nothing. Skim LOWERS attention - the opposite of flag; never
-skim your own risky or non-obvious changes. Given a focused review, set \`focused: true\` and apply
-this default churn policy without item-by-item instruction:
-- whole-file skim - lockfiles, generated/compiled output, vendored code, snapshot files.
-- skimBlocks - import/re-export-only blocks, formatting-only hunks, mechanical rename ripples
-  (call-site churn where only an identifier changed).
-- movedFrom - files moved and edited, so only the real edits show.
-- never skim - logic, behavior-changing config (CI, tsconfig, package.json deps), your own risky
-  changes.
-
-Validation: beyond the (required, non-empty) fields above - a file's \`path\` must appear in the
-diff; each skimBlocks span must resolve to a change block; \`movedFrom\` must name a full deletion
-paired with the untracked addition at \`path\`, in working repo mode, not combined with skimBlocks;
-\`focused\` must be a boolean. An unreadable file, invalid JSON, or any violation aborts the launch
-naming the offending field.
+Validation: an unreadable file, invalid JSON, a missing/non-array/empty \`files\`, or an entry
+without a non-empty \`path\` aborts the launch naming the offending field.
 
 ## Between rounds - reload vs restart, and the desk lock
 - Don't edit tracked files mid-round: the reviewer wouldn't see the edits and their in-flight

@@ -80,12 +80,6 @@ export type ChangeState = {
 	// from persisted state.
 	displayLineNumber?: number
 	displayEndLine?: number
-	// Server-stamped when a guide's skimBlocks span resolves to this block: the desk
-	// collapses it by default (display-only - decisions/approval are untouched). Re-derived
-	// on every attach/reload from the guide (like stageable/contentHash), so it is NOT
-	// reviewer-owned and never rides /api/save; a rewritten block loses the id it was
-	// stamped under and the skim drops. `reason` is the agent's short note ("import-only").
-	skim?: { reason?: string }
 }
 
 // An explicit, durable record of a user's accept/reject on a change block, keyed
@@ -124,8 +118,8 @@ export type ReviewFile = DiffFile & {
 	added?: number
 	removed?: number
 	// A byte-identical move (distinct paths, unchanged content): git-native zero-hunk rename or a
-	// plain-`mv` untracked pair. A guide-declared movedFrom merge is a rename-CHANGED file and is
-	// NOT pure. Drives the UI's muted "renamed · no changes" row / skim-group fold without contents.
+	// plain-`mv` untracked pair. NOT pure. Drives the UI's muted "renamed · no changes" row /
+	// Renamed-fold without contents.
 	renamePure?: boolean
 	// New-side byte size, stamped ONLY in working/file mode (free from the bytes read to hash the
 	// working copy). OMITTED for committed new sides (pr/staged) - sizes aren't in `git diff --raw`
@@ -143,51 +137,25 @@ export type ReviewFile = DiffFile & {
 
 export type ReviewMode = 'repo' | 'file' | 'pr'
 
-// A per-file entry in an agent-generated guided review. `order` drives Next/Prev
-// (general → specific); `category` is the stepper grouping (e.g. Config/Core/Wiring,
-// semantic, distinct from the folder); `orientation` is the lens to read the file with
-// (role, problem, what to expect - not a changelog); `flag`, when present, raises the
-// flag for closer scrutiny and is its note. (Its presence is the flag - no separate bool.)
+// A per-file entry in the agent-supplied grouping. `order` drives Next/Prev (general →
+// specific); `category` is the Walkthrough section the file is listed under (e.g.
+// Config/Core/Wiring - semantic, distinct from the folder). That is the whole entry: the desk is
+// the review surface, so it carries no agent-written prose. Both fields are normalized on attach
+// (validateGuide defaults them from the array position / "Changes"), so this is the shape the desk
+// stores and reads - not the shape an agent has to write.
 export type GuideFile = {
 	path: string
 	order: number
 	category: string
-	orientation: string
-	flag?: string
-	// Focused-review skimming (agent-supplied, for "show me only the major changes"). The
-	// desk collapses skimmed parts by default but never removes them - the reviewer can
-	// always expand. Display-only: decisions, approval, and blockers are untouched. `skim`
-	// (with an optional `skimReason` like "generated"/"lockfile churn") collapses the WHOLE
-	// file; `skimBlocks` addresses new-file-side line spans the agent read, each resolved by
-	// the server to the enclosing change block(s). skim LOWERS attention - the opposite of
-	// `flag`, which raises it.
-	skim?: boolean
-	skimReason?: string
-	skimBlocks?: Array<{ lines: [number, number]; reason?: string }>
-	// Guide-declared move (issue 03): the OLD path a moved-and-edited file came from - the plain-`mv`
-	// case content-hash pairing (issue 02) can't catch, so the agent that made the move declares it.
-	// `path` is the NEW path (as every guide field is). The desk merges the declared deletion+untracked
-	// pair into one rename-changed entry (resolveMovedFrom), showing only the real edits with issue
-	// 01's moved badge. Working repo mode only; mutually exclusive with skimBlocks (both resolve
-	// against the diff, and a merged entry has no rawDiff section).
-	movedFrom?: string
 }
 
-// The guided review the coding agent attaches (the desk renders it, runs no model).
-// Absent on a ReviewState → no guide surfaces render and the desk works as today.
+// The grouping the coding agent attaches with --guide: which files to review, in which order,
+// under which headings. Absent on a ReviewState → the desk lists files in diff order and every
+// guide surface stays off. A guide is a grouping only - order and labels; it holds no prose.
 export type Guide = {
-	// A short agent-written title for the changeset (e.g. the PR name, or a one-line summary
-	// in repo mode). Shown as the Overview heading; falls back to the target/"Review" if absent.
-	title?: string
-	overview: string
-	prDescription?: string
 	files: GuideFile[]
-	// A focused review (issue 04): the reviewer asked for churn to be de-emphasized, so the agent
-	// shaped attention (whole-file/block skims, movedFrom merges). Display-only - the overview page
-	// badges the review so the human knows churn was deliberately skimmed. A plain guide omits it.
-	focused?: boolean
-	// baseDiffHash the guide was generated against - set on attach; used (in a later
-	// slice) to flag the guide as possibly stale once the diff advances past it.
+	// baseDiffHash the grouping was generated against - set on attach; the desk notes the
+	// grouping may be out of date once a reload advances the diff past it.
 	baseDiffHash?: string
 }
 
@@ -224,7 +192,7 @@ export type ReviewState = {
 	decisionFiles?: string[]
 	// Explicit accept/reject records - the source of truth for decisions.
 	decisions?: Decision[]
-	// Agent-generated guided review (overview + per-file orientation/order/category).
+	// Agent-supplied file grouping (order + category sections); it carries no prose.
 	// Optional: absent → no guide surfaces render.
 	guide?: Guide
 	persistFile?: string

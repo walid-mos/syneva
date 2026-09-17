@@ -550,10 +550,11 @@ void test('mergeReviewState (blob-OID migration): a pre-OID review loads - comme
 	assert.ok(merged.decisions!.some(d => d.key === 'a.ts:k1'))
 })
 
-void test('the reviewer save slice never carries skim (changes are server-owned)', () => {
+void test('the reviewer save slice never carries changes (they are server-owned)', () => {
 	const s = state({
 		changes: [change({ id: 'a.ts:k', path: 'a.ts', stableKey: 'k' })],
 	})
+	const beforeChanges = s.changes
 	// A stale tab POSTs a whole ReviewState, changes included; reviewerSavePatch must ignore them.
 	Object.assign(
 		s,
@@ -563,13 +564,14 @@ void test('the reviewer save slice never carries skim (changes are server-owned)
 					id: 'a.ts:k',
 					path: 'a.ts',
 					stableKey: 'k',
-					skim: { reason: 'x' },
+					status: 'accepted',
 				},
 			],
 			comments: [],
 		}),
 	)
-	assert.equal(s.changes[0].skim, undefined) // changes (hence skim) are not a reviewer-save key
+	// The client's copy never replaced ours: a change record is derived from the server's diff.
+	assert.ok(Object.is(s.changes, beforeChanges))
 	assert.deepEqual(s.comments, []) // comments ARE reviewer-owned, so they applied
 })
 

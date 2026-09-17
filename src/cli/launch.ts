@@ -2,8 +2,6 @@ import { getBranch, getGitRoot } from '../git/repo.js'
 import { warn } from '../output.js'
 import { buildReviewState } from '../state/build.js'
 import { readDeskLock } from '../state/desk.js'
-import { parsedDiffOf } from '../state/diff-source.js'
-import { resolveMovedFrom, resolveSkim } from '../state/guide-resolve.js'
 import { loadLatestReview, persistReview } from '../state/persistence.js'
 import { mergeReviewState, readStagedSnapshot } from '../state/reconcile.js'
 import { maybeOfferUpdate } from '../update.js'
@@ -115,8 +113,10 @@ function loadLaunchGuide(args: CliArgs): Guide | undefined | null {
 	return guide
 }
 
-// Merge the saved review, attach a freshly passed guide (strict) or re-resolve a carried
-// forward one (lenient), and hand back the ready-to-persist state. Null aborts the launch.
+// Merge the saved review and attach a freshly passed guide. A guide the merge carried forward
+// (mergeReviewState keeps saved.guide) needs no further work - and nothing in a guide needs
+// resolving against the diff any more, so a bad one can no longer abort beyond the schema check.
+// Null aborts the launch.
 async function prepareState(
 	base: ReviewState,
 	session: string,
@@ -125,54 +125,12 @@ async function prepareState(
 	const saved = await loadLatestReview(base.root, session)
 	const newGuide = loadLaunchGuide(args)
 	if (newGuide === null) return null
-	// Guide-declared moves (movedFrom) must merge into `base` BEFORE reconciliation, so the
-	// merged pair's distinct paths drive mergeReviewState's rename migration (issue 01). A new
-	// guide resolves strictly (an unresolvable move aborts the launch); a guide carried forward
-	// by a previous session resolves leniently off the saved state (the move drops back to
-	// delete+add).
-	const moveGuide = newGuide ?? saved?.guide
-	const moved = moveGuide
-		? resolveMovedFrom(base, moveGuide, { strict: !!newGuide })
-		: undefined
-	if (moved && !moved.ok) {
-		warn(`Invalid guide: ${moved.reason}.`)
-		process.exitCode = 1
-		return null
+	const state = await mergeReviewState(base, saved)
+	if (!newGuide) return state
+	// Stamp the diff the grouping was generated against: once a reload advances past it the desk
+	// notes the grouping may be out of date (Guide.baseDiffHash).
+	return {
+		...state,
+		guide: { ...newGuide, baseDiffHash: state.baseDiffHash },
 	}
-	// A merged move replaces the halves the rest of the launch works from; `base` itself stays the
-	// object the parse was seeded on (issue 06), so it is what attachGuide hands over.
-	const movedBase = moved?.merged ? { ...base, ...moved.merged } : base
-	return attachGuide(await mergeReviewState(movedBase, saved), base, newGuide)
-}
-
-// Resolve the guide against the fresh diff. A newly passed guide must resolve strictly (an
-// unresolvable span aborts the launch naming the offending field) and is stamped with the
-// diff hash it was generated against, so a later reload past that hash flags it as possibly
-// stale (slice 05). A guide carried forward by the merge (restart without --guide) resolves
-// leniently - stale spans drop rather than abort. `state.rawDiff` shares identity with
-// `base.rawDiff`, so the parse seeded on `base` is reused (issue 06: one parse across build +
-// skim resolution). Null aborts the launch.
-function attachGuide(
-	state: ReviewState,
-	base: ReviewState,
-	newGuide: Guide | undefined,
-): ReviewState | null {
-	if (!newGuide) {
-		if (state.guide) {
-			resolveSkim(parsedDiffOf(base), state.changes, state.guide, {
-				strict: false,
-			})
-		}
-		return state
-	}
-	const guide: Guide = { ...newGuide, baseDiffHash: state.baseDiffHash }
-	const skim = resolveSkim(parsedDiffOf(base), state.changes, guide, {
-		strict: true,
-	})
-	if (!skim.ok) {
-		warn(`Invalid guide: ${skim.reason}.`)
-		process.exitCode = 1
-		return null
-	}
-	return { ...state, guide }
 }

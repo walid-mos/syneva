@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { isDeepStrictEqual } from 'node:util'
 
-import { computeApprovedFiles } from './decisions.js'
-import { change, comment, decision, file, state } from './fixtures.js'
+import { comment, decision, file, state } from './fixtures.js'
 import { buildReviewResult } from './review-result.js'
 
 void test('buildReviewResult reads decisions, so a staged-out accepted hunk still appears in accepted[]', () => {
@@ -152,31 +151,6 @@ void test('buildReviewResult.approvedFiles excludes a signed-off file with an op
 	})
 	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
 	assert.ok(isDeepStrictEqual(r.approvedFiles, ['b.ts'])) // a.ts has an open change request; b.ts only a question
-})
-
-void test('skim never changes approval derivations (display-only)', () => {
-	// A skimmed block accepted like any other: it lands in accepted[] and the file approves.
-	const s = state({
-		files: [file('a.ts', 'H')],
-		changes: [
-			change({
-				id: 'a.ts:k',
-				path: 'a.ts',
-				stableKey: 'k',
-				status: 'accepted',
-				skim: { reason: 'imports' },
-			}),
-		],
-		decisions: [
-			decision({ key: 'a.ts:k', path: 'a.ts', status: 'accepted' }),
-		],
-		reviewedFiles: ['a.ts'],
-		reviewedFileHashes: { 'a.ts': 'H' },
-	})
-	assert.ok(isDeepStrictEqual(computeApprovedFiles(s), ['a.ts']))
-	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
-	assert.equal(r.accepted.length, 1)
-	assert.ok(isDeepStrictEqual(r.approvedFiles, ['a.ts']))
 })
 
 void test('a whole-file request rides out as lineNumber 0 + anchor file, and approves-not blocks as usual', () => {

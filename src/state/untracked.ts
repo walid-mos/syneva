@@ -65,7 +65,7 @@ async function readUntrackedEntries(
 // file (`+++ /dev/null`, so newPath is undefined) PLUS a full untracked addition. When a deleted
 // file's index (:0) content is byte-identical to exactly one untracked file - and that untracked
 // file matches exactly one deletion - it's an unambiguous rename. Merge the halves into one
-// rename-pure entry (issue 01's muted row / skim-group fold / progress exclusion, no new UI) rather
+// rename-pure entry (issue 01's muted row / Renamed-fold / progress exclusion, no new UI) rather
 // than making the reviewer re-read the whole file as a delete + re-add. Any ambiguity (2+ identical
 // candidates on either side) pairs nothing and leaves today's delete+add rendering. Exact bytes only
 // - a moved-AND-edited file is deliberately NOT paired (that's guide movedFrom, issue 03). This runs
@@ -104,7 +104,7 @@ async function pairUntrackedMoves(
 }
 
 // The merged half: the untracked path with the deleted path recorded as its old side. Byte-identical
-// content → a pure rename (the muted moved row / skim-group fold). No contents retained; the new
+// content → a pure rename (the muted moved row / Renamed fold). No contents retained; the new
 // side's OID is hashed from the working copy already read.
 function mergeMove(deletion: ReviewFile, entry: UntrackedEntry): ReviewFile {
 	return {
