@@ -21,7 +21,7 @@ import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 import { CURATED_LANGS } from './shiki-langs'
 import { CURATED_THEMES } from './shiki-themes'
 
-import type { HighlighterCore, LanguageRegistration } from 'shiki/core'
+import type { HighlighterCore } from 'shiki/core'
 
 // Pure pass-throughs - utilities @pierre/diffs uses that don't drag the bundle in.
 export {
@@ -79,8 +79,8 @@ function plainGrammar(lang: string): {
 }
 
 // resolveLanguage does `loader().then(({ default: data }) => …)`, so each loader resolves to
-// `{ default: <grammar input> }`. We forward the FULL imported default (an array carrying the
-// grammar's embedded-language deps), not just the primary grammar.
+// `{ default: <grammar input> }`. The curated loaders forward the module's FULL default (an array
+// carrying the grammar's embedded-language deps), not just the primary grammar.
 type LangLoader = () => Promise<{ default: unknown }>
 
 const plainLoaderCache = new Map<string, LangLoader>()
@@ -94,9 +94,11 @@ function plainLoader(lang: string): LangLoader {
 	return loader
 }
 
-// Build name→loader for the curated set, keyed by each grammar's canonical name AND all its aliases
-// (e.g. the "shellscript" grammar covers zsh/sh/bash/shell; yaml covers yml). These are the names
-// @pierre/diffs' getFiletypeFromFileName() requests, so the key must match what it asks for.
+// Build name→loader for the curated set, keyed by each grammar's canonical name AND all its
+// aliases (e.g. the "shellscript" grammar covers zsh/sh/bash/shell; yaml covers yml). These are
+// the names @pierre/diffs' getFiletypeFromFileName() requests, so the key must match what it asks
+// for. Only the NAME table is eager - the grammar bytes load when @pierre calls a loader, so the
+// diff view fetches the language of the file on screen instead of all 25 grammars.
 const curatedLanguages: Record<string, LangLoader> = {}
 
 function registerLanguageKey(
@@ -107,15 +109,12 @@ function registerLanguageKey(
 	curatedLanguages[key] = loader
 }
 
-function registerCuratedLanguage(def: LanguageRegistration[]): void {
-	const loader: LangLoader = () => Promise.resolve({ default: def })
-	const primary = def.at(-1)
-	registerLanguageKey(primary?.name, loader)
-	for (const alias of primary?.aliases ?? [])
+for (const language of CURATED_LANGS) {
+	const loader: LangLoader = () => language.load()
+	registerLanguageKey(language.name, loader)
+	for (const alias of language.aliases ?? [])
 		registerLanguageKey(alias, loader)
 }
-
-for (const def of CURATED_LANGS) registerCuratedLanguage(def)
 
 // @pierre/diffs' resolveLanguage throws for any language not in bundledLanguages (guarded by
 // Object.prototype.hasOwnProperty.call(bundledLanguages, lang)). This Proxy reports EVERY string

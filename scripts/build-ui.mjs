@@ -15,11 +15,11 @@ const workerEntry = fileURLToPath(
 
 // The shell's static closure and all deferred chunks are budgeted independently. A tiny
 // entry that still imports the grammars eagerly must fail the initial-load budget.
-// dist/worker.js carries the curated grammars plus @pierre's render helpers (imported by the
-// token worker for the exact pipeline), so its floor is comparable; the gate is a regression
-// tripwire (a wasm/fat-barrel leak), generous rather than tight to avoid false CI failures
-// across @pierre releases.
-const WORKER_SIZE_LIMIT = 3_800_000
+// dist/worker.js carries @pierre's render helpers and the token worker's own slice/merge code -
+// NOT the grammars, which arrive as resolved data (see makeWorkerLanguageStubPlugin). The gate is a
+// regression tripwire (a grammar or wasm leak back into the worker bundle), so it sits just above
+// the current size rather than being generous.
+const WORKER_SIZE_LIMIT = 900_000
 const BYTES_PER_KB = 1000
 
 const shimPath = fileURLToPath(
@@ -30,6 +30,27 @@ const emptyModule = 'export default {}; export {};'
 const onigurumaStubModule =
 	'export function createOnigurumaEngine() { throw new Error("oniguruma wasm engine was stubbed out of syneva\'s worker bundle (preferredHighlighter must be shiki-js)") }'
 const fromPierre = importer => importer.includes('@pierre/diffs')
+
+// The token worker never resolves grammars: the pool manager resolves them (see shiki-langs.ts's
+// lazy loaders) and ships the RESOLVED data, which the worker only hands to loadLanguageSync. So
+// every curated grammar module is stubbed out of the worker build - the whole set used to ride
+// along as a 2.5 MB worker.js that each of the pool's four workers fetched and compiled on every
+// cold load. Touching the stub is a loud error: the worker started resolving languages itself.
+const languageStubModule =
+	'export default new Proxy({}, { get() { throw new Error("a curated grammar module was resolved inside the token worker: grammars must arrive as RESOLVED data from the pool manager (see src/ui/shiki-langs.ts)") } })'
+const makeWorkerLanguageStubPlugin = () => ({
+	name: 'shiki-worker-language-stub',
+	setup(build) {
+		build.onResolve({ filter: /^shiki\/dist\/langs\// }, args =>
+			args.importer.includes('shiki-langs') || fromPierre(args.importer)
+				? { path: 'shiki-lang-stub', namespace: 'shiki-lang-stub' }
+				: undefined,
+		)
+		build.onLoad({ filter: /.*/, namespace: 'shiki-lang-stub' }, () => ({
+			contents: languageStubModule,
+		}))
+	},
+})
 
 // @pierre/diffs imports shiki v3's full barrel (`from "shiki"`), which statically pulls ~180
 // grammars + a 607 KB inlined oniguruma wasm - a second, near-complete shiki alongside the lean
@@ -99,7 +120,10 @@ const workerOptions = {
 	outfile: 'dist/worker.js',
 	minify: true,
 	logLevel: 'info',
-	plugins: [makeShikiShimPlugin({ stubOniguruma: true })],
+	plugins: [
+		makeShikiShimPlugin({ stubOniguruma: true }),
+		makeWorkerLanguageStubPlugin(),
+	],
 }
 
 function gate(outfile, limit) {

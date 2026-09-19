@@ -16,6 +16,8 @@ import {
 	renderDiffWithHighlighter,
 } from '@pierre/diffs'
 
+import { perfSpan } from '../../perf'
+
 import type {
 	DiffsHighlighter,
 	FileDiffMetadata,
@@ -50,6 +52,7 @@ export function ensurePlainHighlighter(
 	options: TokenRenderOptions,
 ): Promise<DiffsHighlighter> {
 	return (async () => {
+		const endBoot = perfSpan('pool:highlighter')
 		const themeNames = getThemes(options.theme)
 		const resolvedThemes = hasResolvedThemes(themeNames)
 			? getResolvedThemes(themeNames)
@@ -61,6 +64,7 @@ export function ensurePlainHighlighter(
 		})
 		for (const theme of resolvedThemes) boot.loadThemeSync(theme)
 		mainHighlighter = boot
+		endBoot()
 		return boot
 	})()
 }
@@ -83,10 +87,13 @@ export function renderPlainResult(
 ): ThemedDiffResult | undefined {
 	const highlighter = plainHighlighter()
 	if (!highlighter) return undefined
-	return renderDiffWithHighlighter(diff, highlighter, options, {
+	const endSpan = perfSpan('pool:plain')
+	const plainGrid = renderDiffWithHighlighter(diff, highlighter, options, {
 		forcePlainText: true,
 		expandedHunks: true,
 	})
+	endSpan({ lines: diff.splitLineCount })
+	return plainGrid
 }
 
 export async function resolveLanguagesFor(
@@ -94,8 +101,17 @@ export async function resolveLanguagesFor(
 ): Promise<ResolvedLanguage[]> {
 	const names = languageNames(diff)
 	const missing = names.filter(name => !hasResolvedLanguages([name]))
-	if (missing.length > 0) await resolveLanguages(missing)
-	return getResolvedLanguages(names)
+	if (missing.length > 0) {
+		// Chunk fetch + grammar registration: the long half, and the reason the resolve is started
+		// before the worker boot (see job-board's prewarmLanguages).
+		const endLoad = perfSpan('pool:languages:load')
+		await resolveLanguages(missing)
+		endLoad({ missing: missing.length })
+	}
+	const endRead = perfSpan('pool:languages')
+	const resolved = getResolvedLanguages(names)
+	endRead({ count: resolved.length, missing: missing.length })
+	return resolved
 }
 
 // The grammars a diff tokenizes under, through @pierre's own filename mapping (alias tables

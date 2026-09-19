@@ -1,25 +1,25 @@
-// Web/markup grammars of the curated Shiki set (see shiki-langs.ts for the whole set and why it
-// is curated at all). Deep-imported from shiki/dist/langs so only these grammars are bundled.
-import css from 'shiki/dist/langs/css.mjs'
-import html from 'shiki/dist/langs/html.mjs'
-import javascript from 'shiki/dist/langs/javascript.mjs'
-import json from 'shiki/dist/langs/json.mjs'
-import jsx from 'shiki/dist/langs/jsx.mjs'
-import scss from 'shiki/dist/langs/scss.mjs'
-import tsx from 'shiki/dist/langs/tsx.mjs'
-import typescript from 'shiki/dist/langs/typescript.mjs'
-import vue from 'shiki/dist/langs/vue.mjs'
-import xml from 'shiki/dist/langs/xml.mjs'
+// Web/markup grammars of the curated Shiki set (see shiki-langs.ts for the whole set, why it is
+// curated at all, and why every grammar is a lazy loader). Name + aliases are pinned to each
+// grammar's own metadata by shiki-langs.test.ts.
+import type { CuratedLanguage } from './shiki-langs'
 
-export const WEB_LANGS = [
-	javascript,
-	typescript,
-	tsx,
-	jsx,
-	vue,
-	json,
-	html,
-	xml,
-	css,
-	scss,
+export const WEB_LANGS: CuratedLanguage[] = [
+	{
+		name: 'javascript',
+		aliases: ['js', 'cjs', 'mjs'],
+		load: () => import('shiki/dist/langs/javascript.mjs'),
+	},
+	{
+		name: 'typescript',
+		aliases: ['ts', 'cts', 'mts'],
+		load: () => import('shiki/dist/langs/typescript.mjs'),
+	},
+	{ name: 'tsx', load: () => import('shiki/dist/langs/tsx.mjs') },
+	{ name: 'jsx', load: () => import('shiki/dist/langs/jsx.mjs') },
+	{ name: 'vue', load: () => import('shiki/dist/langs/vue.mjs') },
+	{ name: 'json', load: () => import('shiki/dist/langs/json.mjs') },
+	{ name: 'html', load: () => import('shiki/dist/langs/html.mjs') },
+	{ name: 'xml', load: () => import('shiki/dist/langs/xml.mjs') },
+	{ name: 'css', load: () => import('shiki/dist/langs/css.mjs') },
+	{ name: 'scss', load: () => import('shiki/dist/langs/scss.mjs') },
 ]

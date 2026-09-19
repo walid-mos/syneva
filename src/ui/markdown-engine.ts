@@ -11,7 +11,7 @@ import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 // The curated Shiki theme + language set is shared with the diff view (@pierre/diffs, via
 // shiki-shim.ts) so one language set styles both surfaces - see shiki-langs.ts / shiki-themes.ts. The JS regex
 // engine (below) avoids an oniguruma wasm, and the theme names match the settings picker.
-import { CURATED_LANGS as LANGS } from './shiki-langs'
+import { loadCuratedGrammars } from './shiki-langs'
 import { CURATED_THEMES as THEMES } from './shiki-themes'
 import { esc } from './store'
 
@@ -119,7 +119,7 @@ function resolveTheme(want: string): string {
 export async function initializeMarkdown(themeName: string): Promise<void> {
 	const highlighter = await createHighlighterCore({
 		themes: Object.values(THEMES),
-		langs: LANGS,
+		langs: await loadCuratedGrammars(),
 		engine: createJavaScriptRegexEngine(),
 	})
 	hl = highlighter

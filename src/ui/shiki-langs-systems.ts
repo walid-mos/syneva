@@ -1,35 +1,54 @@
-// Systems, data and prose grammars of the curated Shiki set (see shiki-langs.ts for the whole set
-// and why it is curated at all). Deep-imported from shiki/dist/langs so only these grammars bundle.
-import bash from 'shiki/dist/langs/bash.mjs'
-import c from 'shiki/dist/langs/c.mjs'
-import cpp from 'shiki/dist/langs/cpp.mjs'
-import diff from 'shiki/dist/langs/diff.mjs'
-import dockerfile from 'shiki/dist/langs/dockerfile.mjs'
-import go from 'shiki/dist/langs/go.mjs'
-import java from 'shiki/dist/langs/java.mjs'
-import markdownLang from 'shiki/dist/langs/markdown.mjs'
-import php from 'shiki/dist/langs/php.mjs'
-import python from 'shiki/dist/langs/python.mjs'
-import ruby from 'shiki/dist/langs/ruby.mjs'
-import rust from 'shiki/dist/langs/rust.mjs'
-import sql from 'shiki/dist/langs/sql.mjs'
-import toml from 'shiki/dist/langs/toml.mjs'
-import yaml from 'shiki/dist/langs/yaml.mjs'
+// Systems, data and prose grammars of the curated Shiki set (see shiki-langs.ts for the whole set,
+// why it is curated at all, and why every grammar is a lazy loader). Name + aliases are pinned to
+// each grammar's own metadata by shiki-langs.test.ts.
+import type { CuratedLanguage } from './shiki-langs'
 
-export const SYSTEM_LANGS = [
-	python,
-	go,
-	rust,
-	c,
-	cpp,
-	java,
-	bash,
-	sql,
-	yaml,
-	markdownLang,
-	diff,
-	toml,
-	ruby,
-	php,
-	dockerfile,
+export const SYSTEM_LANGS: CuratedLanguage[] = [
+	{
+		name: 'python',
+		aliases: ['py'],
+		load: () => import('shiki/dist/langs/python.mjs'),
+	},
+	{ name: 'go', load: () => import('shiki/dist/langs/go.mjs') },
+	{
+		name: 'rust',
+		aliases: ['rs'],
+		load: () => import('shiki/dist/langs/rust.mjs'),
+	},
+	{ name: 'c', load: () => import('shiki/dist/langs/c.mjs') },
+	{
+		name: 'cpp',
+		aliases: ['c++'],
+		load: () => import('shiki/dist/langs/cpp.mjs'),
+	},
+	{ name: 'java', load: () => import('shiki/dist/langs/java.mjs') },
+	{
+		name: 'shellscript',
+		aliases: ['bash', 'sh', 'shell', 'zsh'],
+		load: () => import('shiki/dist/langs/bash.mjs'),
+	},
+	{ name: 'sql', load: () => import('shiki/dist/langs/sql.mjs') },
+	{
+		name: 'yaml',
+		aliases: ['yml'],
+		load: () => import('shiki/dist/langs/yaml.mjs'),
+	},
+	{
+		name: 'markdown',
+		aliases: ['md'],
+		load: () => import('shiki/dist/langs/markdown.mjs'),
+	},
+	{ name: 'diff', load: () => import('shiki/dist/langs/diff.mjs') },
+	{ name: 'toml', load: () => import('shiki/dist/langs/toml.mjs') },
+	{
+		name: 'ruby',
+		aliases: ['rb'],
+		load: () => import('shiki/dist/langs/ruby.mjs'),
+	},
+	{ name: 'php', load: () => import('shiki/dist/langs/php.mjs') },
+	{
+		name: 'docker',
+		aliases: ['dockerfile'],
+		load: () => import('shiki/dist/langs/dockerfile.mjs'),
+	},
 ]

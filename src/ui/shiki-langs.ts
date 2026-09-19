@@ -1,13 +1,31 @@
-// The single curated Shiki language set, deep-imported so only these grammars are bundled (shiki's
-// full bundle statically references ~180 grammars + a 607 KB oniguruma wasm). Consumed by BOTH
-// markdown.ts (comment/file fenced code) and shiki-shim.ts (the diff view via @pierre/diffs) - one
-// language set styles both surfaces. Split into the two cohesive groups below so each module stays
-// under the import-count cap while the deep imports (and therefore the bundled set) stay exact.
-//
-// Languages outside this set degrade to plain text: markdown-it falls back via fallbackLanguage,
-// and the shim's bundledLanguages Proxy hands @pierre/diffs an empty-patterns grammar. Adding a
-// language here is the one place to grow coverage - keep it lean, the build gates on bundle size.
 import { SYSTEM_LANGS } from './shiki-langs-systems'
 import { WEB_LANGS } from './shiki-langs-web'
 
-export const CURATED_LANGS = [...WEB_LANGS, ...SYSTEM_LANGS]
+// The single curated Shiki language set, consumed by BOTH markdown.ts (comment/file fenced code)
+// and shiki-shim.ts (the diff view via @pierre/diffs) - one language set styles both surfaces.
+//
+// Every grammar is a LAZY loader: the static import of 25 grammars made one 2.5 MB chunk that both
+// the UI graph and every token worker pulled in (the pooled workers carry four copies), while the
+// diff view needs at most the one or two languages of the file being reviewed. Name + aliases stay
+// static because @pierre/diffs resolves a file name to a language by name; the grammar body is
+// fetched by the chunk loader only when something asks for that language.
+import type { LanguageRegistration } from 'shiki/core'
+
+export type CuratedLanguage = {
+	// Canonical grammar name, then the aliases @pierre's file-name lookup may ask for.
+	name: string
+	aliases?: string[]
+	// The grammar module: `default` is shiki's LanguageRegistration[] (the grammar plus its
+	// embedded-language dependencies, which is why the array itself is forwarded).
+	load: () => Promise<{ default: LanguageRegistration[] }>
+}
+
+export const CURATED_LANGS: CuratedLanguage[] = [...WEB_LANGS, ...SYSTEM_LANGS]
+
+// The markdown engine preloads the whole curated set (a comment can fence any language from it),
+// so it awaits every loader once at init instead of paying for all of them at import time.
+export async function loadCuratedGrammars(): Promise<LanguageRegistration[][]> {
+	return Promise.all(
+		CURATED_LANGS.map(async language => (await language.load()).default),
+	)
+}
