@@ -12,7 +12,30 @@ import type { CorrespondentIo } from './correspondent.js'
 import type { DeskConnection, DeskTarget } from './desk-connection.js'
 
 const ATTACHMENT_ENTRY = 'syneva-attachment'
+// A teardown is a best-effort handshake, never a lock: a correspondent that ignores its abort, or a
+// socket that never closes, must not be able to hold a tool call (or the human's Escape) open. The
+// detach that wedged a session for over an hour had no bound at all.
+const TEARDOWN_TIMEOUT_MS = 3_000
+
 type SavedEntry = { type: string; customType?: string; data?: unknown }
+
+// Resolve when the teardown work settles, when the caller aborts, or after the bound - whichever
+// comes first. `allSettled` never rejects, so the losing promise is left to finish in peace.
+async function awaitBounded(
+	work: Promise<unknown>,
+	signal?: AbortSignal,
+): Promise<void> {
+	const limit = signal
+		? AbortSignal.any([signal, AbortSignal.timeout(TEARDOWN_TIMEOUT_MS)])
+		: AbortSignal.timeout(TEARDOWN_TIMEOUT_MS)
+	if (limit.aborted) return
+	await Promise.race([
+		work,
+		new Promise<void>(resolve =>
+			limit.addEventListener('abort', () => resolve(), { once: true }),
+		),
+	])
+}
 export type AttachmentContext = {
 	mode: ExtensionContext['mode']
 	sessionManager: { getSessionId(): string; getEntries(): SavedEntry[] }
@@ -87,16 +110,36 @@ export class PiDeskAttachment {
 		return correspondentSessionFile(desk)
 	}
 
-	async stop(): Promise<void> {
-		this.generation++
-		this.controller?.abort()
-		await Promise.allSettled([this.pending, this.answerWorker])
-		this.controller = undefined
-		this.connection = undefined
+	async stop(signal?: AbortSignal): Promise<void> {
+		await this.teardown(false, signal)
 	}
 
-	async detach(ctx: AttachmentContext): Promise<void> {
-		await this.stop()
+	// Abort first, then wait for what the abort releases - bounded, because both waits are on work
+	// this call does not control.
+	//
+	// The listener is awaited only when the caller is NOT the listener. A `closed` event tears the
+	// attachment down from inside this.pending, and awaiting this.pending from there is a promise
+	// waiting on itself: the listener held the review's last event, the tool call held the listener,
+	// and no abort signal reached either of them (observed: a detach that never returned).
+	private async teardown(
+		isListenerCaller: boolean,
+		signal?: AbortSignal,
+	): Promise<void> {
+		this.generation++
+		this.controller?.abort()
+		const waits: Promise<unknown>[] = []
+		if (this.answerWorker) waits.push(this.answerWorker)
+		if (!isListenerCaller) waits.push(this.pending)
+		await awaitBounded(Promise.allSettled(waits), signal)
+		this.controller = undefined
+		this.connection = undefined
+		// Whatever the aborted listener is still doing - a socket that has not closed yet - is no
+		// longer this attachment's promise: the next detach or attach must not inherit the wait.
+		this.pending = Promise.resolve()
+	}
+
+	async detach(ctx: AttachmentContext, signal?: AbortSignal): Promise<void> {
+		await this.stop(signal)
 		this.failure = undefined
 		this.remember(ctx)
 	}
@@ -174,7 +217,9 @@ export class PiDeskAttachment {
 		// Detach cleanly - no saved target, no dangling connection, no dead-socket error report.
 		if (signal.aborted) return
 		this.remember(ctx)
-		await this.stop()
+		// NOT this.stop(): this runs inside this.pending, so awaiting the listener here would await the
+		// promise currently running. Bounded, and the answer worker is still awaited.
+		await this.teardown(true)
 		ctx.ui.notify(
 			'Syneva review closed by the reviewer - attachment detached.',
 			'info',
