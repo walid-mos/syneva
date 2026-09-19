@@ -2,6 +2,14 @@
 	"project": "Syneva",
 	"generatedAt": "2026-09-17",
 	"fixtures": {
+		"tiny": {
+			"title": "tiny",
+			"detail": "8 changed files · first file 40 lines · TypeScript"
+		},
+		"small": {
+			"title": "small",
+			"detail": "40 changed files · first file 150 lines · TypeScript"
+		},
 		"medium": {
 			"title": "medium",
 			"detail": "120 changed files · first file 400 lines · TypeScript"
@@ -9,6 +17,14 @@
 		"bigfile": {
 			"title": "bigfile",
 			"detail": "first file 2.8 MB / 16k lines, behind the oversized-file guard"
+		},
+		"large": {
+			"title": "large",
+			"detail": "1000 changed files · first file 700 lines · TypeScript"
+		},
+		"patho": {
+			"title": "patho",
+			"detail": "first file 2400 lines, every line rewritten · pathological for re-render and reconcile"
 		},
 		"medium-switch": {
 			"title": "medium-switch",
@@ -45,6 +61,11 @@
 			"id": "switch",
 			"label": "Switch: no dispatch for a file the reviewer has left",
 			"note": "Dispatch and warming both follow the reviewer. window-dispatch gives slots only to jobs with a renderer attached (a job is a snapshot; detaching and re-attaching around @pierre's converge pass only delays its own next window by one pass), and the render pass warms the NEXT file's viewport band while the pool is idle - through a side-effect-free metadata builder (diff-metadata.ts, whose parse memo the click then adopts), an off-thread parse (parse-offload.ts) and a cap of one band per warm job. Measured on the 8000-line fixture, switching to a 200-line file mid-job: before, 29 more windows of the abandoned file were dispatched (26392 ms of worker tokenize, 25 publishes) behind the reviewer's back; after, 0 new windows and only the 6 already in flight land (5275 ms). On the quiet medium desk the scoping alone leaves the reviewer's numbers unchanged (470/478 ms click->first colour against 449/477 before) - it removes contention, it does not make a quiet pool faster - while the prefetch is what shortens that wait: 375/360 ms click->first colour on the prefetched next file with 0 windows left to send at the click, against 519 ms for the same build's cold control."
+		},
+		{
+			"id": "plainfix",
+			"label": "Plain-diff fix: text-typed diffs paint",
+			"note": "Correctness fix, not a perf change: getPlainDiffAST returned undefined for plain-text diffs (both sides lang 'text' - Dockerfile, .svg, .txt...), and since the renderer asks the pool for plain rows on EVERY diff, those files painted an empty pane forever. The fix serves the plain grid for plain diffs; only token scheduling stays gated. The sweep below is the post-fix baseline across all six fixtures (tiny/small/large/patho get their first recorded rows). No regression claim without comparing to the warm/parallel rows on medium/bigfile."
 		}
 	],
 	"rejected": [
@@ -704,6 +725,348 @@
 				"bootDoneMs": 15
 			},
 			"note": "Fix 3b second sample, click on module-core-111.ts (prefetched by the pass that rendered the previous file). Same shape as sample 1: 0 windows sent for the clicked file, 3 sends after the click all belonging to the FOLLOWING file's prefetch job (perf marks carry the job key since this build, which is what made the attribution unambiguous)."
+		},
+		{
+			"id": "plainfix-bigfile-1",
+			"fixture": "bigfile",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 42,
+				"contents": 4723,
+				"plainPaint": 4911,
+				"bootStart": 121,
+				"bootDone": 148,
+				"jobOpen": 4877,
+				"firstWindowSent": 4953,
+				"firstColor": 4969,
+				"final": 6479
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 125,
+				"windowDone": 125
+			},
+			"workerBundleKb": 550,
+			"note": "16k-line file loaded through the oversized card (guard dismissed at 4674 ms - on a cold desk that wait is mostly the desk building the 2.4 MB diff; the /api/file-contents fetch itself took 49 ms). Plain rows 4911, first color 4969 (+58 ms), whole file tokenized 6479 (125 windows). Warm-batch rows: plainPaint 2187, first color 2301, final 3598 - those dismissed the guard on a warm desk, so the pre-click wait is not comparable; the guard-to-color span is (4969-4674)=295 ms."
+		},
+		{
+			"id": "plainfix-bigfile-2",
+			"fixture": "bigfile",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 38,
+				"contents": 2398,
+				"plainPaint": 2560,
+				"bootStart": 120,
+				"bootDone": 137,
+				"jobOpen": 2526,
+				"firstWindowSent": 2597,
+				"firstColor": 2616,
+				"final": 4123
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 125,
+				"windowDone": 125
+			},
+			"workerBundleKb": 550,
+			"note": "second bigfile sample: guard dismissed at 2338 ms, guard-to-color 278 ms (sample 1: 295), tokenize to pool:final 4123 (125 windows)."
+		},
+		{
+			"id": "plainfix-large-1",
+			"fixture": "large",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 44,
+				"contents": 472,
+				"plainPaint": 2851,
+				"bootStart": 485,
+				"bootDone": 524,
+				"jobOpen": 671,
+				"firstWindowSent": 3186,
+				"firstColor": 3390,
+				"final": 4343
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 9,
+				"windowDone": 7
+			},
+			"workerBundleKb": 550,
+			"note": "1000-file desk: the cost sits in the client parse/tree (plainPaint 2851 ms), not the pool (boot done 524, job open 671). The token job waits for the paint (first window 3186); first color 3390, final 4343. windowSent 9 = first job 8 + prefetch 1, 2 windows still in flight at pool:final."
+		},
+		{
+			"id": "plainfix-large-2",
+			"fixture": "large",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 51,
+				"contents": 474,
+				"plainPaint": 2862,
+				"bootStart": 488,
+				"bootDone": 3190,
+				"jobOpen": 3315,
+				"firstWindowSent": 3316,
+				"firstColor": 4009,
+				"final": 4563
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 4,
+				"windowDone": 4
+			},
+			"workerBundleKb": 550,
+			"note": "second large sample: plainPaint 2862 matches sample 1 (2851) - the parse/tree cost is stable; this run's boot landed late (3190, after the paint) so the job opened at 3315 and only got 4 windows sent by pool:final (4 sent, 4 done). Contended-boot variant of the same shape: first color 4009 vs 3390."
+		},
+		{
+			"id": "plainfix-medium-1",
+			"fixture": "medium",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 38,
+				"contents": 166,
+				"plainPaint": 219,
+				"bootStart": 181,
+				"bootDone": 593,
+				"jobOpen": 593,
+				"firstWindowSent": 594,
+				"firstColor": 804,
+				"final": 1403
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 9,
+				"windowDone": 8
+			},
+			"workerBundleKb": 550,
+			"note": "first color 804 vs warm-batch rows 684-841 and parallel 713-1283: inside the recorded spread. bootDone landed late (593) under the headless harness; plainPaint 219 stays ahead of it, first colour unchanged in shape. windowSent 9 = first job 8 + prefetch 1; one prefetch window still in flight at pool:final."
+		},
+		{
+			"id": "plainfix-medium-2",
+			"fixture": "medium",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 45,
+				"contents": 180,
+				"plainPaint": 232,
+				"bootStart": 195,
+				"bootDone": 322,
+				"jobOpen": 330,
+				"firstWindowSent": 330,
+				"firstColor": 695,
+				"final": 1269
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 9,
+				"windowDone": 9
+			},
+			"workerBundleKb": 550,
+			"note": "second medium sample: first color 695 vs warm rows 684-841 - unchanged. windowSent 9 = first job 8 + prefetch 1."
+		},
+		{
+			"id": "plainfix-patho-1",
+			"fixture": "patho",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 37,
+				"contents": 98,
+				"plainPaint": 111,
+				"bootStart": 102,
+				"bootDone": 164,
+				"jobOpen": 165,
+				"firstWindowSent": 165,
+				"firstColor": 381,
+				"final": 738
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 5,
+				"windowDone": 5
+			},
+			"workerBundleKb": 550,
+			"note": "2400-line fully-rewritten file: first color 381, whole file tokenized 738 (5 windows: 4 first job + 1 prefetch). The every-line-rewritten shape parses and tokenizes in the same envelope as an ordinary file."
+		},
+		{
+			"id": "plainfix-patho-2",
+			"fixture": "patho",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 37,
+				"contents": 104,
+				"plainPaint": 125,
+				"bootStart": 104,
+				"bootDone": 163,
+				"jobOpen": 257,
+				"firstWindowSent": 257,
+				"firstColor": 716,
+				"final": 716
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 1,
+				"windowDone": 1
+			},
+			"workerBundleKb": 550,
+			"note": "second patho sample, different job shape: the whole 2400-line file fit one window (no partial publish, so firstColor = the highlighted completion publish at 716; sample 1 split 5 windows and coloured at 381). Report patho first colour as 381-716 across the two samples."
+		},
+		{
+			"id": "plainfix-small-1",
+			"fixture": "small",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 32,
+				"contents": 105,
+				"plainPaint": 128,
+				"bootStart": 117,
+				"bootDone": 166,
+				"jobOpen": 181,
+				"firstWindowSent": 181,
+				"firstColor": 384,
+				"final": 834
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 5,
+				"windowDone": 5
+			},
+			"workerBundleKb": 550,
+			"note": "windowSent includes the next file's prefetch job (4+1)."
+		},
+		{
+			"id": "plainfix-small-2",
+			"fixture": "small",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 38,
+				"contents": 110,
+				"plainPaint": 132,
+				"bootStart": 121,
+				"bootDone": 163,
+				"jobOpen": 168,
+				"firstWindowSent": 168,
+				"firstColor": 378,
+				"final": 820
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 5,
+				"windowDone": 5
+			},
+			"workerBundleKb": 550,
+			"note": "second small sample; windowSent includes the next file's prefetch (4+1)."
+		},
+		{
+			"id": "plainfix-switch-1",
+			"fixture": "medium-switch",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"mount": 66,
+				"firstColor": 713,
+				"queueAtClick": 0,
+				"planWindows": 3,
+				"windowsSent": 3,
+				"windowsBeforeColor": 2,
+				"tokenizeBeforeColor": 1111
+			},
+			"pool": {
+				"workers": 3,
+				"bootDoneMs": 0
+			},
+			"workerBundleKb": 550,
+			"note": "click module-core-21.ts on a settled medium desk (idle pool, click at marks tail). Mount 66 ms; first color 713 with 2 of 3 windows done (tokenize 1111 ms summed across the 3-worker pool). Reference (switch milestone, 5 workers): mount 329, first color 470-478 with ~150-300 ms tokenize. The 3-slot pool is the headless harness's hardware-derived width, so absolute tokenize wall time runs longer than the 5-slot reference."
+		},
+		{
+			"id": "plainfix-switch-2",
+			"fixture": "medium-switch",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"mount": 64,
+				"firstColor": 698,
+				"queueAtClick": 0,
+				"planWindows": 3,
+				"windowsSent": 3,
+				"windowsBeforeColor": 1,
+				"tokenizeBeforeColor": 546
+			},
+			"pool": {
+				"workers": 3,
+				"bootDoneMs": 0
+			},
+			"workerBundleKb": 550,
+			"note": "second switch sample, click module-core-36.ts (idle pool, same desk as plainfix-switch-1). Mount 64, first color 698 with 1 of 3 windows done. The pair reads mount 64-66 ms, first color 698-713 ms on the 3-slot headless pool - same shape as the switch-milestone reference (mount 329, first color 470-478 on 5 slots), absolute tokenize time scales with the narrower pool."
+		},
+		{
+			"id": "plainfix-tiny-1",
+			"fixture": "tiny",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 31,
+				"contents": 99,
+				"plainPaint": 117,
+				"bootStart": 109,
+				"bootDone": 172,
+				"jobOpen": 174,
+				"firstWindowSent": 175,
+				"firstColor": 315,
+				"final": 437
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 5,
+				"windowDone": 5
+			},
+			"workerBundleKb": 550,
+			"note": "firstColor = first pool:publish for the opened file's job (the pool:publish:painted headline stage no longer exists); plainPaint = render:painted (plain rows on screen). windowSent/windowDone include the next file's prefetch job (4+1 windows). pool:publish:final (highlighted completion) 437 ms."
+		},
+		{
+			"id": "plainfix-tiny-2",
+			"fixture": "tiny",
+			"milestone": "plainfix",
+			"date": "2026-09-19",
+			"stagesMs": {
+				"module": 31,
+				"contents": 100,
+				"plainPaint": 113,
+				"bootStart": 107,
+				"bootDone": 138,
+				"jobOpen": 156,
+				"firstWindowSent": 157,
+				"firstColor": 303,
+				"final": 428
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 3,
+				"windowSent": 5,
+				"windowDone": 5
+			},
+			"workerBundleKb": 550,
+			"note": "second tiny sample; windowSent includes the next file's prefetch (4+1)."
 		}
 	]
 }
