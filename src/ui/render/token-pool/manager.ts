@@ -124,12 +124,17 @@ export class TokenPoolManager {
 	// expansion state the renderer slices at (see class header). The range the renderer asks for
 	// is also the freshest statement of what the reviewer is looking at: the board keeps it as
 	// the job's viewport to prioritize (render/token-pool/job-board.ts).
+	//
+	// Plain-text diffs are served too: the renderer asks for plain rows on EVERY diff (measured:
+	// a Dockerfile/...svg parse stamps lang 'text', the renderer asks, and an undefined answer
+	// painted an empty pane the reviewer could never open). Plain diffs get a grid and skip only
+	// the token work - requestTokens/primeDiffHighlightCache carry the isPlainDiff gate.
 	getPlainDiffAST(
 		diff: FileDiffMetadata,
 		startingLine: number,
 		totalLines: number,
 	): ThemedDiffResult | undefined {
-		if (!plainHighlighter() || isPlainDiff(diff)) {
+		if (!plainHighlighter()) {
 			this.queueInitialization()
 			return undefined
 		}
@@ -327,7 +332,12 @@ export class TokenPoolManager {
 	// is planned and handed only the slots an attached job does not need, so the click that opens it
 	// publishes colored rows from cache instead of a tokenize pass the reviewer watches as grey rows.
 	prefetchDiff(diff: FileDiffMetadata): void {
-		if (!diff.cacheKey || this.board.jobOpen(diff.cacheKey)) return
+		if (
+			!diff.cacheKey ||
+			isPlainDiff(diff) ||
+			this.board.jobOpen(diff.cacheKey)
+		)
+			return
 		this.board.openJob(diff, undefined, this.renderOptions, true)
 	}
 
