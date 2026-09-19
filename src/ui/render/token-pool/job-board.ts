@@ -1,70 +1,91 @@
-import { GridCaches } from './grid-caches'
-// Job book for the token pool: open jobs keyed by diff cacheKey, the window task registry,
-// the result/skeleton caches, window merges, and the rAF-coalesced publishes to @pierre
-// renderers (slots + transport in job-fleet.ts). Completion REPLACES a job's window list and
-// remaining count (no argument mutation).
-import { createSkeleton, MergeGrid } from './merge'
-import { renderPlainResult, resolveLanguagesFor } from './plain'
-import { planByCost, planTokenWindows } from './windows'
+import { perfMark } from '../../perf'
 
+import { GridCaches } from './grid-caches'
+import { PublishBook } from './job-publish'
+import { LanguageBook } from './languages'
+import { createSkeleton, MergeGrid } from './merge'
+import { WindowDispatch } from './window-dispatch'
+import { planWindowOrder } from './windows'
+
+// Job book for the token pool: the open jobs keyed by diff cacheKey, their window task registry, the
+// resolved-grid caches, and the wiring of the two collaborators that do the rest - scheduling to the
+// workers (window-dispatch.ts) and merge-and-publish back into @pierre (job-publish.ts).
+//
+// State discipline: a job object is a SNAPSHOT, so every transition re-reads the current entry and
+// writes the result back. A walk over a stale job would re-dispatch in-flight windows and
+// double-decrement `remaining`, shipping a half-colored grid as the final one.
 import type { FileDiffMetadata, ThemedDiffResult } from '@pierre/diffs'
-import type {
-	ResolvedLanguage,
-	WorkerRenderingOptions,
-} from '@pierre/diffs/worker'
+import type { WorkerRenderingOptions } from '@pierre/diffs/worker'
 import type { GridFinal } from './grid-caches'
 import type {
-	WorkerRequest,
-	WorkerResponse,
-	WorkerTokenWindowSuccess,
-} from './protocol'
-import type { WindowSpec } from './windows'
-
-export type PublishRenderer = {
-	onHighlightSuccess: (
-		diff: FileDiffMetadata,
-		result: ThemedDiffResult,
-		options: WorkerRenderingOptions,
-		highlighted?: boolean,
-	) => void
-}
-
-type WindowTask = { spec: WindowSpec; status: 'queued' | 'sent' | 'done' }
-
-type TokenJob = {
-	cacheKey: string
-	diff: FileDiffMetadata
-	options: WorkerRenderingOptions
-	// The merge target (full plain skeleton + progressive token rows).
-	merged: MergeGrid
-	windows: WindowTask[]
-	remaining: number
-	instances: Set<PublishRenderer>
-	languages: ResolvedLanguage[] | undefined
-	publishFrame: number | undefined
-}
-
-// The slot slice the book needs: it never boots or routes, it parks tasks.
-export type SlotView = {
-	worker: Worker
-	openCacheKeys: Set<string>
-}
+	PublishRenderer,
+	SlotView,
+	TaskEntry,
+	TokenJob,
+} from './job-types'
+import type { WorkerResponse, WorkerTokenWindowSuccess } from './protocol'
 
 export class JobBoard {
-	private idleSlot: () => SlotView | undefined
 	private jobs = new Map<string, TokenJob>()
 	// taskId -> in-flight window task (failures resolve against it, responses settle).
-	private tasks = new Map<string, { jobKey: string; spec: WindowSpec }>()
+	private tasks = new Map<string, TaskEntry>()
 	private caches = new GridCaches()
-	private nextTaskId = 0
+	private publisher = new PublishBook(this.jobs, this.tasks, this.caches)
+	private dispatch: WindowDispatch
 
-	constructor(idleSlot: () => SlotView | undefined) {
-		this.idleSlot = idleSlot
+	constructor(
+		idleSlot: () => SlotView | undefined,
+		private poolSize: number,
+	) {
+		// Both collaborators take the registries by reference: one owner of the maps, no copies.
+		this.dispatch = new WindowDispatch(
+			idleSlot,
+			this.jobs,
+			this.tasks,
+			poolSize,
+		)
 	}
 
+	// A viewport range arrives on every pass the renderer paints; only the first few are worth a
+	// mark, and the cap keeps a long review session's timeline bounded.
+	private static readonly VIEWPORT_MARK_CAP = 12
+
 	// The fleet re-drains after freeing a slot.
+	// The range @pierre last asked plain rows for: the freshest statement of what the reviewer is
+	// looking at, kept per cacheKey so a window plan can put the visible slots first.
+	private viewports = new Map<
+		string,
+		{ startingLine: number; totalLines: number }
+	>()
+	private rangeMarks = 0
+
 	drain(): void {
-		this.drainJobs()
+		this.dispatch.drain()
+	}
+
+	// Called on every pass the renderer asks for plain rows (before it asks for tokens), so a job
+	// opened in that same pass already knows where the reviewer is looking.
+	noteViewport(
+		cacheKey: string | undefined,
+		startingLine: number,
+		totalLines: number,
+	): void {
+		if (!cacheKey) return
+		this.viewports.set(cacheKey, { startingLine, totalLines })
+		if (this.rangeMarks < JobBoard.VIEWPORT_MARK_CAP) {
+			this.rangeMarks++
+			perfMark('pool:range', {
+				from: startingLine,
+				lines: totalLines,
+			})
+		}
+	}
+
+	// Grammars resolved once per diff, started earlier than the job (languages.ts).
+	private languages = new LanguageBook()
+
+	prewarmLanguages(diff: FileDiffMetadata): void {
+		this.languages.prewarm(diff)
 	}
 
 	cachedFinal(cacheKey: string): GridFinal | undefined {
@@ -107,33 +128,52 @@ export class JobBoard {
 		for (const job of this.jobs.values()) job.instances.delete(instance)
 	}
 
-	// The renderer's plain rows while tokens are in flight: a full grid superset (@pierre
-	// indexes rows by per-side content index, so it serves every range/expansion state).
+	// The renderer's plain rows while tokens are in flight (cache order in grid-caches.ts).
 	servePlainRows(
 		diff: FileDiffMetadata,
 		options: WorkerRenderingOptions,
 	): ThemedDiffResult | undefined {
-		if (!diff.cacheKey) return renderPlainResult(diff, options)
-		const settled = this.caches.cachedFinal(diff.cacheKey)
-		if (settled) return settled.result
-		const stashed = this.caches.stashedSkeleton(diff.cacheKey)
-		if (stashed) return stashed
-		const plain = renderPlainResult(diff, options)
-		if (!plain) return undefined
-		this.caches.stashSkeleton(diff.cacheKey, plain)
-		return plain
+		return this.caches.plainRows(diff, options)
 	}
 
+	// `isWarm` opens a prefetch job: a file the reviewer has NOT opened. It is planned like any job but
+	// only dispatched on slots an attached job left free, up to one viewport band (window-dispatch.ts),
+	// so the click that finally opens the file finds colored rows in the cache instead of a grey first
+	// screen. The plan stays complete: the moment a renderer attaches, the rest streams normally.
 	openJob(
 		diff: FileDiffMetadata,
 		instance: PublishRenderer | undefined,
 		options: WorkerRenderingOptions,
+		isWarm = false,
 	): void {
 		if (!diff.cacheKey) return
-		// servePlainRows usually stashed the skeleton (the renderer's plain precedes it).
+		// The renderer re-requests around its own repaints; a job that is already open just gains
+		// the instance (a second job for the same key would orphan the first one's in-flight work).
+		if (this.jobs.has(diff.cacheKey)) {
+			this.attachInstance(instance, diff.cacheKey)
+			this.drain()
+			return
+		}
+		this.prewarmLanguages(diff)
+		// servePlainRows usually stashed the skeleton already (the renderer asks plain first).
 		const skeleton = this.servePlainRows(diff, options)
 		if (!skeleton) return
-		const plan = planByCost(diff, planTokenWindows(diff))
+		// The reviewer's own view window leads the plan, split across the pool (windows.ts).
+		const plan = planWindowOrder(
+			diff,
+			this.viewports.get(diff.cacheKey),
+			this.poolSize,
+		)
+		perfMark('pool:job:open', {
+			key: diff.cacheKey,
+			windows: plan.length,
+			lines: diff.splitLineCount,
+			prefetch: isWarm ? 1 : 0,
+		})
+		// Known grammars are read synchronously so this open's drain can dispatch for real, in this turn:
+		// on a cold open the turn continues into the renderer's first paint (300 ms, measured), and an
+		// await here parks the dispatch behind it while four workers sit idle.
+		const known = this.languages.settled(diff.cacheKey)
 		this.jobs.set(diff.cacheKey, {
 			cacheKey: diff.cacheKey,
 			diff,
@@ -142,158 +182,32 @@ export class JobBoard {
 			windows: plan.map(spec => ({ spec, status: 'queued' })),
 			remaining: plan.length,
 			instances: instance ? new Set([instance]) : new Set(),
-			languages: undefined,
+			languages: known,
 			publishFrame: undefined,
+			isWarm,
 		})
-		void this.settleLanguages(diff.cacheKey, diff)
-		this.drainJobs()
+		if (known) this.dispatch.drain()
+		else void this.settleLanguages(diff.cacheKey)
 	}
 
-	// Languages land on whatever job is current at resolve time.
-	private async settleLanguages(
-		cacheKey: string,
-		diff: FileDiffMetadata,
-	): Promise<void> {
-		const languages = await resolveLanguagesFor(diff)
+	// Only for grammars that were still resolving when the job opened: they land on the job and drain
+	// the moment they arrive.
+	private async settleLanguages(cacheKey: string): Promise<void> {
+		const pending = this.languages.pending(cacheKey)
+		if (!pending) return
+		const languages = await pending
 		const job = this.jobs.get(cacheKey)
-		if (!job) return
+		if (!job || job.languages) return
 		this.jobs.set(cacheKey, { ...job, languages })
-		this.drainJobs()
+		this.dispatch.drain()
 	}
 
-	// LPT: windows are pre-sorted longest-first; each parks on an idle slot.
-	private drainJobs(): void {
-		for (const job of this.jobs.values()) {
-			if (!job.languages) continue
-			this.dispatchStalled(job)
-		}
-	}
-
-	private dispatchStalled(job: TokenJob): void {
-		for (const task of job.windows) {
-			if (task.status !== 'queued') continue
-			const slot = this.idleSlot()
-			if (!slot) return
-			this.dispatchWindow(slot, job, task)
-		}
-	}
-
-	private dispatchWindow(
-		slot: SlotView,
-		job: TokenJob,
-		task: WindowTask,
-	): void {
-		// open-diff rides ahead in message order; token tasks settle against their id.
-		if (!slot.openCacheKeys.has(job.cacheKey)) {
-			slot.openCacheKeys.add(job.cacheKey)
-			slot.worker.postMessage({
-				type: 'open-diff',
-				id: `job_${++this.nextTaskId}`,
-				cacheKey: job.cacheKey,
-				diff: job.diff,
-			} satisfies WorkerRequest)
-		}
-		const id = `job_${++this.nextTaskId}`
-		this.jobs.set(job.cacheKey, this.rerank(job, task.spec, 'sent'))
-		this.tasks.set(id, { jobKey: job.cacheKey, spec: task.spec })
-		slot.worker.postMessage({
-			type: 'token-window',
-			id,
-			cacheKey: job.cacheKey,
-			window: task.spec,
-			// Grammar data rides with every dispatch; workers never resolve loaders.
-			resolvedLanguages: job.languages ?? [],
-		} satisfies WorkerRequest)
-	}
-
-	private rerank(
-		job: TokenJob,
-		spec: WindowSpec,
-		status: 'sent' | 'done',
-	): TokenJob {
-		return {
-			...job,
-			windows: job.windows.map(task =>
-				task.spec === spec ? { ...task, status } : task,
-			),
-		}
-	}
-
-	// The fleet releases the slot before forwarding either path. A landed window merges its
-	// rows into the grids; a failed one keeps its plain rows and the countdown continues.
+	// Merge + publish live in job-publish.ts (the scheduler above owns dispatch order).
 	handleWindow(response: WorkerTokenWindowSuccess): void {
-		const { job, spec } = this.settle(response.id)
-		if (!job || !spec) return
-		job.merged.mergeWindow(spec, {
-			code: response.code,
-			positions: response.positions,
-		})
-		this.markLanded(job, spec)
+		this.publisher.handleWindow(response)
 	}
 
 	onWindowFailure(taskId: string, response: WorkerResponse): void {
-		const { job, spec } = this.settle(taskId)
-		if (!job || !spec) return
-		console.error('token window task failed:', response)
-		this.markLanded(job, spec)
-	}
-
-	private settle(taskId: string): {
-		job: TokenJob | undefined
-		spec: WindowSpec | undefined
-	} {
-		const entry = this.tasks.get(taskId)
-		this.tasks.delete(taskId)
-		const job = entry && this.jobs.get(entry.jobKey)
-		const task = job?.windows.find(
-			windowTask => windowTask.spec === entry?.spec,
-		)
-		const settled = task?.status === 'sent'
-		return {
-			job: settled ? job : undefined,
-			spec: settled ? task.spec : undefined,
-		}
-	}
-
-	private markLanded(job: TokenJob, spec: WindowSpec): void {
-		const landed: TokenJob = {
-			...this.rerank(job, spec, 'done'),
-			remaining: job.remaining - 1,
-		}
-		this.jobs.set(job.cacheKey, landed)
-		if (landed.remaining === 0) this.shipFinal(landed)
-		else this.schedulePartialPublish(landed)
-	}
-
-	// One merged grid per publish. The final publish (highlighted=true) stops @pierre's
-	// converge loop and settles the cache.
-	private shipFinal(job: TokenJob): void {
-		this.jobs.delete(job.cacheKey)
-		this.caches.cacheFinal(job.cacheKey, {
-			result: job.merged.result(),
-			options: job.options,
-		})
-		this.notify(job, true)
-	}
-
-	private schedulePartialPublish(job: TokenJob): void {
-		if (job.publishFrame) return
-		const frame = requestAnimationFrame(() => {
-			const current = this.jobs.get(job.cacheKey)
-			if (!current) return
-			this.jobs.set(job.cacheKey, { ...current, publishFrame: undefined })
-			this.notify(current, false)
-		})
-		this.jobs.set(job.cacheKey, { ...job, publishFrame: frame })
-	}
-
-	private notify(job: TokenJob, isHighlighted: boolean): void {
-		for (const instance of job.instances)
-			instance.onHighlightSuccess(
-				job.diff,
-				job.merged.result(),
-				job.options,
-				isHighlighted,
-			)
+		this.publisher.onWindowFailure(taskId, response)
 	}
 }

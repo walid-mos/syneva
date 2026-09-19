@@ -1,7 +1,9 @@
 // Grid caches for the token pool: the final merged results (revisit hits) and in-flight plain
 // skeletons (the renderer's sync plain requests stream through them). Entries are full node
 // grids (giant listings reach megabytes); both stay small FIFOs scoped per content cacheKey.
-import type { ThemedDiffResult } from '@pierre/diffs'
+import { renderPlainResult } from './plain'
+
+import type { FileDiffMetadata, ThemedDiffResult } from '@pierre/diffs'
 import type { WorkerRenderingOptions } from '@pierre/diffs/worker'
 
 const RESULT_CACHE_CAP = 24
@@ -18,6 +20,25 @@ export class GridCaches {
 		string,
 		{ result: ThemedDiffResult; options: WorkerRenderingOptions }
 	>()
+
+	// The renderer's plain rows while tokens are in flight, in order of decreasing truth: the settled
+	// grid, the in-flight skeleton, else a fresh full plain render (stashed for the job's own merge).
+	// Always a full grid superset - @pierre indexes rows by per-side content index, so one grid
+	// serves every range and expansion state it slices at.
+	plainRows(
+		diff: FileDiffMetadata,
+		options: WorkerRenderingOptions,
+	): ThemedDiffResult | undefined {
+		if (!diff.cacheKey) return renderPlainResult(diff, options)
+		const settled = this.results.get(diff.cacheKey)
+		if (settled) return settled.result
+		const stashed = this.skeletons.get(diff.cacheKey)
+		if (stashed) return stashed
+		const plain = renderPlainResult(diff, options)
+		if (!plain) return undefined
+		this.stashSkeleton(diff.cacheKey, plain)
+		return plain
+	}
 
 	// The renderer's renderCache swap path reads {result, options} and checks option equality.
 	cachedFinal(

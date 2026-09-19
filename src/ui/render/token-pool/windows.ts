@@ -39,6 +39,11 @@ export type WindowSpec = {
 	lastHunk: number
 }
 
+// The renderer's own view window (the range it asks plain rows for), in slot space. It is the
+// only trustworthy statement of what the reviewer can actually see: scroll position, expansion
+// state and row heights are already folded into it by @pierre.
+export type WindowViewport = { startingLine: number; totalLines: number }
+
 // Approximated worker cost for one window: per-side line-units of the slots it touches (context
 // counts; change-run pairs count once). Order-of-magnitude equal to @pierre's real
 // ~2 ms/line-unit - good enough to schedule long jobs first.
@@ -55,16 +60,7 @@ export function estimateUnits(
 	return units
 }
 
-// Context lines count once; change-run pairs count by the longer side (the worker renders
-// them pairwise).
-function segmentCost(segment: ContextContent | ChangeContent): number {
-	if (segment.type === 'change')
-		return Math.max(segment.additions, segment.deletions)
-	return segment.lines
-}
-
-// Longest-processing-time batch order: windows sorted longest-first so a scheduler that hands
-// jobs to the least busy worker finishes the plan fastest.
+// LPT order over the whole plan.
 export function planByCost(
 	diff: FileDiffMetadata,
 	windows: WindowSpec[],
@@ -73,6 +69,14 @@ export function planByCost(
 		.map(window => ({ window, units: estimateUnits(diff, window) }))
 		.toSorted((a, b) => b.units - a.units)
 		.map(entry => entry.window)
+}
+
+// Context lines count once; change-run pairs count by the longer side (the worker renders
+// them pairwise).
+function segmentCost(segment: ContextContent | ChangeContent): number {
+	if (segment.type === 'change')
+		return Math.max(segment.additions, segment.deletions)
+	return segment.lines
 }
 
 type SlotSpan = { from: number; to: number }
@@ -101,6 +105,77 @@ export function planTokenWindows(diff: FileDiffMetadata): WindowSpec[] {
 		...clusterWindows(diff, clusters),
 		...sweepWindows(diff, diff.splitLineCount),
 	]
+}
+
+// Just the visible band as its own window, or undefined when there is nothing to see (no
+// viewport recorded yet, or an empty file). Deliberately NOT deduplicated against the rest of
+// the plan: a band rarely aligns with WINDOW_SLOTS, and re-tokenizing the rows it overlaps costs
+// one window, while replanning every surrounding window around the cut costs the whole plan's
+// simplicity.
+function viewportBand(
+	diff: FileDiffMetadata,
+	viewport: WindowViewport | undefined,
+): WindowSpec | undefined {
+	if (!viewport) return undefined
+	const from = clamp(viewport.startingLine, 0, diff.splitLineCount)
+	const to = clamp(
+		viewport.startingLine + viewport.totalLines,
+		from,
+		diff.splitLineCount,
+	)
+	if (to <= from) return undefined
+	return bandFrom(diff, from, to - from)
+}
+
+function bandFrom(
+	diff: FileDiffMetadata,
+	startingLine: number,
+	totalLines: number,
+): WindowSpec {
+	return {
+		kind: 'sweep',
+		startingLine,
+		totalLines,
+		firstHunk: hunkBoundaryAt(diff, startingLine, '<='),
+		lastHunk: hunkBoundaryAt(diff, startingLine + totalLines, '<'),
+	}
+}
+
+// The visible band cut into `chunks` near-equal windows. One band window leaves the other pool
+// workers chewing the rest of the file while the reviewer waits for the rows on screen; splitting
+// it puts every worker on the visible rows first, so the reviewer's first colored paint is one
+// chunk's tokenization instead of the whole band's. The workers' one-time grammar warm-up is then
+// paid in parallel and reused by the background plan that follows.
+function viewportBands(
+	diff: FileDiffMetadata,
+	viewport: WindowViewport | undefined,
+	chunks: number,
+): WindowSpec[] {
+	const band = viewportBand(diff, viewport)
+	if (!band) return []
+	const count = Math.max(1, Math.min(chunks, band.totalLines))
+	const size = Math.ceil(band.totalLines / count)
+	const end = band.startingLine + band.totalLines
+	const bands: WindowSpec[] = []
+	for (let start = band.startingLine; start < end; start += size)
+		bands.push(bandFrom(diff, start, Math.min(size, end - start)))
+	return bands
+}
+
+// Dispatch order for one job: color what the reviewer is looking at first, then stream the rest
+// of the file in cost order. Without the band the plan is LPT-ordered, so the first rows to
+// color are whatever finishes first - typically a small tail window, off screen.
+export function planWindowOrder(
+	diff: FileDiffMetadata,
+	viewport: WindowViewport | undefined,
+	bandChunks = 1,
+): WindowSpec[] {
+	const plan = planByCost(diff, planTokenWindows(diff))
+	return [...viewportBands(diff, viewport, bandChunks), ...plan]
+}
+
+function clamp(lineCount: number, low: number, high: number): number {
+	return Math.min(Math.max(lineCount, low), high)
 }
 
 // Sparse path: one whole-hunk-cluster window per hunk span, then a fixed-window sweep over the
@@ -140,6 +215,10 @@ function sweepWindows(diff: FileDiffMetadata, total: number): WindowSpec[] {
 	const windows: WindowSpec[] = []
 	for (let from = 0; from < total; from += WINDOW_SLOTS) {
 		const to = Math.min(total, from + WINDOW_SLOTS)
+		// A slot no hunk reaches tokenizes nothing: the plain grid already paints those rows, and the
+		// window would cost a dispatch plus an empty reply (measured 26 of 149 windows on the 16k-line
+		// fixture). The hunks themselves stay covered by their own cluster windows, so nothing is lost.
+		if (!spansHunk(diff, from, to)) continue
 		windows.push({
 			kind: 'sweep',
 			startingLine: from,
@@ -149,6 +228,16 @@ function sweepWindows(diff: FileDiffMetadata, total: number): WindowSpec[] {
 		})
 	}
 	return windows
+}
+
+// Geometric overlap, not the hunk-boundary pair: a hunk starting before the slot can still end
+// before it too, so `firstHunk`/`lastHunk` alone cannot tell whether a slot holds any row.
+function spansHunk(diff: FileDiffMetadata, from: number, to: number): boolean {
+	return diff.hunks.some(
+		hunk =>
+			hunk.splitLineStart < to &&
+			hunk.splitLineStart + hunk.splitLineCount > from,
+	)
 }
 
 // Dense path: fixed-height windows clipped to the dense cluster's own span.

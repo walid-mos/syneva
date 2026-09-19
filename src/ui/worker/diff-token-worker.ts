@@ -8,6 +8,8 @@ import { renderDiffWithHighlighter } from '@pierre/diffs'
 import { createHighlighterCore } from 'shiki/core'
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 
+import { parseFileDiff } from '../render/parse-input'
+
 import { buildSlice } from './slice'
 
 import type {
@@ -23,6 +25,8 @@ import type {
 import type { HighlighterCore } from 'shiki/core'
 import type {
 	WorkerFailure,
+	WorkerParseDiff,
+	WorkerParseDiffSuccess,
 	WorkerRequest,
 	WorkerResponse,
 	WorkerSuccess,
@@ -72,8 +76,18 @@ async function run(request: WorkerRequest): Promise<void> {
 			case 'open-diff':
 				rememberDiff(request.cacheKey, request.diff)
 				break
+			// Grammars arrive once per worker (job-board's attachLanguages) instead of riding every
+			// window dispatch: a window is posted right after its attach, in message order.
+			case 'attach-languages':
+				attachLanguages(
+					requireHighlighter('attach-languages'),
+					request.languages,
+				)
+				break
 			case 'token-window':
 				return forWindow(request)
+			case 'parse-diff':
+				return forParseDiff(request)
 		}
 		post({ type: 'success', requestType: request.type, id: request.id })
 	} catch (error) {
@@ -84,6 +98,18 @@ async function run(request: WorkerRequest): Promise<void> {
 			stack: error instanceof Error ? error.stack : undefined,
 		} satisfies WorkerFailure)
 	}
+}
+
+// The prefetch's off-thread parse (render/parse-offload.ts): the very same call the main thread makes
+// (render/parse-input.ts), posted back as a structured clone of the metadata - `open-diff` already proves
+// that payload survives the boundary in the other direction.
+function forParseDiff(request: WorkerParseDiff): void {
+	scope.postMessage({
+		type: 'success',
+		requestType: 'parse-diff',
+		id: request.id,
+		diff: parseFileDiff(request.input),
+	} satisfies WorkerParseDiffSuccess)
 }
 
 // renderDiffWithHighlighter's row order (bucket concatenation, ascending content indexes per
@@ -157,29 +183,45 @@ function attachLanguages(
 	}
 }
 
+// Grammar and options arrive in separate messages, so both handlers must refuse to run before
+// initialize landed rather than tokenize against a half-adopted worker.
+function requireHighlighter(action: string): HighlighterCore {
+	if (highlighter) return highlighter
+	throw new Error(`${action}: worker is not initialized`)
+}
+
+// Sub-millisecond stage costs matter here (a window tokenizes in single-digit ms), so report tenths.
+const TENTHS_PER_MS = 10
+function tenths(ms: number): number {
+	return Math.round(ms * TENTHS_PER_MS) / TENTHS_PER_MS
+}
+
 async function forWindow(
 	request: Extract<WorkerRequest, { type: 'token-window' }>,
 ): Promise<void> {
 	const options = renderOptions
-	const shiki = highlighter
-	if (!options || !shiki)
+	const shiki = requireHighlighter('token-window')
+	if (!options)
 		throw new Error(
 			'token-window: worker has no adopted render options yet',
 		)
-	attachLanguages(shiki, request.resolvedLanguages)
 	const diff = openDiffs.get(request.cacheKey)
 	if (!diff)
 		throw new Error(
 			`token-window: no open diff for cacheKey "${request.cacheKey}"`,
 		)
+	const startSlice = performance.now()
 	const sliced = buildSlice(diff, request.window)
+	const sliceMs = performance.now() - startSlice
 	// Cast: @pierre types the parameter against the full shiki barrel; the lean shiki/core
 	// instance exposes the same runtime surface this call touches.
+	const startTokenize = performance.now()
 	const tokenized = renderDiffWithHighlighter(
 		sliced.slice,
 		shiki as unknown as DiffsHighlighter,
 		options,
 	)
+	const tokenizeMs = performance.now() - startTokenize
 	assertRowAlignment(request.window, tokenized, sliced.positions)
 	post({
 		type: 'success',
@@ -192,5 +234,12 @@ async function forWindow(
 		themeStyles: tokenized.themeStyles,
 		baseThemeType: tokenized.baseThemeType,
 		options,
+		timings: {
+			rows:
+				sliced.positions.deletion.length +
+				sliced.positions.addition.length,
+			slice: tenths(sliceMs),
+			tokenize: tenths(tokenizeMs),
+		},
 	})
 }

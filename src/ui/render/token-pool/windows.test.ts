@@ -9,6 +9,7 @@ import {
 	hunkClusters,
 	planByCost,
 	planTokenWindows,
+	planWindowOrder,
 } from './windows'
 
 import type {
@@ -186,12 +187,13 @@ void test('dense path clips the last window at the dense span end', () => {
 	])
 })
 
-void test('sparse path sweeps step by WINDOW_SLOTS over the whole file', () => {
+void test('sparse path sweeps only the slots that reach a hunk', () => {
 	const total = WINDOW_SLOTS * 2 + 3
 	const diff = metadata([hunk(0, 4), hunk(300, 4)], total)
 	const plan = planTokenWindows(diff)
-	// Sparse path: cluster windows first, then the sweep stepping WINDOW_SLOTS fully covering
-	// the file (the partial tail window included).
+	// Sparse path: cluster windows first, then the sweep stepping WINDOW_SLOTS. The trailing slot
+	// [WINDOW_SLOTS * 2, total) reaches no hunk (the second hunk ends at 304) and is dropped: it
+	// would have tokenized nothing.
 	assert.deepEqual(
 		plan.map(window => [
 			window.kind,
@@ -204,7 +206,6 @@ void test('sparse path sweeps step by WINDOW_SLOTS over the whole file', () => {
 			['cluster', 300, 4, 1],
 			['sweep', 0, WINDOW_SLOTS, 0],
 			['sweep', WINDOW_SLOTS, WINDOW_SLOTS, 1],
-			['sweep', WINDOW_SLOTS * 2, 3, 1],
 		],
 	)
 })
@@ -224,6 +225,82 @@ void test('planByCost orders windows longest-processing-task first', () => {
 			['cluster', 10],
 		],
 	)
+})
+
+void test('planWindowOrder without a viewport is exactly the cost-ordered plan', () => {
+	const diff = metadata([hunk(0, 7), hunk(14, 6)], 20)
+	const actual: unknown = planWindowOrder(diff, undefined)
+	assert.deepEqual(actual, planByCost(diff, planTokenWindows(diff)))
+})
+
+void test('planWindowOrder splits the band across the pool so every worker starts on screen', () => {
+	const diff = metadata([hunk(0, 7), hunk(14, 6)], 20)
+	const ordered = planWindowOrder(
+		diff,
+		{ startingLine: 0, totalLines: 17 },
+		4,
+	)
+	// 17 slots over 4 chunks: ceil(17/4) = 5, so 5/5/5/2 - the reviewer's first colored paint is
+	// one worker's chunk, not the whole band.
+	// `assert.deepEqual` is an assertion function (`asserts actual is T`); with both sides the same type
+	// the predicate has nothing to narrow, which the type-aware lint reads as a redundant condition.
+	// A comparison hands in the unknown value it is really about.
+	const actual: unknown = ordered
+		.slice(0, 4)
+		.map(w => [w.startingLine, w.totalLines])
+	assert.deepEqual(actual, [
+		[0, 5],
+		[5, 5],
+		[10, 5],
+		[15, 2],
+	])
+	// More chunks than visible slots never mints empty windows.
+	const narrowed: unknown = planWindowOrder(
+		diff,
+		{ startingLine: 3, totalLines: 2 },
+		4,
+	)
+		.slice(0, 2)
+		.map(w => [w.startingLine, w.totalLines])
+	assert.deepEqual(narrowed, [
+		[3, 1],
+		[4, 1],
+	])
+})
+
+void test('planWindowOrder leads with the visible band, boundaries from the hunks it spans', () => {
+	const diff = metadata([hunk(0, 7), hunk(14, 6)], 20)
+	const ordered = planWindowOrder(diff, { startingLine: 14, totalLines: 6 })
+	// The band is NOT in the cost-ordered plan (an LPT head would be the 13-unit sweep): the
+	// reviewer's rows have to color first, whatever the workers would prefer.
+	assert.deepEqual(ordered[0], {
+		kind: 'sweep',
+		startingLine: 14,
+		totalLines: 6,
+		firstHunk: 1,
+		lastHunk: 1,
+	})
+	const rest: unknown = ordered.slice(1)
+	assert.deepEqual(rest, planByCost(diff, planTokenWindows(diff)))
+})
+
+void test('planWindowOrder clamps the band to the file and drops an empty one', () => {
+	const diff = metadata([hunk(0, 7), hunk(14, 6)], 20)
+	const [tail] = planWindowOrder(diff, { startingLine: 18, totalLines: 100 })
+	const clamped: unknown = [tail.startingLine, tail.totalLines]
+	assert.deepEqual(clamped, [18, 2])
+	// Entirely past the last slot: nothing to lead with, so the plain plan stands.
+	const past: unknown = planWindowOrder(diff, {
+		startingLine: 25,
+		totalLines: 5,
+	})
+	assert.deepEqual(past, planByCost(diff, planTokenWindows(diff)))
+	// The renderer reports no range while it settles: same thing.
+	const settling: unknown = planWindowOrder(diff, {
+		startingLine: 0,
+		totalLines: 0,
+	})
+	assert.deepEqual(settling, planByCost(diff, planTokenWindows(diff)))
 })
 
 void test('estimateUnits counts context lines once and change runs by the longer side', () => {

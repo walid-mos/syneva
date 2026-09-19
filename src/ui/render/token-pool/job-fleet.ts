@@ -1,3 +1,5 @@
+import { perfMark } from '../../perf'
+
 import { listenToWorker } from './worker-router'
 
 import type { ThemeRegistrationResolved } from '@pierre/diffs'
@@ -7,12 +9,14 @@ import type { WorkerRenderingOptions } from '@pierre/diffs/worker'
 // failures forward to the JobBook after releasing the slot), and parks tasks with the LPT drain
 // in the book. Job scheduling lives in job-board.ts.
 import type { JobBoard } from './job-board'
-import type { SlotView } from './job-board'
+import type { SlotView } from './job-types'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 
 class WorkerSlot {
 	readonly worker: Worker
 	readonly openCacheKeys = new Set<string>()
+	// Grammar names this worker already holds (see job-board's attachLanguages).
+	readonly attachedLanguages = new Set<string>()
 	busy = false
 
 	constructor(workerFactory: () => Worker) {
@@ -28,13 +32,21 @@ class WorkerSlot {
 	}
 }
 
-const DEFAULT_POOL_SIZE = 4
+export const DEFAULT_POOL_SIZE = 4
 
 // Distributed Omit keeps each control request's own shape (a plain Omit over the union
 // collapses to the common keys and drops resolvedLanguages from initialize).
+//
+// Baggage messages (open-diff, attach-languages) ride the SAME registry as control round trips:
+// they are posted while the slot is busy running a window, and an unregistered ack would look
+// like a free slot to `forwardControl`, releasing a worker that is still tokenizing. That would
+// make the drain pile every later window onto the first idle-looking worker - one worker
+// serializing the whole plan instead of four running in parallel.
 type ControlRequest =
 	| Omit<Extract<WorkerRequest, { type: 'initialize' }>, 'id'>
 	| Omit<Extract<WorkerRequest, { type: 'set-render-options' }>, 'id'>
+	| Omit<Extract<WorkerRequest, { type: 'open-diff' }>, 'id'>
+	| Omit<Extract<WorkerRequest, { type: 'attach-languages' }>, 'id'>
 
 export class TokenFleet {
 	private slots: WorkerSlot[] = []
@@ -83,13 +95,19 @@ export class TokenFleet {
 				},
 			})
 		await Promise.all(
-			this.slots.map(slot =>
-				this.initializeSlot(
+			this.slots.map((slot, index) => {
+				const started = performance.now()
+				return this.initializeSlot(
 					slot,
 					handoff.initialOptions,
 					handoff.themes,
-				),
-			),
+				).then(() =>
+					perfMark('pool:worker:ready', {
+						slot: index,
+						ms: Math.round(performance.now() - started),
+					}),
+				)
+			}),
 		)
 	}
 
@@ -114,12 +132,19 @@ export class TokenFleet {
 	}
 
 	// The idle-slot view the book schedules through: grant = mark busy (the free happens on the
-	// response routing), so at most one token task parks on a slot at any time.
+	// response routing), so at most one token task parks on a slot at any time. `send` carries
+	// baggage messages through the same registry as control round trips, so their acks never
+	// release the slot underneath a running window.
 	grantIdleSlot(): SlotView | undefined {
 		const slot = this.slots.find(worker => !worker.busy)
 		if (!slot) return undefined
 		slot.markBusy()
-		return { worker: slot.worker, openCacheKeys: slot.openCacheKeys }
+		return {
+			worker: slot.worker,
+			openCacheKeys: slot.openCacheKeys,
+			attachedLanguages: slot.attachedLanguages,
+			send: request => void this.postControl(slot, request),
+		}
 	}
 
 	spawnedSlots(): number {
