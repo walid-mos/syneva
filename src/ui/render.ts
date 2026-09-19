@@ -6,6 +6,7 @@ import { isMarkdownPath } from './file-summary'
 import { hasGuide, renderOverview } from './guide'
 import { renderMarkdownFile } from './mdfile'
 import { isOversizedPlaceholder, renderOversizedCard } from './oversized'
+import { perfMark } from './perf'
 import { updateProgress } from './progress'
 import { fileMovedPure, renderMovedPure } from './renames'
 import { diffKey } from './render/diff-key'
@@ -215,6 +216,7 @@ async function renderDiffIsland(
 // double rAF puts the width change on the first idle frame after that paint.
 export async function render(): Promise<void> {
 	const sequence = ++renderSequence
+	perfMark('render:start')
 	try {
 		await renderCenter(sequence)
 	} finally {

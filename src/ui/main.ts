@@ -29,6 +29,11 @@ import type { DiffStyle, ReviewState, Settings } from './types'
 const REF_TITLE_MAX = 32
 // Scrolling the diff past its header reveals the floating Approve button.
 const FAB_REVEAL_SCROLL_PX = 140
+// Idle budget for the pool warm-up: `requestIdleCallback` runs when the main thread has slack, and
+// the timeout is the safety net so a busy page still boots the pool before the first file opens.
+const WARM_IDLE_TIMEOUT_MS = 400
+// Browsers without requestIdleCallback (Safari < 15.4): a plain delay lands in the same gap.
+const WARM_FALLBACK_DELAY_MS = 120
 
 installPaneResizers()
 // Keyboard shortcuts: a central scope-aware dispatcher (keys.ts) is the single source of truth.
@@ -62,10 +67,28 @@ const [prefs, state, tree] = await Promise.all([
 	api<{ files?: string[] }>('/api/tree'),
 ])
 S.settings = { ...DEFAULT_SETTINGS, ...prefs.settings }
+
 if (prefs.diffStyle === 'split' || prefs.diffStyle === 'unified')
 	S.diffStyle = prefs.diffStyle
 applyAppearance(S.settings) // font + size before first paint
 setMarkdownTheme(S.settings.theme)
+// Warm the token pool on the next idle slot: the boot is the only long main-thread task that can run
+// before the diff exists (62-110 ms of highlighter engine work, of which the chunk fetch is 5 ms), and
+// the renderer cannot ask for tokens until it settles, so the idle slot between the state fetch and
+// the first render pass hides it. Deliberately NOT scheduled before the settings/state fetch:
+// measured twice, that pulls the boot and the 5 worker boots into the parse, the paint then slips
+// enough to cost more than the boot it saves (medium: painted 510 ms vs 203, first colour 825 vs 684),
+// so the earlier placement is recorded as a rejected run in benchmarks/history.json. The pool is
+// reached through a dynamic import because its graph (manager -> @pierre + the highlighter chunks)
+// must stay out of the initial bundle; scripts/bundle-budget.mjs enforces that boundary.
+const warmPoolBoot = async (): Promise<void> => {
+	const pool = await import('./render/worker-pool')
+	pool.warmPoolBoot()
+}
+const warmOnIdle = (): void => void warmPoolBoot()
+if (typeof requestIdleCallback === 'function')
+	requestIdleCallback(warmOnIdle, { timeout: WARM_IDLE_TIMEOUT_MS })
+else setTimeout(warmOnIdle, WARM_FALLBACK_DELAY_MS)
 S.state = adoptDeskStatus(state)
 S.projectFiles = tree.files ?? []
 S.lastBaseDiffHash = S.state.baseDiffHash

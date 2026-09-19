@@ -937,6 +937,36 @@
 				line-height: 1.62;
 			}
 
+			/* Cold-open placeholder (render/placeholder.ts): the file's opening rows, painted while jsdiff's
+			   whole-file parse runs, so a big file is readable one frame after it is asked for instead of
+			   after the parse. Fixed and pointer-transparent on purpose - the pane is the scroller and its
+			   children belong to the virtualizer, so this layer must stay out of both. */
+			.diff-placeholder {
+				position: fixed;
+				z-index: 4;
+				overflow: hidden;
+				pointer-events: none;
+				padding: 4px 0;
+				background: var(--bg);
+				font-family: var(--diffs-font-family, var(--mono));
+				font-size: var(--code-size, 12.5px);
+				line-height: 1.62;
+				color: var(--muted);
+				white-space: pre;
+			}
+
+			.diff-placeholder-row {
+				display: flex;
+				gap: 12px;
+				padding: 0 12px;
+			}
+
+			.diff-placeholder-no {
+				flex: 0 0 48px;
+				text-align: right;
+				user-select: none;
+			}
+
 			/* Diff area = the scroller (#diff) plus a fixed overview ruler overlaid on its right edge.
        The wrapper doesn't scroll, so the ruler stays put while #diff scrolls under it. */
 			.diff-area {

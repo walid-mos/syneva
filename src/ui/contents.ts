@@ -1,4 +1,5 @@
 import { currentFileOrNull } from './changes'
+import { perfMark } from './perf'
 import { S, api } from './store'
 
 import type { FileContentsPayload, ReviewState } from './types'
@@ -51,9 +52,14 @@ async function fetchContents(f: ReviewFile): Promise<Contents> {
 		cache.set(key, hit)
 		return hit
 	}
+	const started = performance.now()
 	const r = await api<Partial<FileContentsPayload> & { error?: string }>(
 		`/api/file-contents?path=${encodeURIComponent(f.path)}`,
 	)
+	perfMark('contents:loaded', {
+		ms: Math.round(performance.now() - started),
+		bytes: r.oldContents?.length ?? 0,
+	})
 	if (typeof r.oldContents !== 'string' || typeof r.newContents !== 'string')
 		throw new Error(r.error ?? 'file-contents fetch failed')
 	const val = { oldContents: r.oldContents, newContents: r.newContents }

@@ -1,0 +1,148 @@
+// A cold open of a big file cannot paint its real rows before jsdiff has parsed both sides, and that
+// parse runs on the main thread (measured 187 ms at 3 700 lines, 1 339 ms when the file is fully
+// rewritten) - no frame, no rows, nothing readable until it returns. The placeholder breaks that
+// dependency: the opening rows of the new side go up as soon as the contents are in hand, and the
+// parse then runs on the next pass, swapping the real, coloured, decision-marked diff in behind it.
+//
+// It is deliberately not a diff: the old side and the change marks are exactly what the parse
+// produces, so there is nothing to show of them without it. What it does show is genuinely the file
+// the reviewer asked to read, which is the point - one frame to readable, whatever the file's size.
+//
+// It lives in a fixed layer over the pane rather than as a child of it: the pane's children belong to
+// @pierre's virtualizer (diff-entry mounts, measures and reveals the wrapper), so a pointer
+// transparent layer positioned from the pane's own rect leaves that bookkeeping untouched.
+
+import { DIFFS_TAG_NAME } from '@pierre/diffs'
+
+import { cur } from '../contents'
+import { perfMark } from '../perf'
+import { deferRender } from '../render'
+
+import { isParseMemoized } from './diff-metadata'
+import { placeholderRows, shouldPlaceholder } from './placeholder-slice'
+
+import type { ReviewState } from '../types'
+import type { DiffView } from './diff-key'
+
+type ReviewFile = ReviewState['files'][number]
+
+// Bounded reveal watch, like the pane's own swap watch: a render that never produces rows must not
+// leave the layer covering the pane forever (~10 s at 60 fps).
+const REVEAL_WATCH_FRAMES = 600
+
+let overlay: HTMLElement | undefined
+let overlayHost: HTMLElement | undefined
+let overlayScrollHost: HTMLElement | undefined
+let watchFrames = 0
+// The diff key whose placeholder is currently standing in for the parse. Without it the re-scheduled
+// pass - which finds the parse still cold, since it is the pass that is about to do it - would paint
+// provisional rows again and never reach the diff.
+let placeholderKey: string | undefined
+
+// The cold-open policy: a diff whose parse is not memoized, on a file long enough that the parse
+// would be a visible wait. Returns true when it painted provisional rows - the caller must then skip
+// this pass entirely and let the scheduled re-render do the parsing.
+export function paintColdOpen(
+	host: HTMLElement,
+	file: ReviewFile,
+	view: DiffView,
+	key: string,
+): boolean {
+	if (placeholderKey === key) return false
+	if (isParseMemoized(file, view)) return false
+	if (!shouldPlaceholder(cur.newContents)) return false
+	placeholderKey = key
+	perfMark('render:placeholder')
+	paintPlaceholderOverlay(host, cur.newContents)
+	// The parse must run on a pass that is free to block: deferRender paints first (its own double
+	// frame) and only then calls render() again, which is where the cold metadata is built.
+	deferRender()
+	return true
+}
+
+// A pass that mounted the real rows frees the policy again: the parse memo evicts, so the same file
+// can go cold later and is worth a placeholder then too. Called from the island's afterRender.
+export function resetColdOpen(): void {
+	placeholderKey = undefined
+}
+
+// Unlike diff-entry's swap watch, this one reads the pane's LAST child: the incoming wrapper is
+// appended last (the outgoing rows keep the pane until the swap), so the placeholder only stands
+// aside for rows that belong to the file it was painted for. A pane holding something that is not a
+// diff at all (the guide, an oversized card, an error note) means the diff was replaced: no rows are
+// coming, and the layer would cover the replacement.
+function paneState(host: HTMLElement): 'rows' | 'waiting' | 'gone' {
+	const wrapper = host.lastElementChild
+	if (!wrapper) return 'waiting'
+	if (!(wrapper instanceof HTMLElement)) return 'gone'
+	if (!wrapper.classList.contains('diff-wrap')) return 'gone'
+	if (wrapper.style.visibility === 'hidden') return 'waiting'
+	const rows = wrapper
+		.querySelector(DIFFS_TAG_NAME)
+		?.shadowRoot?.querySelector('[data-line]')
+	return rows ? 'rows' : 'waiting'
+}
+
+function watchReveal(): void {
+	const host = overlayHost
+	if (!overlay || !host) return
+	if (
+		!host.isConnected ||
+		paneState(host) !== 'waiting' ||
+		++watchFrames >= REVEAL_WATCH_FRAMES
+	) {
+		clearPlaceholderOverlay()
+		return
+	}
+	requestAnimationFrame(watchReveal)
+}
+
+export function clearPlaceholderOverlay(): void {
+	if (overlay) perfMark('render:placeholder-cleared')
+	overlayScrollHost?.removeEventListener('scroll', clearPlaceholderOverlay)
+	overlay?.remove()
+	overlay = undefined
+	overlayHost = undefined
+	overlayScrollHost = undefined
+}
+
+// Paint the provisional rows over the pane. Positioning is fixed and read once from the pane's own
+// box: the pane is the scroller, and a layer inside it would take part in the scroll geometry the
+// virtualizer measures. A scroll means the reviewer is navigating, so the layer gets out of the way
+// instead of pretending to be content that scrolls.
+export function paintPlaceholderOverlay(
+	host: HTMLElement,
+	contents: string,
+): void {
+	const rows = placeholderRows(contents)
+	if (!rows.length) return
+	const rect = host.getBoundingClientRect()
+	if (rect.width < 1 || rect.height < 1) return
+	clearPlaceholderOverlay()
+	const layer = document.createElement('div')
+	layer.className = 'diff-placeholder'
+	layer.setAttribute('aria-hidden', 'true')
+	layer.style.left = `${rect.left}px`
+	layer.style.top = `${rect.top}px`
+	layer.style.width = `${rect.width}px`
+	layer.style.height = `${rect.height}px`
+	for (const row of rows) {
+		const line = document.createElement('div')
+		line.className = 'diff-placeholder-row'
+		const gutter = document.createElement('span')
+		gutter.className = 'diff-placeholder-no'
+		gutter.textContent = String(row.no)
+		const text = document.createElement('span')
+		// Contents are the reviewer's own files: text, never markup.
+		text.textContent = row.text
+		line.append(gutter, text)
+		layer.append(line)
+	}
+	document.body.append(layer)
+	overlay = layer
+	overlayHost = host
+	overlayScrollHost = host
+	host.addEventListener('scroll', clearPlaceholderOverlay, { passive: true })
+	watchFrames = 0
+	requestAnimationFrame(watchReveal)
+}

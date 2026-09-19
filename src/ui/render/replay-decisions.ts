@@ -5,6 +5,8 @@ import { currentChanges } from '../changes'
 import { buildLineMap } from '../linemap'
 import { D, S } from '../store'
 
+import { planReplayCalls } from './replay-plan'
+
 import type {
 	ChangeContent,
 	ContextContent,
@@ -95,13 +97,14 @@ export function replayDecisions(diff: FileDiffMetadata): ReplayOutcome {
 	const decided = decidedPositions(diff)
 	D.lineMap = decided.length ? buildLineMap(diff, decided) : null
 	let resolved = diff
-	for (const d of decided) {
+	for (const call of planReplayCalls(diff, decided)) {
 		// Cut entries replay too: their context entries are what the distiller drops.
 		try {
-			resolved = diffAcceptRejectHunk(resolved, d.hunkIndex, {
-				type: d.status === 'accepted' ? 'accept' : 'reject',
-				changeIndex: d.changeIndex,
-			})
+			resolved = diffAcceptRejectHunk(
+				resolved,
+				call.hunkIndex,
+				call.options,
+			)
 		} catch {
 			// leave this block unresolved rather than aborting the replay
 		}

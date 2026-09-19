@@ -196,10 +196,23 @@ export function bindVirtualDiff(instance: VirtualDiff): void {
 	})
 }
 
+// Lookahead kept mounted beyond the viewport: a third of the visible height on each side. The mount
+// window is the viewport plus this margin, so a margin proportional to what the reviewer actually sees
+// is the only form that fits every window - a third of a screen is ≈ a dozen rows at our line height,
+// enough for a fast scroll to land on painted rows. The fixed 600px it replaces was ≈ a screen on a
+// short window: measured there at ~10 500 shadow nodes for the first paint of a dense 400-line file,
+// twice the visible band.
+const OVERSCROLL_VIEWPORT_DIVISOR = 3
+
 // One scroll observer for the active window. Disposing it when switching files also cancels
 // queued work from an old file; detached instances must never run current-file decorators.
 export function createVirtualizer(wrapper: HTMLElement): Virtualizer {
-	const virtualizer = new Virtualizer({ overscrollSize: 600 })
-	virtualizer.setup($('diff'), wrapper)
+	const pane = $('diff')
+	const virtualizer = new Virtualizer({
+		overscrollSize: Math.round(
+			pane.clientHeight / OVERSCROLL_VIEWPORT_DIVISOR,
+		),
+	})
+	virtualizer.setup(pane, wrapper)
 	return virtualizer
 }

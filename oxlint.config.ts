@@ -26,9 +26,11 @@ export default defineConfig({
 			// narrow view. Every assertion lives next to its seam and is documented there.
 			// Token-pool files also log failures (an unhighlighted desk must show WHY, not stay
 			// silent), and post worker messages without target-origin (workers post by identity,
-			// the rule targets window contexts).
+			// the rule targets window contexts) - parse-offload.ts posts the prefetch's parse to
+			// its own dedicated worker the same way.
 			files: [
 				'src/ui/render/worker-pool.ts',
+				'src/ui/render/parse-offload.ts',
 				'src/ui/worker/diff-token-worker.ts',
 				'src/ui/render/token-pool/*.ts',
 			],
