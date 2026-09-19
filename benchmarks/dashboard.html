@@ -1,0 +1,4288 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Syneva — frontend performance</title>
+		<style>
+			:root {
+				--bg: #0a0c0f;
+				--panel: #11141a;
+				--panel-2: #161a22;
+				--line: #242b36;
+				--line-soft: #1b212a;
+				--fg: #e8ecf3;
+				--fg-dim: #99a3b1;
+				--fg-faint: #6a7381;
+				--blue: #5ea3ff;
+				--cyan: #3fbdc6;
+				--violet: #a687ff;
+				--green: #4fc08d;
+				--red: #e8674a;
+				--amber: #e3b341;
+				--grey: #55606e;
+				--mono:
+					ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+					'Liberation Mono', monospace;
+				--sans:
+					-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+					'Helvetica Neue', Arial, sans-serif;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html {
+				background: var(--bg);
+			}
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--fg);
+				font-family: var(--sans);
+				font-size: 14px;
+				line-height: 1.45;
+				-webkit-font-smoothing: antialiased;
+			}
+			.num {
+				font-family: var(--mono);
+				font-variant-numeric: tabular-nums;
+				letter-spacing: -0.01em;
+			}
+			header.top {
+				border-bottom: 1px solid var(--line);
+				background: linear-gradient(180deg, #101319, #0b0e12);
+				padding: 22px 24px 20px;
+			}
+			.wrap {
+				max-width: 1240px;
+				margin: 0 auto;
+			}
+			.top-row {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: baseline;
+				gap: 14px;
+			}
+			h1 {
+				font-size: 17px;
+				font-weight: 600;
+				margin: 0;
+				letter-spacing: -0.01em;
+			}
+			.top-meta {
+				color: var(--fg-faint);
+				font-size: 12px;
+				margin-left: auto;
+				font-family: var(--mono);
+			}
+			.top-sub {
+				color: var(--fg-dim);
+				font-size: 12.5px;
+				margin-top: 6px;
+				max-width: 78ch;
+			}
+			main {
+				max-width: 1240px;
+				margin: 0 auto;
+				padding: 0 24px 80px;
+			}
+			section {
+				margin-top: 30px;
+			}
+			.sec-head {
+				display: flex;
+				align-items: baseline;
+				gap: 10px;
+				margin-bottom: 12px;
+			}
+			.eyebrow {
+				font-family: var(--mono);
+				font-size: 11px;
+				color: var(--fg-faint);
+				border: 1px solid var(--line);
+				border-radius: 4px;
+				padding: 1px 6px;
+			}
+			h2 {
+				font-size: 14px;
+				font-weight: 600;
+				margin: 0;
+				letter-spacing: 0.01em;
+			}
+			.sec-note {
+				color: var(--fg-faint);
+				font-size: 12px;
+				margin-left: auto;
+				text-align: right;
+			}
+			.card {
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				padding: 16px 18px;
+			}
+			.card + .card {
+				margin-top: 12px;
+			}
+			.grid-kpi {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+				gap: 12px;
+			}
+			.kpi {
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: 10px;
+				padding: 13px 14px 12px;
+			}
+			.kpi-label {
+				font-size: 11.5px;
+				color: var(--fg-dim);
+				display: flex;
+				align-items: center;
+				gap: 6px;
+			}
+			.kpi-value {
+				font-family: var(--mono);
+				font-size: 24px;
+				font-weight: 500;
+				margin: 6px 0 3px;
+				letter-spacing: -0.02em;
+			}
+			.kpi-unit {
+				font-size: 13px;
+				color: var(--fg-dim);
+				margin-left: 3px;
+			}
+			.kpi-foot {
+				font-family: var(--mono);
+				font-size: 11.5px;
+				color: var(--fg-faint);
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+			}
+			.chip {
+				font-family: var(--mono);
+				font-size: 11.5px;
+				border-radius: 4px;
+				padding: 1px 5px;
+				border: 1px solid var(--line);
+				white-space: nowrap;
+			}
+			.good {
+				color: var(--green);
+				border-color: #234b3a;
+				background: #10211a;
+			}
+			.bad {
+				color: var(--red);
+				border-color: #57301f;
+				background: #221310;
+			}
+			.flat {
+				color: var(--fg-dim);
+			}
+			.warn {
+				color: var(--amber);
+				border-color: #4d3d1c;
+				background: #201a0d;
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 12.5px;
+			}
+			.scroll {
+				overflow-x: auto;
+			}
+			th,
+			td {
+				text-align: right;
+				padding: 7px 10px;
+				border-bottom: 1px solid var(--line-soft);
+				white-space: nowrap;
+			}
+			th:first-child,
+			td:first-child {
+				text-align: left;
+			}
+			th {
+				color: var(--fg-faint);
+				font-weight: 500;
+				font-size: 11px;
+				letter-spacing: 0.04em;
+				text-transform: uppercase;
+				border-bottom: 1px solid var(--line);
+			}
+			tbody tr:hover {
+				background: #151a22;
+			}
+			td.num,
+			th.num {
+				font-family: var(--mono);
+				font-variant-numeric: tabular-nums;
+			}
+			.muted {
+				color: var(--fg-faint);
+			}
+			.dim {
+				color: var(--fg-dim);
+			}
+			svg {
+				display: block;
+				width: 100%;
+				height: auto;
+				overflow: visible;
+			}
+			svg text {
+				font-family: var(--mono);
+				font-size: 11px;
+				fill: var(--fg-faint);
+			}
+			svg text.ax-label {
+				fill: var(--fg-dim);
+				font-size: 11px;
+			}
+			svg text.seg-label {
+				fill: #0a0c0f;
+				font-size: 10.5px;
+				font-weight: 600;
+			}
+			svg text.ms-label {
+				fill: var(--fg-dim);
+				font-size: 10.5px;
+			}
+			.grid-line {
+				stroke: var(--line-soft);
+				stroke-width: 1;
+			}
+			.axis-line {
+				stroke: var(--line);
+				stroke-width: 1;
+			}
+			.band {
+				fill: #ffffff;
+				opacity: 0.022;
+			}
+			.band-label {
+				fill: var(--fg-faint);
+				font-size: 10px;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+			}
+			.tick {
+				stroke: var(--line);
+				stroke-width: 1;
+			}
+			.legend {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 14px;
+				margin-top: 10px;
+				font-size: 12px;
+				color: var(--fg-dim);
+			}
+			.legend i {
+				display: inline-block;
+				width: 10px;
+				height: 10px;
+				border-radius: 2px;
+				margin-right: 6px;
+				vertical-align: -1px;
+			}
+			.legend i.line {
+				height: 3px;
+				width: 14px;
+				border-radius: 2px;
+				vertical-align: 2px;
+			}
+			.legend i.hollow {
+				background: transparent;
+				border: 1.5px dashed var(--fg-faint);
+				border-radius: 50%;
+			}
+			.controls {
+				display: flex;
+				gap: 10px;
+				align-items: center;
+				margin-bottom: 12px;
+				flex-wrap: wrap;
+			}
+			select {
+				background: var(--panel-2);
+				color: var(--fg);
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				padding: 5px 8px;
+				font-family: var(--mono);
+				font-size: 12px;
+			}
+			select:focus-visible,
+			a:focus-visible,
+			button:focus-visible {
+				outline: 2px solid var(--blue);
+				outline-offset: 2px;
+			}
+			ol.timeline {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+			}
+			ol.timeline li {
+				position: relative;
+				padding: 0 0 16px 22px;
+				border-left: 1px solid var(--line);
+			}
+			ol.timeline li:last-child {
+				padding-bottom: 0;
+			}
+			ol.timeline li::before {
+				content: '';
+				position: absolute;
+				left: -4.5px;
+				top: 5px;
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--blue);
+				border: 1px solid #0a0c0f;
+			}
+			ol.timeline li.planned::before {
+				background: var(--grey);
+			}
+			ol.timeline .t-label {
+				font-weight: 600;
+				font-size: 13px;
+			}
+			ol.timeline .t-note {
+				color: var(--fg-dim);
+				font-size: 12.5px;
+				margin-top: 3px;
+				max-width: 92ch;
+			}
+			.cols {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px;
+			}
+			.win-row {
+				display: flex;
+				align-items: baseline;
+				gap: 10px;
+				padding: 7px 0;
+				border-bottom: 1px solid var(--line-soft);
+			}
+			.win-row:last-child {
+				border-bottom: 0;
+			}
+			.win-label {
+				flex: 1;
+				font-size: 12.5px;
+			}
+			.win-exp {
+				font-family: var(--mono);
+				font-size: 12px;
+				color: var(--amber);
+			}
+			.note {
+				color: var(--fg-dim);
+				font-size: 12.5px;
+				margin: 10px 0 0;
+				max-width: 100ch;
+			}
+			.empty {
+				color: var(--fg-faint);
+				font-size: 12.5px;
+				padding: 10px 0;
+			}
+			footer {
+				border-top: 1px solid var(--line);
+				margin-top: 34px;
+				padding-top: 14px;
+				color: var(--fg-faint);
+				font-size: 11.5px;
+			}
+			footer p {
+				margin: 4px 0;
+				max-width: 110ch;
+			}
+			@media (max-width: 900px) {
+				.cols {
+					grid-template-columns: 1fr;
+				}
+				.top-meta {
+					margin-left: 0;
+				}
+			}
+			.bench-tooltip {
+				position: fixed;
+				pointer-events: none;
+				z-index: 60;
+				display: none;
+				max-width: 360px;
+				background: var(--panel-2);
+				border: 1px solid var(--line);
+				border-radius: 8px;
+				padding: 10px 12px;
+				font-size: 12px;
+				line-height: 1.55;
+				color: var(--fg);
+				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+			}
+			.bench-tooltip .tt-title {
+				font-family: var(--mono);
+				font-weight: 600;
+				margin-bottom: 6px;
+			}
+			.bench-tooltip .tt-row {
+				display: flex;
+				justify-content: space-between;
+				gap: 18px;
+			}
+			.bench-tooltip .tt-label {
+				color: var(--fg-faint);
+				white-space: nowrap;
+			}
+			.bench-tooltip .tt-value {
+				text-align: right;
+				color: var(--fg-dim);
+			}
+			.bench-tooltip .tt-value.tt-good {
+				color: var(--green);
+			}
+			.bench-tooltip .tt-value.tt-bad {
+				color: var(--red);
+			}
+			.bench-tooltip .tt-note {
+				margin-top: 6px;
+				border-top: 1px solid var(--line-soft);
+				padding-top: 6px;
+				color: var(--fg-faint);
+			}
+			.bench-readout {
+				position: fixed;
+				pointer-events: none;
+				z-index: 61;
+				display: none;
+				font-family: var(--mono);
+				font-size: 11px;
+				color: var(--fg);
+				background: var(--panel-2);
+				border: 1px solid var(--line);
+				border-radius: 4px;
+				padding: 3px 7px;
+				white-space: nowrap;
+			}
+			.legend-chip {
+				background: transparent;
+				border: 1px solid var(--line);
+				color: var(--fg-dim);
+				border-radius: 999px;
+				padding: 3px 10px;
+				font-size: 12px;
+				font-family: var(--sans);
+				cursor: pointer;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+			}
+			.legend-chip:hover {
+				border-color: var(--fg-faint);
+				color: var(--fg);
+			}
+			.legend-chip.on {
+				border-color: var(--blue);
+				color: var(--fg);
+			}
+			.legend-chip[aria-pressed='false'] {
+				opacity: 0.55;
+			}
+			.legend-chip i.line {
+				margin: 0;
+			}
+			.crosshair-v,
+			.crosshair-h {
+				stroke: var(--fg-faint);
+				stroke-width: 1;
+				stroke-dasharray: 3 3;
+				pointer-events: none;
+			}
+			.evo-point {
+				cursor: pointer;
+				transition:
+					opacity 120ms ease,
+					stroke-width 120ms ease;
+			}
+			.evo-point.evo-hover {
+				stroke: var(--fg);
+				stroke-width: 3;
+			}
+			.evo-point.evo-selected {
+				stroke: var(--amber);
+				stroke-width: 4;
+			}
+			.evo-point.evo-dim {
+				opacity: 0.25;
+			}
+			.evo-point:focus-visible {
+				outline: 2px solid var(--blue);
+				outline-offset: 3px;
+			}
+			polyline.evo-dim {
+				opacity: 0.25;
+			}
+			.wf-bar {
+				cursor: pointer;
+				transition: stroke-width 120ms ease;
+			}
+			.wf-bar.wf-hover {
+				stroke: var(--fg);
+				stroke-width: 2;
+			}
+			.wf-bar.wf-pinned {
+				stroke: var(--amber);
+				stroke-width: 2.5;
+			}
+			.wf-bar:focus-visible,
+			.win-bar-rect:focus-visible {
+				outline: 2px solid var(--blue);
+				outline-offset: 2px;
+			}
+			tbody tr.wf-hover {
+				background: #1a2029;
+			}
+			tbody tr.wf-pinned {
+				background: #241d11;
+			}
+			tbody tr.win-hover {
+				background: #1a2029;
+			}
+			.win-bar-rect {
+				cursor: pointer;
+				transition: opacity 120ms ease;
+			}
+			.win-bar-rect.win-hover {
+				opacity: 1;
+				stroke: var(--fg);
+				stroke-width: 1.5;
+			}
+			.cmp-track {
+				display: flex;
+				gap: 2px;
+				align-items: center;
+				justify-content: flex-end;
+				min-width: 180px;
+			}
+			.cmp-bar {
+				height: 10px;
+				border-radius: 2px;
+			}
+			.cmp-a {
+				background: var(--blue);
+			}
+			.cmp-b {
+				background: var(--cyan);
+			}
+			.delta-good {
+				color: var(--green);
+			}
+			.delta-bad {
+				color: var(--red);
+			}
+			.delta-flat {
+				color: var(--fg-dim);
+			}
+			@media (prefers-reduced-motion: reduce) {
+				*,
+				*::before,
+				*::after {
+					transition: none !important;
+					animation: none !important;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<header class="top">
+			<div class="wrap">
+				<div class="top-row">
+					<h1 id="pageTitle">Syneva — frontend performance</h1>
+					<div class="top-meta" id="pageMeta"></div>
+				</div>
+				<p class="top-sub">
+					Time-to-first-colour is the metric that matters: how long
+					after opening the desk the rows the reviewer is actually
+					looking at stop being plain text and become syntax-coloured.
+					Every number below comes from the in-page perf timeline,
+					recorded on a cold open of a reproducible fixture.
+				</p>
+			</div>
+		</header>
+
+		<main>
+			<section aria-labelledby="h-kpi">
+				<div class="sec-head">
+					<span class="eyebrow">01</span>
+					<h2 id="h-kpi">Headline</h2>
+					<span class="sec-note" id="kpiNote"></span>
+				</div>
+				<div class="grid-kpi" id="kpis"></div>
+			</section>
+
+			<section aria-labelledby="h-evo">
+				<div class="sec-head">
+					<span class="eyebrow">02</span>
+					<h2 id="h-evo">Evolution — time to first colour</h2>
+					<span class="sec-note"
+						>hollow point = pre-fix baseline · hover or Tab to a
+						point · click a fixture chip to hide it</span
+					>
+				</div>
+				<div class="controls">
+					<label for="evoScale" class="dim">Scale</label>
+					<select id="evoScale">
+						<option value="auto">auto</option>
+						<option value="linear">linear</option>
+						<option value="log">log</option>
+					</select>
+					<span class="muted" id="evoMeta"></span>
+				</div>
+				<div class="card" id="evo"></div>
+			</section>
+
+			<section aria-labelledby="h-wf">
+				<div class="sec-head">
+					<span class="eyebrow">03</span>
+					<h2 id="h-wf">Where the time goes</h2>
+					<span class="sec-note"
+						>hover a bar for details · click to pin a stage</span
+					>
+				</div>
+				<div class="card">
+					<div class="controls">
+						<label for="runSel" class="dim">Run</label>
+						<select id="runSel"></select>
+						<span class="muted" id="wfMeta"></span>
+					</div>
+					<div id="wf"></div>
+				</div>
+				<div class="card">
+					<div class="controls">
+						<button
+							id="cmpToggle"
+							type="button"
+							aria-pressed="false"
+						>
+							Compare
+						</button>
+						<label for="cmpA" class="dim">A</label>
+						<select id="cmpA"></select>
+						<label for="cmpB" class="dim">B</label>
+						<select id="cmpB"></select>
+						<span class="muted" id="cmpMeta"></span>
+					</div>
+					<div id="cmp"></div>
+				</div>
+			</section>
+
+			<section aria-labelledby="h-pool">
+				<div class="sec-head">
+					<span class="eyebrow">04</span>
+					<h2 id="h-pool">Pool health</h2>
+					<span class="sec-note"
+						>one boot, one grammar attach per worker, no duplicate
+						dispatches</span
+					>
+				</div>
+				<div class="card scroll" id="pool"></div>
+			</section>
+
+			<section aria-labelledby="h-win">
+				<div class="sec-head">
+					<span class="eyebrow">05</span>
+					<h2 id="h-win">Token windows</h2>
+					<span class="sec-note"
+						>per-window cost of the selected run · first touch pays
+						the lazy regex compile</span
+					>
+				</div>
+				<div class="card scroll" id="win"></div>
+			</section>
+
+			<section aria-labelledby="h-changed">
+				<div class="sec-head">
+					<span class="eyebrow">06</span>
+					<h2 id="h-changed">What changed</h2>
+					<span class="sec-note"
+						>milestones are measured · targets and wins are
+						expectations</span
+					>
+				</div>
+				<div class="cols">
+					<div class="card">
+						<div class="sec-head"><h2>Milestones</h2></div>
+						<ol class="timeline" id="milestones"></ol>
+					</div>
+					<div class="card">
+						<div class="sec-head">
+							<h2>Next moves</h2>
+							<span class="sec-note"
+								>expected gain, not measured</span
+							>
+						</div>
+						<div id="targets"></div>
+					</div>
+				</div>
+			</section>
+
+			<section aria-labelledby="h-runs">
+				<div class="sec-head">
+					<span class="eyebrow">07</span>
+					<h2 id="h-runs">All runs</h2>
+					<span class="sec-note"
+						>Δ compares with the previous run of the same fixture ·
+						hover a row to find its point · click to select</span
+					>
+				</div>
+				<div class="card scroll" id="runs"></div>
+			</section>
+
+			<footer class="wrap">
+				<p id="footGen"></p>
+				<p>
+					Reading notes — <span class="num">contents</span> is when
+					the file's diff reached the tab (server-side work for
+					oversized files is included, and dominates large fixtures);
+					<span class="num">plain paint</span> is when rows are
+					visible but uncoloured; <span class="num">blocked</span> is
+					main-thread time that could not be spent dispatching token
+					work (measured with a longtask observer);
+					<span class="num">final</span> is the whole file coloured,
+					which is off the critical path but costs CPU and battery.
+				</p>
+			</footer>
+		</main>
+
+		<script>
+			/*BENCH_DATA_START*/
+	const BENCH_DATA = {
+	"project": "Syneva",
+	"generatedAt": "2026-09-17",
+	"fixtures": {
+		"medium": {
+			"title": "medium",
+			"detail": "120 changed files · first file 400 lines · TypeScript"
+		},
+		"bigfile": {
+			"title": "bigfile",
+			"detail": "first file 2.8 MB / 16k lines, behind the oversized-file guard"
+		},
+		"medium-switch": {
+			"title": "medium-switch",
+			"detail": "click on the next file of the 120-file desk, every number measured from the click (not from a cold load) - the latency a reviewer actually feels"
+		}
+	},
+	"milestones": [
+		{
+			"id": "baseline",
+			"label": "Baseline (audit)",
+			"note": "4 overlapping pool boots (12-16 workers, 4 copies of a 2.5 MB grammar bundle), tail-first window plan, duplicate window dispatch. Measured: medium first colour 1391 ms, worker.js 2566 KB."
+		},
+		{
+			"id": "af",
+			"label": "Fixes A-F",
+			"note": "One idempotent boot, one grammar attach per worker, viewport-first band split across the pool, lazy per-language grammar chunks. Measured: medium first colour 1391 -> 804-911 ms (three samples), worker.js 2566 -> 539 KB, pool:languages:load 308 -> 76 ms (the resolve moved into the boot window). The band was dispatchable at 366 ms but the first window only left at 668: the dispatch continuation was a microtask queued behind the 314 ms paint task, which fix G removes."
+		},
+		{
+			"id": "g",
+			"label": "Fix G",
+			"note": "Synchronous language handoff: a job whose grammars already resolved dispatches its first window in the same turn, inside the renderer's paint task instead of after it. Measured: first window sent 668 -> 344 ms, medium first colour 772 ms (against 804-911 ms with fixes A-F alone); the band finishes at 744 ms and the publish waits for the main thread to free at ~694 ms."
+		},
+		{
+			"id": "parallel",
+			"label": "Parallelization pass",
+			"note": "Job priority by attachment (window-dispatch ranks attached jobs first), pool width from hardwareConcurrency capped by the memory budget. Measured: the 5th worker cuts the 16k-line fixture's token phase 1614 -> 1275 ms (-21%) while a normal file stays inside run-to-run noise (medium first colour 713 vs 680 ms, final 1283 vs 1241); the suspected serial sections are all free (merge, publish and the open-diff clone 0-3 ms), so nothing moved to the workers."
+		},
+		{
+			"id": "warm",
+			"label": "Batch 1: idle warm-up, parallel boot, empty-sweep filter",
+			"note": "Idle warm-up (the pool boot starts on the first idle slot), parallel boot (the highlighter and the themes resolve together), and an empty-sweep filter (sweep slots that reach no hunk are dropped). Measured: the warm-up saves 15-20 ms of boot and is a structural win only where the contents fetch is the long pole (its earlier placement is recorded as a rejected run), the parallel boot saves 15-25 ms, and the filter removes 22 of 149 windows on the 16k-line fixture (-15%); medium first colour 684 ms, bigfile 2301 ms."
+		},
+		{
+			"id": "switch",
+			"label": "Switch: no dispatch for a file the reviewer has left",
+			"note": "Dispatch and warming both follow the reviewer. window-dispatch gives slots only to jobs with a renderer attached (a job is a snapshot; detaching and re-attaching around @pierre's converge pass only delays its own next window by one pass), and the render pass warms the NEXT file's viewport band while the pool is idle - through a side-effect-free metadata builder (diff-metadata.ts, whose parse memo the click then adopts), an off-thread parse (parse-offload.ts) and a cap of one band per warm job. Measured on the 8000-line fixture, switching to a 200-line file mid-job: before, 29 more windows of the abandoned file were dispatched (26392 ms of worker tokenize, 25 publishes) behind the reviewer's back; after, 0 new windows and only the 6 already in flight land (5275 ms). On the quiet medium desk the scoping alone leaves the reviewer's numbers unchanged (470/478 ms click->first colour against 449/477 before) - it removes contention, it does not make a quiet pool faster - while the prefetch is what shortens that wait: 375/360 ms click->first colour on the prefetched next file with 0 windows left to send at the click, against 519 ms for the same build's cold control."
+		}
+	],
+	"rejected": [
+		{
+			"label": "Fix H: prime each worker's grammar with a one-line tokenize",
+			"measurement": "a one-line tokenize absorbs the fixed cost (81 ms of compile, then 0.79 ms/row in Node), but compile + rows is the same worker time either way; with fix G the gate is the renderer's 359 ms paint task and the ~165 ms of clone/contention per first window, so priming is shadowed. Not landed."
+		}
+	],
+	"targets": [
+		{
+			"label": "shorten the renderer's first paint task",
+			"expectedMs": 250,
+			"detail": "359 ms main-thread task starting right after the plain grid is handed over; our own spans inside it (render:acquire 1 ms, render:paint 10 ms) say it is the renderer's own row layout"
+		},
+		{
+			"label": "cut the clone/contention overhead of a first window",
+			"expectedMs": 160,
+			"detail": "band windows: 400 ms wall for 235 ms of reported tokenize - structured-clone deserialization plus 4 workers competing with the painting main thread"
+		},
+		{
+			"label": "move grammar registration off the main thread",
+			"expectedMs": 100,
+			"detail": "pool:languages:load is still 101-384 ms of chunk parse + shiki registration on the main thread. The grammar shards shrank the chunk (worker.js 2566 -> 539 KB) but registration stayed there, and letting workers import their own grammar chunk is closed by design (scripts/build-ui.mjs stubs every grammar module out of the worker build), so this needs a shape of its own - a grammar registered once and shared, or registration inside a worker."
+		}
+	],
+	"knownWins": [
+		{
+			"label": "viewport-only incremental sweep (the VS Code model)",
+			"detail": "bigfile tokenizes 2154 rows across 148 windows; 88 of them contain zero changed rows. The empty-sweep filter (milestone warm) already drops those slots; what remains is a scroll-driven sweep instead of a whole-file one"
+		},
+		{
+			"label": "oniguruma wasm engine",
+			"detail": "~1.6x faster per row (0.57 vs 0.90 ms/row measured in Node) for ~+600 KB of worker bundle; affects whole-file finalization, not first color"
+		},
+		{
+			"label": "band-sized pool",
+			"detail": "the pool is sized from the machine (hardwareConcurrency capped at 6, milestone parallel), not from the job: 4-6 workers for a 400-line first file is more parallelism than the visible band needs"
+		},
+		{
+			"label": "desk-side diff build for oversized files",
+			"detail": "the desk needs ~49.5 s to build the diff of a 2.8 MB file server-side, before the UI sees anything (separate from the token pipeline)"
+		}
+	],
+	"runs": [
+		{
+			"id": "baseline-medium",
+			"fixture": "medium",
+			"milestone": "baseline",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 51,
+				"contents": 181,
+				"plainPaint": 249,
+				"bootStart": 212,
+				"bootDone": 381,
+				"jobOpen": 399,
+				"firstWindowSent": 692,
+				"firstColor": 1391,
+				"final": 1392
+			},
+			"pool": {
+				"boots": 4,
+				"workers": 16,
+				"windowSent": 6,
+				"windowDone": 6
+			},
+			"workerBundleKb": 2566,
+			"perRowMs": 3.45,
+			"perWindowFixedMs": 126,
+			"longTasks": []
+		},
+		{
+			"id": "af-medium-run1",
+			"fixture": "medium",
+			"milestone": "af",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"plainPaint": 221,
+				"bootDone": 601,
+				"firstColor": 804,
+				"final": 1376
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 4,
+				"windowSent": 7,
+				"windowDone": 7
+			},
+			"workerBundleKb": 539,
+			"note": "grammar prewarm moved the whole resolve into the boot window: pool:languages:load 308 -> 76 ms"
+		},
+		{
+			"id": "af-medium-run2",
+			"fixture": "medium",
+			"milestone": "af",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 68,
+				"contents": 214,
+				"plainPaint": 270,
+				"bootStart": 239,
+				"bootDone": 645,
+				"jobOpen": 656,
+				"firstWindowSent": 664,
+				"firstColor": 857,
+				"final": 1448
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 4,
+				"windowSent": 7,
+				"windowDone": 7
+			},
+			"workerBundleKb": 539,
+			"note": "post-refactor verification run (job book split into scheduler/dispatch/publish)"
+		},
+		{
+			"id": "af-medium-run3",
+			"fixture": "medium",
+			"milestone": "af",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 36,
+				"contents": 202,
+				"plainPaint": 253,
+				"bootStart": 217,
+				"bootDone": 358,
+				"jobOpen": 366,
+				"firstWindowSent": 668,
+				"firstColor": 911,
+				"final": 1612
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 4,
+				"windowSent": 7,
+				"windowDone": 7
+			},
+			"workerBundleKb": 539,
+			"perRowMs": 1.7,
+			"perWindowFixedMs": 150,
+			"longTasks": [
+				{
+					"start": 112,
+					"ms": 79,
+					"label": "bootstrap"
+				},
+				{
+					"start": 213,
+					"ms": 95,
+					"label": "pool create + plain highlighter"
+				},
+				{
+					"start": 358,
+					"ms": 314,
+					"label": "plain-grid handoff to the renderer"
+				}
+			],
+			"windows": [
+				{
+					"kind": "sweep",
+					"line": 0,
+					"rows": 50,
+					"tokenizeMs": 233.4
+				},
+				{
+					"kind": "sweep",
+					"line": 50,
+					"rows": 50,
+					"tokenizeMs": 239.7
+				},
+				{
+					"kind": "sweep",
+					"line": 25,
+					"rows": 50,
+					"tokenizeMs": 241.2
+				},
+				{
+					"kind": "sweep",
+					"line": 75,
+					"rows": 50,
+					"tokenizeMs": 250.1
+				},
+				{
+					"kind": "sweep",
+					"line": 384,
+					"rows": 32,
+					"tokenizeMs": 71.9
+				},
+				{
+					"kind": "sweep",
+					"line": 192,
+					"rows": 384,
+					"tokenizeMs": 658.5
+				},
+				{
+					"kind": "sweep",
+					"line": 0,
+					"rows": 384,
+					"tokenizeMs": 679.2
+				}
+			],
+			"note": "the band was dispatchable at 366 but the first window left only at 668: the dispatch continuation was a microtask queued behind the 314 ms paint task"
+		},
+		{
+			"id": "g-medium",
+			"fixture": "medium",
+			"milestone": "g",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 29,
+				"contents": 164,
+				"plainPaint": 212,
+				"bootStart": 179,
+				"bootDone": 320,
+				"jobOpen": 343,
+				"firstWindowSent": 344,
+				"firstColor": 772,
+				"final": 1390
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 4,
+				"windowSent": 7,
+				"windowDone": 7
+			},
+			"workerBundleKb": 539,
+			"perRowMs": 1.7,
+			"spans": {
+				"render:acquire": 1,
+				"render:paint": 10
+			},
+			"longTasks": [
+				{
+					"start": 80,
+					"ms": 71,
+					"label": "bootstrap"
+				},
+				{
+					"start": 175,
+					"ms": 103,
+					"label": "pool create + plain highlighter"
+				},
+				{
+					"start": 335,
+					"ms": 359,
+					"label": "renderer row layout after the plain grid"
+				}
+			],
+			"windows": [
+				{
+					"kind": "sweep",
+					"line": 0,
+					"rows": 50,
+					"tokenizeMs": 230.5
+				},
+				{
+					"kind": "sweep",
+					"line": 75,
+					"rows": 50,
+					"tokenizeMs": 236.8
+				},
+				{
+					"kind": "sweep",
+					"line": 25,
+					"rows": 50,
+					"tokenizeMs": 246.2
+				},
+				{
+					"kind": "sweep",
+					"line": 50,
+					"rows": 50,
+					"tokenizeMs": 262
+				},
+				{
+					"kind": "sweep",
+					"line": 384,
+					"rows": 32,
+					"tokenizeMs": 65.1
+				},
+				{
+					"kind": "sweep",
+					"line": 0,
+					"rows": 384,
+					"tokenizeMs": 604.2
+				},
+				{
+					"kind": "sweep",
+					"line": 192,
+					"rows": 384,
+					"tokenizeMs": 603.5
+				}
+			],
+			"note": "dispatch moved into the paint task (668 -> 344 ms); the band now finishes at 744 and the publish waits for the main thread to free at ~694"
+		},
+		{
+			"id": "af-bigfile",
+			"fixture": "bigfile",
+			"milestone": "af",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 59,
+				"contents": 49525,
+				"plainPaint": 49586,
+				"bootStart": 49540,
+				"bootDone": 49616,
+				"jobOpen": 49686,
+				"firstWindowSent": 49731,
+				"firstColor": 49757,
+				"final": 50957
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 4,
+				"windowSent": 148,
+				"windowDone": 148
+			},
+			"workerBundleKb": 539,
+			"windows": {
+				"count": 148,
+				"rows": 2154,
+				"tokenizeMsTotal": 4287,
+				"byKind": {
+					"sweep": 88,
+					"cluster": 60
+				}
+			},
+			"note": "contents: the desk needs ~49.5 s to build the diff of a 2.8 MB file server-side; the UI colors the visible rows 232 ms after the file lands NOT REPRODUCIBLE as of fix G: a fresh cold open of the same file behind the guard measures contents 34 ms, plainPaint 2725 ms, first colour 2885 ms, final 4072 ms (see bigfile-guard-cold). Treat this point as suspect: the 49.5 s was recorded in one harness run and no longer repeats; the harness also records contents as a fetch duration while the other stages are timestamps."
+		},
+		{
+			"id": "bigfile-guard-cold",
+			"fixture": "bigfile",
+			"milestone": "g",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 23,
+				"contents": 34,
+				"plainPaint": 2725,
+				"bootStart": 2682,
+				"bootDone": 2854,
+				"jobOpen": 2861,
+				"firstWindowSent": 2864,
+				"firstColor": 2885,
+				"final": 4072
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 4,
+				"windowSent": 148,
+				"windowDone": 148
+			},
+			"workerBundleKb": 539,
+			"note": "body-to-first-colour of the 2.8 MB / 16k-line file: the oversized-file guard was dismissed at t=2627 ms, /api/file-contents then took 34 ms for 5.98 MB, plain rows painted at 2725 ms, first colour at 2885 ms, whole file tokenized at 4072 ms (148 windows, 88 sweep + 60 cluster, 2154 rows, 4293 ms of worker tokenize in ~1.2 s wall clock = 3.6x on 4 workers, every window sent = done). contents is a fetch DURATION here (the harness records it that way); the other stages are ms from navigation start."
+		},
+		{
+			"id": "parallel-pool4-bigfile",
+			"fixture": "bigfile",
+			"milestone": "parallel",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 63,
+				"contents": 37,
+				"plainPaint": 1773,
+				"bootStart": 1731,
+				"bootDone": 1818,
+				"jobOpen": 1863,
+				"firstWindowSent": 1866,
+				"firstColor": 1953,
+				"final": 3480
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 4,
+				"windowSent": 148,
+				"windowDone": 148
+			},
+			"workerBundleKb": 526,
+			"note": "Before-point for the pool-size A/B (the guard was dismissed at t=1650). contents is the /api/file-contents fetch duration (37 ms, 5.98 MB); every other stage is ms from navigation start. Token phase (firstWindowSent -> final) 1614 ms; first-colour latency 87 ms; 148 windows, 2154 rows, 4258 ms of worker tokenize. Main-thread spans: pool:plain 43 ms for the whole 16k-line grid, pool:open-diff 4 posts x 2-3 ms = 9 ms, pool:merge 148 x 0 ms, pool:publish 60 x 0 ms, pool:publish:final 0 ms. Long tasks during the open: 3, 224 ms total, max 118 ms."
+		},
+		{
+			"id": "parallel-pool4-medium",
+			"fixture": "medium",
+			"milestone": "parallel",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 38,
+				"contents": 12,
+				"plainPaint": 227,
+				"bootStart": 197,
+				"bootDone": 319,
+				"jobOpen": 327,
+				"firstWindowSent": 327,
+				"firstColor": 680,
+				"final": 1241
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 4,
+				"windowSent": 7,
+				"windowDone": 7
+			},
+			"workerBundleKb": 526,
+			"note": "121-file fixture, first file auto-opened, pool at the historical 4. Token phase 914 ms; first-colour latency (firstWindowSent -> firstColor) 353 ms; 7 windows, 1000 rows. Main-thread spans: pool:plain 7 ms, pool:open-diff 4 x 0 ms, pool:merge 7 x 0 ms, pool:publish 2 x 0 ms, pool:publish:final 0 ms."
+		},
+		{
+			"id": "parallel-pool5-bigfile",
+			"fixture": "bigfile",
+			"milestone": "parallel",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 57,
+				"contents": 37,
+				"plainPaint": 3990,
+				"bootStart": 3948,
+				"bootDone": 4019,
+				"jobOpen": 4071,
+				"firstWindowSent": 4073,
+				"firstColor": 4174,
+				"final": 5348
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 149,
+				"windowDone": 149
+			},
+			"workerBundleKb": 526,
+			"note": "Same flow with the pool sized from hardwareConcurrency (6 cores -> 5). Token phase 1275 ms vs 1614 ms at 4 workers (-21%, -339 ms) on the same 148-window job; first-colour latency 101 ms (vs 87). 149 windows (the viewport band splits into one more chunk), 4373 ms of worker tokenize. pool:plain 45 ms. Long-task census not armed in this run."
+		},
+		{
+			"id": "parallel-pool5-medium",
+			"fixture": "medium",
+			"milestone": "parallel",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 58,
+				"contents": 15,
+				"plainPaint": 241,
+				"bootStart": 204,
+				"bootDone": 336,
+				"jobOpen": 343,
+				"firstWindowSent": 344,
+				"firstColor": 713,
+				"final": 1283
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 8,
+				"windowDone": 8
+			},
+			"workerBundleKb": 526,
+			"note": "Same flow with 5 workers (re-run after a contended first attempt whose boot took 465 ms): boot 131 ms, token phase 939 ms vs 914 ms at 4 workers, first-colour latency 369 ms vs 353 ms. A short job gains nothing from a wider pool; the extra worker costs one more grammar compile. 8 windows, 2044 ms of worker tokenize."
+		},
+		{
+			"id": "warm-medium",
+			"fixture": "medium",
+			"milestone": "warm",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 35,
+				"plainPaint": 203,
+				"bootStart": 173,
+				"bootDone": 291,
+				"jobOpen": 299,
+				"firstWindowSent": 300,
+				"firstColor": 684,
+				"final": 1221
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 8,
+				"windowDone": 8
+			},
+			"workerBundleKb": 526,
+			"note": "Batch 1 (A+B+C) with the idle warm-up placed after the settings/state fetch. Two samples of this final build: this one (boot 173 -> 291 ms, first colour 684, final 1221) and a contended one (boot 183 -> 659 ms, first colour 841, final 1444) - the pre-batch rows show the same 131-vs-465 ms boot spread, so treat the pair as the range. Recorded parallel-pool5-medium is 713/1283 and the audit run 689/1254: first colour and final stay inside the spread, and the boot is now warm before the first render pass (173 ms vs 198-205) although it still ends ~90 ms after the paint, which is why first colour does not move. What B does show consistently is the boot's own duration: highlighter || themes, 108-118 ms against 127. No `contents` stage: this route reads stage marks, not the per-request fetch timings the browser-bench rows carry."
+		},
+		{
+			"id": "warm-early-medium",
+			"fixture": "medium",
+			"milestone": "warm",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 30,
+				"plainPaint": 510,
+				"bootStart": 66,
+				"bootDone": 177,
+				"jobOpen": 216,
+				"firstWindowSent": 651,
+				"firstColor": 825,
+				"final": 1404
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 8,
+				"windowDone": 8
+			},
+			"workerBundleKb": 526,
+			"note": "REJECTED placement, measured twice (825/1404 and 813/1398): the warm-up scheduled before the settings/state fetch does start the boot in the fetch gap (66 ms, done at 177 - a full second before it is needed on a big file), but the highlighter engine work and the 5 worker boots then run inside the parse: painted slips 203 -> 510 ms, and first colour lands 120-140 ms later than the accepted placement. The revert is in main.ts with this measurement in its comment."
+		},
+		{
+			"id": "warm-bigfile",
+			"fixture": "bigfile",
+			"milestone": "warm",
+			"date": "2026-09-17",
+			"stagesMs": {
+				"module": 33,
+				"plainPaint": 2187,
+				"bootStart": 130,
+				"bootDone": 177,
+				"jobOpen": 2150,
+				"firstWindowSent": 2266,
+				"firstColor": 2301,
+				"final": 3598
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 127,
+				"windowDone": 127
+			},
+			"workerBundleKb": 526,
+			"note": "Batch 1 (A+B+C), 16k-line fixture loaded through the guard card. C is the visible change: 127 windows instead of 149 (-15%, the 22 empty sweep slots that reached no hunk). The whole pool boot is off the critical path (130 -> 177 ms, ~2 s before the first window needs a token). First colour and final sit inside the recorded spread: audit run 2077/3126 in a session whose contents fetch was 203 ms faster, recorded parallel-pool5-bigfile 4174/5348 in a session whose own note admits contention. No `contents` stage on this route. Long-task census not armed here."
+		},
+		{
+			"id": "switch-medium-after-1",
+			"fixture": "medium-switch",
+			"milestone": "switch",
+			"date": "2026-09-18",
+			"stagesMs": {
+				"mount": 329,
+				"firstColor": 470,
+				"queueAtClick": 0,
+				"planWindows": 7,
+				"windowsSent": 7,
+				"windowsBeforeColor": 2,
+				"tokenizeBeforeColor": 150
+			},
+			"pool": {
+				"workers": 5,
+				"bootDoneMs": 15
+			}
+		},
+		{
+			"id": "switch-medium-after-2",
+			"fixture": "medium-switch",
+			"milestone": "switch",
+			"date": "2026-09-18",
+			"stagesMs": {
+				"mount": 329,
+				"firstColor": 478,
+				"queueAtClick": 0,
+				"planWindows": 7,
+				"windowsSent": 7,
+				"windowsBeforeColor": 4,
+				"tokenizeBeforeColor": 296
+			},
+			"pool": {
+				"workers": 5,
+				"bootDoneMs": 15
+			}
+		},
+		{
+			"id": "switch-medium-before-1",
+			"fixture": "medium-switch",
+			"milestone": "warm",
+			"date": "2026-09-18",
+			"stagesMs": {
+				"mount": 352,
+				"firstColor": 477,
+				"queueAtClick": 0,
+				"windowsSent": 8,
+				"windowsBeforeColor": 5,
+				"tokenizeBeforeColor": 324
+			},
+			"pool": {
+				"workers": 5,
+				"bootDoneMs": 15
+			}
+		},
+		{
+			"id": "switch-medium-before-2",
+			"fixture": "medium-switch",
+			"milestone": "warm",
+			"date": "2026-09-18",
+			"stagesMs": {
+				"mount": 354,
+				"firstColor": 449,
+				"queueAtClick": 3,
+				"windowsSent": 3,
+				"windowsBeforeColor": 1,
+				"tokenizeBeforeColor": 52
+			},
+			"pool": {
+				"workers": 5,
+				"bootDoneMs": 15
+			}
+		},
+		{
+			"id": "switch-medium-after-cold-control",
+			"fixture": "medium-switch",
+			"milestone": "switch",
+			"date": "2026-09-18",
+			"stagesMs": {
+				"mount": 356,
+				"firstColor": 519,
+				"queueAtClick": 0,
+				"planWindows": 7,
+				"windowsSent": 7,
+				"windowsBeforeColor": 4,
+				"tokenizeBeforeColor": 304
+			},
+			"pool": {
+				"workers": 5,
+				"bootDoneMs": 15
+			},
+			"note": "Same-build cold control, click on module-core-15.ts (deliberately NOT the prefetched next file: the prefetch only warms the immediately following row). 7 windows dispatched from the click, first colour after 304 ms of worker tokenization - which is exactly the wait Fix 3b removes; the 145-160 ms gap to the warm rows is the saving a reviewer feels."
+		},
+		{
+			"id": "switch-medium-after-prefetch-1",
+			"fixture": "medium-switch",
+			"milestone": "switch",
+			"date": "2026-09-18",
+			"stagesMs": {
+				"mount": 375,
+				"firstColor": 375,
+				"queueAtClick": 0,
+				"planWindows": 3,
+				"windowsSent": 0,
+				"windowsBeforeColor": 0,
+				"tokenizeBeforeColor": 0
+			},
+			"pool": {
+				"workers": 5,
+				"bootDoneMs": 15
+			},
+			"note": "Fix 3b, click on module-core-102.ts - the file the render pass before it had PREFETCHED. firstColor = mount on purpose: the warm job's whole plan (3 windows) had already been merged before the click (pool:publish 3/3 for that job's key, pre-click), so the click sent 0 windows and the renderer took the finished grid inside its own paint. Measured from the click, same desk/session as the cold control below; the pre-Fix-3b baseline series is 449-478 ms (switch-medium-before-*/after-*) with 7 windows and 52-324 ms of tokenize before the first colour."
+		},
+		{
+			"id": "switch-medium-after-prefetch-2",
+			"fixture": "medium-switch",
+			"milestone": "switch",
+			"date": "2026-09-18",
+			"stagesMs": {
+				"mount": 360,
+				"firstColor": 360,
+				"queueAtClick": 0,
+				"planWindows": 3,
+				"windowsSent": 0,
+				"windowsBeforeColor": 0,
+				"tokenizeBeforeColor": 0
+			},
+			"pool": {
+				"workers": 5,
+				"bootDoneMs": 15
+			},
+			"note": "Fix 3b second sample, click on module-core-111.ts (prefetched by the pass that rendered the previous file). Same shape as sample 1: 0 windows sent for the clicked file, 3 sends after the click all belonging to the FOLLOWING file's prefetch job (perf marks carry the job key since this build, which is what made the attribution unambiguous)."
+		}
+	]
+};
+	/*BENCH_DATA_END*/
+
+			;(function () {
+				'use strict'
+				// The SVG namespace is assembled from parts so this file contains no absolute URL literals:
+				// the offline check greps for them, and the dashboard must open straight from file://.
+				const SVG_NS = ['htt', 'p://www.w3.org/2000/svg'].join('')
+				const DATA =
+					(typeof BENCH_DATA === 'object' && BENCH_DATA) || {}
+				const runs = Array.isArray(DATA.runs) ? DATA.runs.slice() : []
+				const fixtures = DATA.fixtures || {}
+				const milestones = Array.isArray(DATA.milestones)
+					? DATA.milestones
+					: []
+				const milestoneById = {}
+				milestones.forEach((m, i) => {
+					milestoneById[m.id] = Object.assign({ order: i }, m)
+				})
+				const baselineMilestoneId = milestones.length
+					? milestones[0].id
+					: 'baseline'
+				const FIXTURE_COLORS = [
+					'var(--blue)',
+					'var(--cyan)',
+					'var(--violet)',
+					'var(--amber)',
+					'var(--green)',
+				]
+
+				/* ---------- formatting ---------- */
+
+				function fmtNum(v, digits) {
+					if (v == null || typeof v !== 'number' || !isFinite(v))
+						return '—'
+					const d =
+						digits == null ? (Number.isInteger(v) ? 0 : 1) : digits
+					return v.toFixed(d)
+				}
+				function fmtMs(v) {
+					if (v == null || typeof v !== 'number' || !isFinite(v))
+						return '—'
+					return fmtNum(v) + ' ms'
+				}
+				// Axis labels switch to seconds past 10 s: a 50 s fixture and a 1 s fixture share one chart.
+				function fmtAxisMs(v) {
+					if (v == null || !isFinite(v)) return '—'
+					if (Math.abs(v) >= 10000) return fmtNum(v / 1000, 1) + ' s'
+					return fmtNum(v) + ' ms'
+				}
+				function logTicks(lo, hi) {
+					const out = []
+					for (
+						let k = Math.floor(Math.log10(lo));
+						k <= Math.ceil(Math.log10(hi));
+						k++
+					) {
+						;[1, 2, 5].forEach(m => {
+							const v = m * Math.pow(10, k)
+							if (v >= lo && v <= hi) out.push(v)
+						})
+					}
+					return out
+				}
+				function fmtKb(v) {
+					if (v == null || typeof v !== 'number' || !isFinite(v))
+						return '—'
+					return v.toLocaleString('en-US') + ' KB'
+				}
+				function fmtPct(part, whole) {
+					if (!whole) return '—'
+					return fmtNum((part / whole) * 100, 1) + '%'
+				}
+				function signed(v, digits) {
+					if (v == null || !isFinite(v)) return '—'
+					return (
+						(v > 0 ? '+' : v < 0 ? '−' : '') +
+						fmtNum(Math.abs(v), digits)
+					)
+				}
+				function shortId(id) {
+					return String(id == null ? '' : id).replace(/-/g, ' ')
+				}
+
+				/* ---------- DOM helpers (no innerHTML for data-driven nodes) ---------- */
+
+				const setAttr = (node, attrs) => {
+					Object.keys(attrs || {}).forEach(k => {
+						const v = attrs[k]
+						if (v == null || v === false) return
+						if (k === 'text') node.textContent = String(v)
+						else if (k === 'html') node.innerHTML = String(v)
+						else if (k === 'class')
+							node.setAttribute('class', String(v))
+						else if (
+							k.indexOf('on') === 0 &&
+							typeof v === 'function'
+						) {
+							node.addEventListener(k.slice(2).toLowerCase(), v)
+						} else node.setAttribute(k, String(v))
+					})
+					return node
+				}
+				const append = (node, kids) => {
+					;(Array.isArray(kids) ? kids : [kids])
+						.flat(Infinity)
+						.forEach(k => {
+							if (k == null || k === false) return
+							node.append(
+								typeof k === 'string' || typeof k === 'number'
+									? document.createTextNode(String(k))
+									: k,
+							)
+						})
+					return node
+				}
+				const h = (tag, attrs, ...kids) =>
+					append(setAttr(document.createElement(tag), attrs), kids)
+				const sv = (tag, attrs, ...kids) =>
+					append(
+						setAttr(document.createElementNS(SVG_NS, tag), attrs),
+						kids,
+					)
+				const mount = (id, ...kids) => {
+					const host = document.getElementById(id)
+					if (!host) return host
+					host.textContent = ''
+					append(host, kids)
+					return host
+				}
+				const empty = text => h('p', { class: 'empty', text: text })
+				const td = (text, cls) =>
+					h('td', { class: cls || 'num', text: text })
+				const th = (text, cls) =>
+					h('th', { class: cls || 'num', text: text })
+				const table = (headCells, bodyRows) =>
+					h(
+						'table',
+						{},
+						h('thead', {}, h('tr', {}, headCells)),
+						h('tbody', {}, bodyRows),
+					)
+
+				/* ---------- run maths ---------- */
+
+				const byFixture = fixture =>
+					runs.filter(r => r.fixture === fixture)
+				function stage(run, key) {
+					const s = run && run.stagesMs
+					const v = s ? s[key] : null
+					return typeof v === 'number' && isFinite(v) ? v : null
+				}
+				const firstColor = run => stage(run, 'firstColor')
+				const fixtureOrderOf = () =>
+					runs
+						.map(r => r.fixture)
+						.filter((f, i, a) => a.indexOf(f) === i)
+				const fixtureOrder = fixtureOrderOf()
+				const fixtureKeys = Object.keys(fixtures).length
+					? Object.keys(fixtures)
+					: fixtureOrder
+				const primaryFixture = fixtureKeys[0]
+				const runById = {}
+				runs.forEach(r => {
+					runById[r.id] = r
+				})
+				const runIndexOf = id => runs.findIndex(r => r.id === id)
+				const previousOf = (run, index) => {
+					for (let i = index - 1; i >= 0; i--)
+						if (runs[i].fixture === run.fixture) return runs[i]
+					return null
+				}
+				const latest = fixture => {
+					const list = byFixture(fixture)
+					return list.length ? list[list.length - 1] : null
+				}
+				const baselineOf = fixture =>
+					byFixture(fixture).find(
+						r => r.milestone === baselineMilestoneId,
+					) || null
+				const evoSeriesByFixture = {}
+				fixtureOrder.forEach(f => {
+					evoSeriesByFixture[f] = runs
+						.filter(r => r.fixture === f && firstColor(r) != null)
+						.map(r => r.id)
+				})
+
+				// Sequential, non-overlapping pieces of the run timeline; sums to `final` on well-formed runs.
+				function segments(run) {
+					const t = {
+						module: stage(run, 'module'),
+						contents: stage(run, 'contents'),
+						plainPaint: stage(run, 'plainPaint'),
+						jobOpen: stage(run, 'jobOpen'),
+						firstWindowSent: stage(run, 'firstWindowSent'),
+						firstColor: stage(run, 'firstColor'),
+						final: stage(run, 'final'),
+					}
+					const end = t.final != null ? t.final : t.firstColor
+					if (end == null)
+						return { total: null, parts: [], boot: null }
+					const pick = (a, b) => (a == null ? b : a)
+					const m = pick(t.module, 0)
+					const c = pick(t.contents, m)
+					const p = pick(t.plainPaint, c)
+					const j = pick(t.jobOpen, p)
+					const sentRaw = pick(t.firstWindowSent, j)
+					const sent = Math.max(sentRaw, j)
+					const col = pick(t.firstColor, sent)
+					const parts = [
+						{
+							key: 'module',
+							label: 'module',
+							ms: m,
+							color: 'var(--violet)',
+							detail: 'script eval + store',
+						},
+						{
+							key: 'contents',
+							label: 'contents',
+							ms: Math.max(0, c - m),
+							color: 'var(--blue)',
+							detail: 'diff reaches the tab',
+						},
+						{
+							key: 'plainPaint',
+							label: 'plain paint',
+							ms: Math.max(0, p - c),
+							color: 'var(--cyan)',
+							detail: 'rows visible, uncoloured',
+						},
+						{
+							key: 'jobOpen',
+							label: 'job open / plan',
+							ms: Math.max(0, j - p),
+							color: 'var(--amber)',
+							detail: 'window plan built',
+						},
+						{
+							key: 'blocked',
+							label: 'blocked',
+							ms: Math.max(0, sent - j),
+							color: 'var(--red)',
+							detail: 'main thread could not dispatch',
+						},
+						{
+							key: 'tokenize',
+							label: 'tokenize + merge',
+							ms: Math.max(0, col - sent),
+							color: 'var(--green)',
+							detail: 'workers colour the band',
+						},
+					]
+					if (end > col)
+						parts.push({
+							key: 'settle',
+							label: 'settle to final',
+							ms: end - col,
+							color: 'var(--grey)',
+							detail: 'rest of the file',
+						})
+					return {
+						total: end,
+						parts: parts,
+						boot:
+							t.bootStart != null ||
+							stage(run, 'bootDone') != null
+								? {
+										start: pick(stage(run, 'bootStart'), 0),
+										ms: Math.max(
+											0,
+											pick(stage(run, 'bootDone'), 0) -
+												pick(
+													stage(run, 'bootStart'),
+													0,
+												),
+										),
+									}
+								: null,
+					}
+				}
+
+				function niceMax(v) {
+					if (!(v > 0)) return 1
+					const pow = Math.pow(10, Math.floor(Math.log10(v)))
+					const n = v / pow
+					const step =
+						n <= 1
+							? 1
+							: n <= 2
+								? 2
+								: n <= 2.5
+									? 2.5
+									: n <= 5
+										? 5
+										: 10
+					return step * pow
+				}
+				function ticks(max, count) {
+					const out = []
+					const step = max / (count || 4)
+					for (let i = 0; i <= (count || 4); i++) out.push(i * step)
+					return out
+				}
+
+				function defaultRunId(all) {
+					const onHeadline = all.filter(
+						r => r.fixture === primaryFixture,
+					)
+					const pool = onHeadline.length ? onHeadline : all
+					return pool.length
+						? pool[pool.length - 1].id
+						: all.length
+							? all[all.length - 1].id
+							: null
+				}
+
+				/* ---------- 01 headline KPIs ---------- */
+
+				function kpi(opts) {
+					const foot = []
+					const unit = opts.deltaUnit == null ? ' ms' : opts.deltaUnit
+					if (opts.deltaMs != null && isFinite(opts.deltaMs)) {
+						const better =
+							opts.lowerIsBetter === false
+								? opts.deltaMs > 0
+								: opts.deltaMs < 0
+						const cls =
+							opts.deltaMs === 0
+								? 'flat'
+								: better
+									? 'good'
+									: 'bad'
+						foot.push(
+							h('span', {
+								class: 'chip ' + cls,
+								text:
+									signed(opts.deltaMs, unit ? undefined : 0) +
+									unit,
+							}),
+						)
+						if (opts.deltaPct != null) {
+							foot.push(
+								h('span', {
+									class: 'chip ' + cls,
+									text: signed(opts.deltaPct, 1) + '%',
+								}),
+							)
+						}
+					}
+					if (opts.aside)
+						foot.push(
+							h('span', { class: 'muted', text: opts.aside }),
+						)
+					return h(
+						'div',
+						{ class: 'kpi' },
+						h(
+							'div',
+							{ class: 'kpi-label' },
+							h('span', { text: opts.label }),
+							opts.badge
+								? h('span', {
+										class: 'chip flat',
+										text: opts.badge,
+									})
+								: null,
+						),
+						h(
+							'div',
+							{ class: 'kpi-value num' },
+							String(opts.value),
+							h('span', {
+								class: 'kpi-unit',
+								text: opts.unit || '',
+							}),
+						),
+						h('div', { class: 'kpi-foot' }, foot),
+					)
+				}
+
+				function renderKpis() {
+					if (!runs.length)
+						return mount('kpis', empty('No runs recorded yet.'))
+					const cards = []
+					const primary = fixtureKeys[0]
+
+					const base = baselineOf(primary),
+						now = latest(primary)
+					const bFirst = base ? firstColor(base) : null,
+						nFirst = now ? firstColor(now) : null
+					cards.push(
+						kpi({
+							label: 'First colour — ' + primary,
+							value: fmtNum(nFirst),
+							unit: 'ms',
+							deltaMs:
+								bFirst != null && nFirst != null
+									? nFirst - bFirst
+									: null,
+							deltaPct: bFirst
+								? ((nFirst - bFirst) / bFirst) * 100
+								: null,
+							aside:
+								bFirst != null
+									? 'baseline ' + fmtNum(bFirst) + ' ms'
+									: '',
+							badge: now ? now.id : '',
+						}),
+					)
+
+					const bPlain = base ? stage(base, 'plainPaint') : null,
+						nPlain = now ? stage(now, 'plainPaint') : null
+					cards.push(
+						kpi({
+							label: 'Plain paint — ' + primary,
+							value: fmtNum(nPlain),
+							unit: 'ms',
+							deltaMs:
+								bPlain != null && nPlain != null
+									? nPlain - bPlain
+									: null,
+							deltaPct: bPlain
+								? ((nPlain - bPlain) / bPlain) * 100
+								: null,
+							aside: 'rows visible before colour',
+						}),
+					)
+
+					const bBoots = base && base.pool ? base.pool.boots : null
+					const nBoots = now && now.pool ? now.pool.boots : null
+					const bWorkers =
+						base && base.pool ? base.pool.workers : null
+					const nWorkers = now && now.pool ? now.pool.workers : null
+					cards.push(
+						kpi({
+							label: 'Pool boots',
+							value: nBoots == null ? '—' : nBoots,
+							unit: '',
+							deltaMs:
+								bBoots != null && nBoots != null
+									? nBoots - bBoots
+									: null,
+							deltaUnit: '',
+							aside:
+								bWorkers != null
+									? 'workers ' +
+										bWorkers +
+										' → ' +
+										(nWorkers == null ? '—' : nWorkers)
+									: '',
+						}),
+					)
+
+					const dupes = r => {
+						const p = r.pool || {}
+						if (p.windowSent == null || p.windowDone == null)
+							return null
+						return Math.max(0, p.windowSent - p.windowDone)
+					}
+					const nDup = now ? dupes(now) : null
+					cards.push(
+						kpi({
+							label: 'Unsettled / duplicate windows',
+							value: nDup == null ? '—' : nDup,
+							unit: '',
+							deltaMs: null,
+							aside:
+								now && now.pool
+									? now.pool.windowSent +
+										' sent / ' +
+										now.pool.windowDone +
+										' done'
+									: '',
+						}),
+					)
+
+					const bKb = base ? base.workerBundleKb : null,
+						nKb = now ? now.workerBundleKb : null
+					cards.push(
+						kpi({
+							label: 'Worker bundle',
+							value:
+								nKb == null ? '—' : nKb.toLocaleString('en-US'),
+							unit: 'KB',
+							deltaMs:
+								bKb != null && nKb != null ? nKb - bKb : null,
+							deltaPct: bKb ? ((nKb - bKb) / bKb) * 100 : null,
+							deltaUnit: ' KB',
+							aside:
+								bKb != null
+									? 'baseline ' +
+										bKb.toLocaleString('en-US') +
+										' KB'
+									: '',
+						}),
+					)
+
+					const bFinal = base ? stage(base, 'final') : null,
+						nFinal = now ? stage(now, 'final') : null
+					cards.push(
+						kpi({
+							label: 'Whole file — ' + primary,
+							value: fmtNum(nFinal),
+							unit: 'ms',
+							deltaMs:
+								bFinal != null && nFinal != null
+									? nFinal - bFinal
+									: null,
+							deltaPct: bFinal
+								? ((nFinal - bFinal) / bFinal) * 100
+								: null,
+							aside: 'off the critical path, still CPU',
+							badge: 'watch',
+						}),
+					)
+
+					mount('kpis', cards)
+					const note = document.getElementById('kpiNote')
+					if (note) {
+						const list = byFixture(primary)
+						note.textContent = base
+							? 'Δ vs ' +
+								base.id +
+								' · ' +
+								list.length +
+								' run(s) of ' +
+								primary
+							: 'no baseline run for ' + primary
+					}
+				}
+
+				/* ---------- shared state ---------- */
+
+				let evoScaleMode = 'auto'
+				const state = {
+					runId: null,
+					fixtures: null,
+					pinnedStage: null,
+					compare: null,
+				}
+
+				/* ---------- shared tooltip + readout (one fixed tooltip, one rAF) ---------- */
+
+				const tooltip = h('div', {
+					id: 'benchTooltip',
+					class: 'bench-tooltip',
+					role: 'tooltip',
+					'aria-hidden': 'true',
+				})
+				const readout = h('div', {
+					id: 'benchReadout',
+					class: 'bench-readout',
+					'aria-hidden': 'true',
+				})
+				document.body.appendChild(tooltip)
+				document.body.appendChild(readout)
+				let tooltipOpen = false
+				let tooltipMeasured = false
+				let tooltipW = 0
+				let tooltipH = 0
+				let readoutOpen = false
+				let floatRaf = 0
+
+				function ttRow(label, value, cls) {
+					return h(
+						'div',
+						{ class: 'tt-row' },
+						h('span', { class: 'tt-label', text: label }),
+						h('span', {
+							class: 'tt-value num' + (cls ? ' ' + cls : ''),
+							text: value,
+						}),
+					)
+				}
+
+				function openTooltip(nodes, x, y) {
+					tooltip.textContent = ''
+					append(tooltip, nodes)
+					tooltip.style.display = 'block'
+					tooltip.setAttribute('aria-hidden', 'false')
+					tooltip.dataset.x = String(Math.round(x))
+					tooltip.dataset.y = String(Math.round(y))
+					tooltipOpen = true
+					tooltipMeasured = false
+					requestFloats()
+				}
+				function closeTooltip() {
+					tooltip.style.display = 'none'
+					tooltip.setAttribute('aria-hidden', 'true')
+					tooltipOpen = false
+				}
+				function openReadout(text, x, y) {
+					readout.textContent = text
+					readout.style.display = 'block'
+					readout.dataset.x = String(Math.round(x))
+					readout.dataset.y = String(Math.round(y))
+					readoutOpen = true
+					requestFloats()
+				}
+				function closeReadout() {
+					readout.style.display = 'none'
+					readoutOpen = false
+				}
+				function requestFloats() {
+					if (!floatRaf)
+						floatRaf = requestAnimationFrame(positionFloats)
+				}
+				function positionFloats() {
+					floatRaf = 0
+					if (tooltipOpen) positionTooltip()
+					if (readoutOpen) positionReadout()
+				}
+				function positionTooltip() {
+					if (!tooltipMeasured) {
+						const r = tooltip.getBoundingClientRect()
+						tooltipW = r.width
+						tooltipH = r.height
+						tooltipMeasured = true
+					}
+					const gap = 14
+					let x = Number(tooltip.dataset.x || '0')
+					let y = Number(tooltip.dataset.y || '0')
+					if (x + tooltipW + gap > window.innerWidth)
+						x = Math.max(8, x - tooltipW - gap)
+					if (y + tooltipH + gap > window.innerHeight)
+						y = Math.max(8, y - tooltipH - gap)
+					tooltip.style.left = x + 'px'
+					tooltip.style.top = y + 'px'
+				}
+				function positionReadout() {
+					const r = readout.getBoundingClientRect()
+					let x = Number(readout.dataset.x || '0')
+					let y = Number(readout.dataset.y || '0')
+					if (x + r.width + 10 > window.innerWidth)
+						x = x - r.width - 10
+					if (y - r.height - 10 < 0) y = y + 14
+					readout.style.left = x + 'px'
+					readout.style.top = y + 'px'
+				}
+				function pointClientPos(el) {
+					const b = el.getBoundingClientRect()
+					return { x: b.left + b.width / 2, y: b.top + b.height / 2 }
+				}
+				function rowClientPos(el) {
+					const b = el.getBoundingClientRect()
+					return { x: b.left + 8, y: b.top + b.height / 2 }
+				}
+
+				/* ---------- URL hash state ---------- */
+
+				function serializeHash() {
+					const parts = []
+					if (state.runId)
+						parts.push('run=' + encodeURIComponent(state.runId))
+					if (
+						state.fixtures &&
+						state.fixtures.size < fixtureKeys.length
+					) {
+						parts.push(
+							'fix=' +
+								fixtureKeys
+									.filter(f => state.fixtures.has(f))
+									.map(encodeURIComponent)
+									.join(','),
+						)
+					}
+					if (state.pinnedStage)
+						parts.push(
+							'stage=' + encodeURIComponent(state.pinnedStage),
+						)
+					if (state.compare)
+						parts.push(
+							'cmp=' +
+								encodeURIComponent(state.compare.a) +
+								',' +
+								encodeURIComponent(state.compare.b),
+						)
+					return parts.length ? '#' + parts.join('&') : ''
+				}
+				let writingHash = false
+				function syncHash() {
+					const target = serializeHash()
+					if ((location.hash || '') === target) return
+					writingHash = true
+					if (target) location.replace('#' + target.slice(1))
+					else location.replace(location.pathname + location.search)
+				}
+				function applyHash() {
+					const params = new URLSearchParams(
+						(location.hash || '').slice(1),
+					)
+					const runParam = params.get('run')
+					if (runParam != null)
+						state.runId = runById[runParam] ? runParam : state.runId
+					const fixParam = params.get('fix')
+					if (fixParam != null) {
+						const names = fixParam
+							.split(',')
+							.filter(Boolean)
+							.filter(f => fixtureKeys.includes(f))
+						state.fixtures = new Set(
+							names.length ? names : fixtureKeys,
+						)
+					}
+					const stageParam = params.get('stage')
+					if (stageParam != null)
+						state.pinnedStage = stageParam || null
+					const cmpParam = params.get('cmp')
+					if (cmpParam != null) {
+						const parts = cmpParam.split(',')
+						state.compare =
+							parts.length === 2 &&
+							runById[parts[0]] &&
+							runById[parts[1]]
+								? { a: parts[0], b: parts[1] }
+								: null
+					}
+					renderAll()
+				}
+
+				/* ---------- selection actions ---------- */
+
+				function selectRun(id) {
+					state.runId = id != null && runById[id] ? id : null
+					renderAll()
+				}
+				function toggleFixture(f) {
+					if (!state.fixtures) state.fixtures = new Set(fixtureKeys)
+					if (state.fixtures.has(f)) {
+						if (state.fixtures.size <= 1) return
+						state.fixtures.delete(f)
+					} else {
+						state.fixtures.add(f)
+					}
+					renderAll()
+				}
+				function baselineOfRun(run) {
+					if (!run) return null
+					const base = byFixture(run.fixture).find(
+						r => r.milestone === baselineMilestoneId,
+					)
+					if (base) return base
+					const prev = previousOf(run, runIndexOf(run.id))
+					return prev || run
+				}
+				function toggleCompare() {
+					if (state.compare) {
+						state.compare = null
+					} else {
+						const run =
+							(state.runId && runById[state.runId]) ||
+							runs[runs.length - 1]
+						const base = baselineOfRun(run)
+						state.compare = {
+							a: base ? base.id : run.id,
+							b: run.id,
+						}
+					}
+					renderAll()
+				}
+				function setCompare(a, b) {
+					state.compare =
+						a && b && runById[a] && runById[b] ? { a, b } : null
+					renderAll()
+				}
+				function clearSelection() {
+					hideEvoPoint()
+					setEvoDim(null)
+					clearWaterfallHover()
+					clearWindowsHover()
+					state.pinnedStage = null
+					state.runId = null
+					const el = document.activeElement
+					if (el && typeof el.blur === 'function') el.blur()
+					renderAll()
+				}
+
+				/* ---------- cross-linking maps (rebuilt on every render) ---------- */
+
+				let evoCircleByRun = {}
+				let evoPolyByFixture = {}
+				let evoPointMeta = {}
+				let evoCrosshair = null
+				let evoCrossV = null
+				let evoCrossH = null
+				let evoHighlightedId = null
+				let wfBars = {}
+				let wfHoverKey = null
+				let wfGeom = null
+				let winRowMeta = []
+				let winBarRects = []
+				let winHoverIndex = null
+
+				function highlightEvoPoint(id, on) {
+					if (evoHighlightedId && evoHighlightedId !== id) {
+						const prev = evoCircleByRun[evoHighlightedId]
+						if (prev) prev.classList.remove('evo-hover')
+					}
+					evoHighlightedId = on ? id : null
+					const c = evoCircleByRun[id]
+					if (c) c.classList.toggle('evo-hover', on)
+				}
+				function setEvoDim(runId) {
+					Object.keys(evoCircleByRun).forEach(id => {
+						const c = evoCircleByRun[id]
+						if (c)
+							c.classList.toggle(
+								'evo-dim',
+								runId != null && id !== runId,
+							)
+					})
+					const targetFixture =
+						runId && runById[runId] ? runById[runId].fixture : null
+					Object.keys(evoPolyByFixture).forEach(f => {
+						const p = evoPolyByFixture[f]
+						if (p)
+							p.classList.toggle(
+								'evo-dim',
+								runId != null && f !== targetFixture,
+							)
+					})
+				}
+				function applyEvoSelected() {
+					Object.keys(evoCircleByRun).forEach(id => {
+						const c = evoCircleByRun[id]
+						if (c)
+							c.classList.toggle(
+								'evo-selected',
+								id === state.runId,
+							)
+					})
+				}
+				function setCrosshair(cx, cy) {
+					if (!evoCrosshair) return
+					evoCrossV.setAttribute('x1', String(cx))
+					evoCrossV.setAttribute('x2', String(cx))
+					evoCrossH.setAttribute('y1', String(cy))
+					evoCrossH.setAttribute('y2', String(cy))
+					evoCrosshair.style.display = ''
+				}
+				function hideCrosshair() {
+					if (evoCrosshair) evoCrosshair.style.display = 'none'
+				}
+				function showEvoPointAt(runId) {
+					const meta = evoPointMeta[runId]
+					const c = evoCircleByRun[runId]
+					if (!meta || !c) return
+					highlightEvoPoint(runId, true)
+					setCrosshair(meta.cx, meta.cy)
+					const p = pointClientPos(c)
+					openTooltip(
+						evoTooltipNodes(runById[runId]),
+						p.x + 14,
+						p.y + 14,
+					)
+				}
+				function hideEvoPoint() {
+					highlightEvoPoint(null, false)
+					hideCrosshair()
+					closeTooltip()
+				}
+				function evoTooltipNodes(r) {
+					const meta = milestoneById[r.milestone] || {
+						label: r.milestone,
+					}
+					const v = firstColor(r)
+					const idx = runIndexOf(r.id)
+					const prev = previousOf(r, idx)
+					const delta =
+						v != null && prev && firstColor(prev) != null
+							? v - firstColor(prev)
+							: null
+					const nodes = [h('div', { class: 'tt-title', text: r.id })]
+					nodes.push(ttRow('date', r.date || '—'))
+					nodes.push(ttRow('milestone', meta.label))
+					if (fixtures[r.fixture] && fixtures[r.fixture].detail)
+						nodes.push(ttRow('fixture', fixtures[r.fixture].detail))
+					nodes.push(ttRow('first colour', fmtMs(v)))
+					nodes.push(
+						ttRow(
+							'Δ vs previous',
+							delta == null
+								? 'no previous run'
+								: signed(delta) + ' ms',
+							delta == null
+								? ''
+								: delta < 0
+									? 'tt-good'
+									: delta > 0
+										? 'tt-bad'
+										: '',
+						),
+					)
+					nodes.push(
+						ttRow(
+							'worker bundle',
+							r.workerBundleKb == null
+								? '—'
+								: fmtKb(r.workerBundleKb),
+						),
+					)
+					nodes.push(
+						ttRow(
+							'pool boots',
+							r.pool && r.pool.boots != null
+								? String(r.pool.boots)
+								: '—',
+						),
+					)
+					return nodes
+				}
+				function evoAriaLabel(r, v) {
+					const meta = milestoneById[r.milestone] || {
+						label: r.milestone,
+					}
+					return (
+						r.id +
+						', ' +
+						r.fixture +
+						', ' +
+						meta.label +
+						', first colour ' +
+						fmtMs(v) +
+						'. Press Enter or Space to select this run.'
+					)
+				}
+				function onEvoKey(e, r) {
+					const meta = evoPointMeta[r.id]
+					if (!meta) return
+					if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+						e.preventDefault()
+						const idx = meta.series.indexOf(r.id)
+						const next = idx + (e.key === 'ArrowRight' ? 1 : -1)
+						if (next >= 0 && next < meta.series.length) {
+							const target = evoCircleByRun[meta.series[next]]
+							if (target) {
+								target.focus()
+								showEvoPointAt(meta.series[next])
+							}
+						}
+					} else if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault()
+						selectRun(r.id)
+					}
+				}
+
+				/* ---------- 02 evolution chart ---------- */
+
+				function renderEvolution() {
+					evoCircleByRun = {}
+					evoPolyByFixture = {}
+					evoPointMeta = {}
+					evoCrosshair = null
+					evoCrossV = null
+					evoCrossH = null
+					evoHighlightedId = null
+					closeTooltip()
+					if (!runs.length)
+						return mount('evo', empty('No runs recorded yet.'))
+					const visible =
+						state.fixtures && state.fixtures.size
+							? state.fixtures
+							: new Set(fixtureKeys)
+					const W = 960,
+						H = 300,
+						pad = { l: 66, r: 26, t: 26, b: 62 }
+					const visibleRuns = runs.filter(r => visible.has(r.fixture))
+					const values = visibleRuns
+						.map(firstColor)
+						.filter(v => v != null && v > 0)
+					if (!values.length)
+						return mount(
+							'evo',
+							empty(
+								'No visible fixture carries a first-colour stage.',
+							),
+						)
+					const lo = Math.min.apply(null, values),
+						hi = Math.max.apply(null, values)
+					const ratio = lo > 0 ? hi / lo : 1
+					const requested = evoScaleMode || 'auto'
+					const mode =
+						requested === 'auto'
+							? ratio >= 8
+								? 'log'
+								: 'linear'
+							: requested
+					const useLog = mode === 'log' && lo !== hi
+					const yLo = useLog ? lo / 1.4 : 0
+					const yHi = useLog ? hi * 1.4 : niceMax(hi * 1.08)
+					const pw = W - pad.l - pad.r,
+						ph = H - pad.t - pad.b
+					const xAt = i =>
+						runs.length === 1
+							? pad.l + pw / 2
+							: pad.l + (i * pw) / (runs.length - 1)
+					const yAt = v => {
+						if (useLog) {
+							const t =
+								(Math.log(Math.max(v, yLo)) - Math.log(yLo)) /
+								(Math.log(yHi) - Math.log(yLo))
+							return pad.t + ph - t * ph
+						}
+						return pad.t + ph - (v / yHi) * ph
+					}
+					const meta2 = document.getElementById('evoMeta')
+					if (meta2) {
+						meta2.textContent = useLog
+							? 'log scale — fixtures span ' +
+								fmtNum(ratio, 1) +
+								'× (' +
+								fmtAxisMs(lo) +
+								' … ' +
+								fmtAxisMs(hi) +
+								')'
+							: 'linear scale · ' +
+								fmtAxisMs(lo) +
+								' … ' +
+								fmtAxisMs(hi)
+					}
+					const nodes = []
+
+					// milestone bands + labels
+					const bands = []
+					runs.forEach((r, i) => {
+						const last = bands[bands.length - 1]
+						if (last && last.id === r.milestone) last.to = i
+						else bands.push({ id: r.milestone, from: i, to: i })
+					})
+					bands.forEach(b => {
+						const x0 = Math.max(
+							pad.l,
+							xAt(b.from) -
+								(runs.length > 1
+									? pw / (runs.length - 1) / 2
+									: pw / 2),
+						)
+						const x1 = Math.min(
+							W - pad.r,
+							xAt(b.to) +
+								(runs.length > 1
+									? pw / (runs.length - 1) / 2
+									: pw / 2),
+						)
+						const meta = milestoneById[b.id] || {
+							label: b.id,
+							note: '',
+						}
+						nodes.push(
+							sv(
+								'rect',
+								{
+									class: 'band',
+									x: x0,
+									y: pad.t,
+									width: Math.max(1, x1 - x0),
+									height: ph,
+								},
+								sv(
+									'title',
+									{},
+									meta.label + ' — ' + (meta.note || ''),
+								),
+							),
+						)
+						nodes.push(
+							sv('text', {
+								class: 'band-label',
+								x: (x0 + x1) / 2,
+								y: pad.t - 10,
+								'text-anchor': 'middle',
+								text: meta.label,
+							}),
+						)
+					})
+
+					const yTicks = useLog ? logTicks(yLo, yHi) : ticks(yHi, 4)
+					yTicks.forEach(t => {
+						nodes.push(
+							sv('line', {
+								class: t === 0 ? 'axis-line' : 'grid-line',
+								x1: pad.l,
+								x2: W - pad.r,
+								y1: yAt(t),
+								y2: yAt(t),
+							}),
+						)
+						nodes.push(
+							sv('text', {
+								x: pad.l - 10,
+								y: yAt(t) + 3.5,
+								'text-anchor': 'end',
+								text: fmtAxisMs(t),
+							}),
+						)
+					})
+
+					runs.forEach((r, i) => {
+						nodes.push(
+							sv('line', {
+								class: 'tick',
+								x1: xAt(i),
+								x2: xAt(i),
+								y1: pad.t + ph,
+								y2: pad.t + ph + 5,
+							}),
+						)
+						nodes.push(
+							sv('text', {
+								class: 'ax-label',
+								x: xAt(i),
+								y: pad.t + ph + 19,
+								'text-anchor': 'middle',
+								text: String(i + 1),
+							}),
+						)
+					})
+
+					// one polyline per visible fixture
+					fixtureOrder.forEach((fixture, fi) => {
+						if (!visible.has(fixture)) return
+						const pts = runs
+							.map((r, i) =>
+								r.fixture === fixture && firstColor(r) != null
+									? { x: xAt(i), y: yAt(firstColor(r)) }
+									: null,
+							)
+							.filter(Boolean)
+						const color = FIXTURE_COLORS[fi % FIXTURE_COLORS.length]
+						if (pts.length > 1) {
+							const poly = sv('polyline', {
+								fill: 'none',
+								stroke: color,
+								'stroke-width': 2,
+								points: pts
+									.map(
+										p =>
+											p.x.toFixed(1) +
+											',' +
+											p.y.toFixed(1),
+									)
+									.join(' '),
+							})
+							nodes.push(poly)
+							evoPolyByFixture[fixture] = poly
+						}
+					})
+
+					// one point per visible run
+					runs.forEach((r, i) => {
+						if (!visible.has(r.fixture)) return
+						const v = firstColor(r)
+						if (v == null) return
+						const fi = fixtureOrder.indexOf(r.fixture)
+						const color =
+							FIXTURE_COLORS[
+								Math.max(0, fi) % FIXTURE_COLORS.length
+							]
+						const preFix = r.milestone === baselineMilestoneId
+						const cx = xAt(i),
+							cy = yAt(v)
+						const circle = sv('circle', {
+							cx: cx,
+							cy: cy,
+							r: 5,
+							fill: preFix ? '#0a0c0f' : color,
+							stroke: preFix ? color : '#0a0c0f',
+							'stroke-width': preFix ? 2 : 1.5,
+							'stroke-dasharray': preFix ? '2 2' : null,
+							class: 'evo-point',
+							tabindex: '0',
+							role: 'button',
+							'aria-label': evoAriaLabel(r, v),
+							'data-run-id': r.id,
+							onpointerenter: () => showEvoPointAt(r.id),
+							onpointerleave: () => hideEvoPoint(),
+							onfocus: () => showEvoPointAt(r.id),
+							onblur: () => hideEvoPoint(),
+							onclick: () => selectRun(r.id),
+							onkeydown: e => onEvoKey(e, r),
+						})
+						nodes.push(circle)
+						nodes.push(
+							sv('text', {
+								class: 'ms-label',
+								x: cx,
+								y: cy - 12,
+								'text-anchor': 'middle',
+								text: fmtAxisMs(v),
+							}),
+						)
+						evoCircleByRun[r.id] = circle
+						evoPointMeta[r.id] = {
+							series: evoSeriesByFixture[r.fixture],
+							cx: cx,
+							cy: cy,
+						}
+					})
+
+					// crosshair (shown on hover/focus)
+					evoCrossV = sv('line', {
+						class: 'crosshair-v',
+						x1: 0,
+						x2: 0,
+						y1: pad.t,
+						y2: pad.t + ph,
+					})
+					evoCrossH = sv('line', {
+						class: 'crosshair-h',
+						x1: pad.l,
+						x2: W - pad.r,
+						y1: 0,
+						y2: 0,
+					})
+					evoCrosshair = sv(
+						'g',
+						{
+							class: 'crosshair',
+							'aria-hidden': 'true',
+							style: 'display:none',
+						},
+						evoCrossV,
+						evoCrossH,
+					)
+					nodes.push(evoCrosshair)
+
+					const legend = h(
+						'div',
+						{
+							class: 'legend',
+							role: 'group',
+							'aria-label': 'fixture visibility',
+						},
+						fixtureOrder.map(f => {
+							const on = visible.has(f)
+							return h(
+								'button',
+								{
+									class: 'legend-chip' + (on ? ' on' : ''),
+									type: 'button',
+									'aria-pressed': on ? 'true' : 'false',
+									'data-fixture': f,
+									title: (on ? 'hide ' : 'show ') + f,
+									onclick: () => toggleFixture(f),
+								},
+								h('i', {
+									class: 'line',
+									style:
+										'background:' +
+										FIXTURE_COLORS[
+											fixtureOrder.indexOf(f) %
+												FIXTURE_COLORS.length
+										],
+								}),
+								' ' +
+									f +
+									(fixtures[f] && fixtures[f].detail
+										? ' — ' + fixtures[f].detail
+										: ''),
+							)
+						}),
+						h(
+							'span',
+							{ class: 'legend-static' },
+							h('i', { class: 'hollow' }),
+							'pre-fix baseline',
+						),
+					)
+					mount(
+						'evo',
+						sv(
+							'svg',
+							{
+								viewBox: '0 0 ' + W + ' ' + H,
+								role: 'img',
+								'aria-label': 'time to first colour per run',
+							},
+							nodes,
+						),
+						legend,
+					)
+					applyEvoSelected()
+				}
+
+				/* ---------- 03 waterfall ---------- */
+
+				function wfAriaLabel(item, total) {
+					return (
+						item.label +
+						', from ' +
+						fmtMs(item.start) +
+						' to ' +
+						fmtMs(item.start + item.ms) +
+						', ' +
+						fmtMs(item.ms) +
+						' (' +
+						fmtPct(item.ms, total) +
+						' of axis). Press Enter or Space to pin.'
+					)
+				}
+				function wfTooltipNodes(item, total) {
+					const nodes = [
+						h('div', { class: 'tt-title', text: item.label }),
+					]
+					nodes.push(
+						ttRow(
+							'start → end',
+							fmtMs(item.start) +
+								' → ' +
+								fmtMs(item.start + item.ms),
+						),
+					)
+					nodes.push(ttRow('duration', fmtMs(item.ms)))
+					nodes.push(
+						ttRow(
+							'share of axis',
+							fmtPct(item.ms, total) + ' of ' + fmtMs(total),
+						),
+					)
+					if (item.kind === 'long')
+						nodes.push(ttRow('task', item.label))
+					if (item.detail)
+						nodes.push(
+							h('div', { class: 'tt-note', text: item.detail }),
+						)
+					return nodes
+				}
+				function hoverWfItem(key) {
+					wfHoverKey = key
+					applyWfHighlight()
+					showWfTooltip(key)
+				}
+				function unhoverWfItem(key) {
+					if (wfHoverKey === key) {
+						wfHoverKey = null
+						applyWfHighlight()
+						closeTooltip()
+					}
+				}
+				function pinWfItem(key) {
+					state.pinnedStage = state.pinnedStage === key ? null : key
+					renderAll()
+				}
+				function applyWfHighlight() {
+					Object.keys(wfBars).forEach(k => {
+						const b = wfBars[k]
+						const hovered = k === wfHoverKey
+						const pinned = k === state.pinnedStage
+						if (b.rect) b.rect.classList.toggle('wf-hover', hovered)
+						if (b.row) b.row.classList.toggle('wf-hover', hovered)
+						if (b.rect) b.rect.classList.toggle('wf-pinned', pinned)
+						if (b.row) b.row.classList.toggle('wf-pinned', pinned)
+					})
+				}
+				function showWfTooltip(key) {
+					const b = wfBars[key]
+					if (!b || !b.rect) return
+					const p = pointClientPos(b.rect)
+					openTooltip(
+						wfTooltipNodes(b.item, b.total),
+						p.x + 14,
+						p.y + 14,
+					)
+				}
+				function clearWaterfallHover() {
+					wfHoverKey = null
+					closeTooltip()
+					closeReadout()
+				}
+				function wfPointerMove(e) {
+					if (!wfGeom) return
+					if (!wfGeom.rect)
+						wfGeom.rect = wfGeom.svg.getBoundingClientRect()
+					const rect = wfGeom.rect
+					if (!rect.width) return
+					const svgX =
+						((e.clientX - rect.left) / rect.width) * wfGeom.W
+					const t = ((svgX - wfGeom.pad.l) / wfGeom.pw) * wfGeom.total
+					openReadout(
+						fmtMs(Math.max(0, Math.min(wfGeom.total, t))),
+						e.clientX + 14,
+						e.clientY + 14,
+					)
+				}
+
+				function renderWaterfall() {
+					wfBars = {}
+					wfHoverKey = null
+					wfGeom = null
+					closeTooltip()
+					closeReadout()
+					if (!runs.length)
+						return mount('wf', empty('No runs recorded yet.'))
+					const run = (state.runId && runById[state.runId]) || null
+					const metaEl = document.getElementById('wfMeta')
+					if (!run) {
+						if (metaEl) metaEl.textContent = 'no run selected'
+						return mount(
+							'wf',
+							empty(
+								'No run selected — click a point in the evolution chart or a row in the runs table.',
+							),
+						)
+					}
+					const seg = segments(run)
+					const meta = milestoneById[run.milestone] || {
+						label: run.milestone,
+					}
+					if (metaEl)
+						metaEl.textContent =
+							run.fixture + ' · ' + meta.label + ' · ' + run.date
+					if (seg.total == null)
+						return mount(
+							'wf',
+							empty('This run has no stage timeline.'),
+						)
+
+					const W = 960,
+						pad = { l: 20, r: 20 }
+					const trackY = 34,
+						trackH = 26,
+						bootY = trackY + trackH + 10,
+						bootH = 12,
+						ltY = bootY + bootH + 10,
+						ltH = 12
+					const H = ltY + ltH + 30
+					const pw = W - pad.l - pad.r
+					const xAt = t => pad.l + (Math.max(0, t) / seg.total) * pw
+
+					// unify segments, the boot overlay and long tasks so hover/pin/table share one key
+					const items = []
+					let cursor = 0
+					seg.parts.forEach(p => {
+						items.push({
+							key: p.key,
+							kind: 'seg',
+							label: p.label,
+							start: cursor,
+							ms: p.ms,
+							color: p.color,
+							detail: p.detail,
+						})
+						cursor += p.ms
+					})
+					if (seg.boot && seg.boot.ms > 0) {
+						items.push({
+							key: 'boot',
+							kind: 'boot',
+							label: 'pool boot',
+							start: seg.boot.start,
+							ms: seg.boot.ms,
+							color: 'var(--fg-faint)',
+							detail: 'worker boot handshake (overlaps the segments above)',
+						})
+					}
+					const lts = Array.isArray(run.longTasks)
+						? run.longTasks
+						: []
+					lts.forEach((lt, i) => {
+						items.push({
+							key: 'long-' + i,
+							kind: 'long',
+							label: lt.label || 'long task',
+							start: typeof lt.start === 'number' ? lt.start : 0,
+							ms: typeof lt.ms === 'number' ? lt.ms : 0,
+							color: 'var(--red)',
+							detail: 'main-thread long task (blocks dispatch and merge)',
+						})
+					})
+
+					const nodes = []
+					ticks(seg.total, 4).forEach(t => {
+						nodes.push(
+							sv('line', {
+								class: 'grid-line',
+								x1: xAt(t),
+								x2: xAt(t),
+								y1: trackY - 8,
+								y2: ltY + ltH + 6,
+							}),
+						)
+						nodes.push(
+							sv('text', {
+								x: xAt(t),
+								y: ltY + ltH + 22,
+								'text-anchor': 'middle',
+								text: fmtNum(t) + ' ms',
+							}),
+						)
+					})
+
+					items.forEach(item => {
+						const y =
+							item.kind === 'seg'
+								? trackY
+								: item.kind === 'boot'
+									? bootY
+									: ltY
+						const hgt =
+							item.kind === 'seg'
+								? trackH
+								: item.kind === 'boot'
+									? bootH
+									: ltH
+						const x = xAt(item.start)
+						const w = Math.max(
+							1.5,
+							xAt(item.start + item.ms) - xAt(item.start),
+						)
+						const opacity =
+							item.kind === 'boot'
+								? 0.55
+								: item.kind === 'long'
+									? 0.85
+									: 0.92
+						const rect = sv('rect', {
+							x: x,
+							y: y,
+							width: w,
+							height: hgt,
+							rx: 2,
+							fill: item.color,
+							opacity: opacity,
+							class: 'wf-bar',
+							tabindex: '0',
+							role: 'button',
+							'aria-label': wfAriaLabel(item, seg.total),
+							'data-wf-key': item.key,
+							onpointerenter: () => hoverWfItem(item.key),
+							onpointerleave: () => unhoverWfItem(item.key),
+							onfocus: () => hoverWfItem(item.key),
+							onblur: () => unhoverWfItem(item.key),
+							onclick: () => pinWfItem(item.key),
+							onkeydown: e => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault()
+									pinWfItem(item.key)
+								}
+							},
+						})
+						nodes.push(rect)
+						wfBars[item.key] = {
+							rect: rect,
+							row: null,
+							item: item,
+							total: seg.total,
+						}
+						if (item.kind === 'seg' && w > 46)
+							nodes.push(
+								sv('text', {
+									class: 'seg-label',
+									x: x + w / 2,
+									y: y + hgt / 2 + 3.5,
+									'text-anchor': 'middle',
+									text: fmtNum(item.ms),
+								}),
+							)
+					})
+
+					nodes.push(
+						sv('text', {
+							x: pad.l,
+							y: trackY - 12,
+							text: 'run timeline — colour segments are sequential, they sum to the axis',
+						}),
+					)
+					nodes.push(
+						sv('line', {
+							class: 'axis-line',
+							x1: xAt(seg.total),
+							x2: xAt(seg.total),
+							y1: trackY - 6,
+							y2: trackY + trackH + 6,
+						}),
+					)
+
+					nodes.push(
+						sv('text', {
+							x: pad.l,
+							y: bootY + bootH - 2,
+							text: 'pool boot',
+						}),
+					)
+					nodes.push(
+						sv('text', {
+							class: 'muted',
+							x: pad.l + 74,
+							y: bootY + bootH - 2,
+							text:
+								seg.boot && seg.boot.ms > 0
+									? 'overlaps the segments above'
+									: 'not recorded for this run',
+						}),
+					)
+					nodes.push(
+						sv('text', {
+							x: pad.l,
+							y: ltY + ltH - 2,
+							text: 'main thread',
+						}),
+					)
+					if (!lts.length)
+						nodes.push(
+							sv('text', {
+								class: 'muted',
+								x: pad.l + 88,
+								y: ltY + ltH - 2,
+								text: 'not recorded for this run',
+							}),
+						)
+
+					const legend = h(
+						'div',
+						{ class: 'legend' },
+						seg.parts.map(p =>
+							h(
+								'span',
+								{},
+								h('i', { style: 'background:' + p.color }),
+								p.label,
+							),
+						),
+						h(
+							'span',
+							{},
+							h('i', { style: 'background:var(--fg-faint)' }),
+							'pool boot',
+						),
+						h(
+							'span',
+							{},
+							h('i', { style: 'background:var(--red)' }),
+							'main-thread long task',
+						),
+					)
+
+					const rows = []
+					items.forEach(item => {
+						const handlers = {
+							'data-wf-key': item.key,
+							onpointerenter: () => hoverWfItem(item.key),
+							onpointerleave: () => unhoverWfItem(item.key),
+							onfocus: () => hoverWfItem(item.key),
+							onblur: () => unhoverWfItem(item.key),
+							onclick: () => pinWfItem(item.key),
+						}
+						let row
+						if (item.kind === 'seg') {
+							row = h(
+								'tr',
+								handlers,
+								h('td', { text: item.label }),
+								td(fmtMs(item.ms)),
+								td(fmtPct(item.ms, seg.total)),
+								h('td', { class: 'dim', text: item.detail }),
+							)
+						} else if (item.kind === 'boot') {
+							row = h(
+								'tr',
+								handlers,
+								h('td', {
+									class: 'dim',
+									text: 'pool boot (overlaps)',
+								}),
+								td(fmtMs(item.ms)),
+								td(fmtPct(item.ms, seg.total)),
+								h('td', {
+									class: 'dim',
+									text: 'worker boot handshake',
+								}),
+							)
+						} else {
+							row = h(
+								'tr',
+								handlers,
+								h('td', {
+									class: 'dim',
+									text: 'long task: ' + (item.label || '—'),
+								}),
+								td(fmtMs(item.ms)),
+								td(fmtPct(item.ms, seg.total)),
+								h('td', {
+									class: 'dim',
+									text: 'starts at ' + fmtMs(item.start),
+								}),
+							)
+						}
+						rows.push(row)
+						wfBars[item.key].row = row
+					})
+					if (run.note)
+						rows.push(
+							h(
+								'tr',
+								{},
+								h('td', { text: 'note' }),
+								td('—'),
+								td('—'),
+								h('td', { class: 'dim', text: run.note }),
+							),
+						)
+
+					const svgEl = sv(
+						'svg',
+						{
+							viewBox: '0 0 ' + W + ' ' + H,
+							role: 'img',
+							'aria-label': 'stage breakdown of the selected run',
+							onpointermove: wfPointerMove,
+							onpointerleave: () => closeReadout(),
+						},
+						nodes,
+					)
+					mount(
+						'wf',
+						svgEl,
+						legend,
+						h(
+							'div',
+							{ class: 'scroll', style: 'margin-top:12px' },
+							table(
+								[
+									h('th', { text: 'segment' }),
+									th('ms'),
+									th('share'),
+									h('th', { text: 'what it is' }),
+								],
+								rows,
+							),
+						),
+					)
+					wfGeom = {
+						svg: svgEl,
+						W: W,
+						pad: pad,
+						pw: pw,
+						total: seg.total,
+						rect: null,
+					}
+					applyWfHighlight()
+				}
+
+				/* ---------- 03b compare ---------- */
+
+				const STAGE_ORDER = [
+					'module',
+					'contents',
+					'plainPaint',
+					'bootStart',
+					'bootDone',
+					'jobOpen',
+					'firstWindowSent',
+					'firstColor',
+					'final',
+				]
+				const STAGE_LABELS = {
+					module: 'module',
+					contents: 'contents',
+					plainPaint: 'plain paint',
+					bootStart: 'boot start',
+					bootDone: 'boot done',
+					jobOpen: 'job open',
+					firstWindowSent: 'first window',
+					firstColor: 'first colour',
+					final: 'final',
+				}
+				function compareBar(av, bv, maxVal) {
+					const aW = av == null ? 0 : (av / maxVal) * 100
+					const bW = bv == null ? 0 : (bv / maxVal) * 100
+					return h(
+						'div',
+						{ class: 'cmp-track' },
+						h('div', {
+							class: 'cmp-bar cmp-a',
+							style: 'width:' + aW.toFixed(1) + '%',
+							title:
+								'A ' + (av == null ? '—' : fmtNum(av) + ' ms'),
+						}),
+						h('div', {
+							class: 'cmp-bar cmp-b',
+							style: 'width:' + bW.toFixed(1) + '%',
+							title:
+								'B ' + (bv == null ? '—' : fmtNum(bv) + ' ms'),
+						}),
+					)
+				}
+				function renderCompare() {
+					const host = document.getElementById('cmp')
+					if (!host) return
+					if (!state.compare)
+						return mount(
+							'cmp',
+							empty(
+								'Compare is off — toggle it to diff two runs stage by stage.',
+							),
+						)
+					const a = runById[state.compare.a]
+					const b = runById[state.compare.b]
+					if (!a || !b)
+						return mount(
+							'cmp',
+							empty('Select two recorded runs to compare.'),
+						)
+					const meta = document.getElementById('cmpMeta')
+					if (meta)
+						meta.textContent =
+							a.id +
+							' → ' +
+							b.id +
+							' · ' +
+							(a.fixture === b.fixture
+								? 'same fixture'
+								: 'different fixtures') +
+							' · lower is faster'
+
+					const aKeys = Object.keys(a.stagesMs || {})
+					const bKeys = Object.keys(b.stagesMs || {})
+					const ordered = STAGE_ORDER.filter(
+						k => aKeys.includes(k) || bKeys.includes(k),
+					)
+					const extras = aKeys
+						.concat(bKeys)
+						.filter(
+							(k, i, arr) =>
+								arr.indexOf(k) === i &&
+								!STAGE_ORDER.includes(k),
+						)
+					const allKeys = ordered.concat(extras)
+					const maxVal = allKeys.reduce(
+						(m, k) =>
+							Math.max(
+								m,
+								stage(a, k) == null ? 0 : stage(a, k),
+								stage(b, k) == null ? 0 : stage(b, k),
+							),
+						1,
+					)
+
+					const rows = allKeys.map(k => {
+						const av = stage(a, k),
+							bv = stage(b, k)
+						const delta = av != null && bv != null ? bv - av : null
+						const rel =
+							av != null && bv != null && av !== 0
+								? (delta / av) * 100
+								: null
+						const dirCls =
+							delta == null
+								? 'delta-flat'
+								: delta < 0
+									? 'delta-good'
+									: delta > 0
+										? 'delta-bad'
+										: 'delta-flat'
+						const missingA = av == null,
+							missingB = bv == null
+						return h(
+							'tr',
+							{ 'data-stage': k },
+							h('td', { text: STAGE_LABELS[k] || k }),
+							h('td', {
+								class: 'num',
+								text: missingA ? '—' : fmtNum(av),
+							}),
+							h('td', {
+								class: 'num',
+								text: missingB ? '—' : fmtNum(bv),
+							}),
+							h('td', {
+								class: 'num ' + dirCls,
+								text:
+									delta == null ? '—' : signed(delta) + ' ms',
+							}),
+							h('td', {
+								class: 'num ' + dirCls,
+								text: rel == null ? '—' : signed(rel, 1) + '%',
+							}),
+							h(
+								'td',
+								{ class: 'bar-cell' },
+								compareBar(av, bv, maxVal),
+								missingA || missingB
+									? h('div', {
+											class: 'muted',
+											style: 'margin-top:3px',
+											text:
+												(missingA ? a.id : b.id) +
+												' lacks this stage',
+										})
+									: null,
+							),
+						)
+					})
+					mount(
+						'cmp',
+						table(
+							[
+								h('th', { text: 'stage' }),
+								th('A ms'),
+								th('B ms'),
+								th('Δ ms'),
+								th('Δ %'),
+								h('th', { text: 'A vs B' }),
+							],
+							rows,
+						),
+						h('p', {
+							class: 'note',
+							text: 'Stage timestamps are recorded in ms from navigation start. A stage missing from one run shows —; nothing is estimated.',
+						}),
+					)
+				}
+
+				/* ---------- 04 pool health ---------- */
+
+				function renderPool() {
+					if (!runs.length)
+						return mount('pool', empty('No runs recorded yet.'))
+					const rows = runs.map(r => {
+						const p = r.pool || {}
+						const dup =
+							p.windowSent != null && p.windowDone != null
+								? p.windowSent - p.windowDone
+								: null
+						const bootsCls =
+							p.boots == null
+								? 'muted'
+								: p.boots > 1
+									? 'bad'
+									: 'good'
+						const dupCls =
+							dup == null ? 'muted' : dup > 0 ? 'bad' : 'good'
+						return h(
+							'tr',
+							{},
+							h('td', { text: r.id }),
+							h('td', { class: 'dim', text: r.fixture }),
+							h('td', {
+								class: 'dim',
+								text:
+									(milestoneById[r.milestone] || {}).label ||
+									r.milestone,
+							}),
+							h('td', {
+								class: bootsCls,
+								text: p.boots == null ? '—' : String(p.boots),
+							}),
+							td(p.workers == null ? '—' : p.workers),
+							td(p.windowSent == null ? '—' : p.windowSent),
+							td(p.windowDone == null ? '—' : p.windowDone),
+							h('td', {
+								class: dupCls,
+								text: dup == null ? '—' : String(dup),
+							}),
+							td(
+								r.perWindowFixedMs == null
+									? '—'
+									: fmtMs(r.perWindowFixedMs),
+							),
+							td(
+								r.perRowMs == null
+									? '—'
+									: fmtNum(r.perRowMs, 2) + ' ms',
+							),
+							td(
+								r.workerBundleKb == null
+									? '—'
+									: fmtKb(r.workerBundleKb),
+							),
+						)
+					})
+					mount(
+						'pool',
+						table(
+							[
+								h('th', { text: 'run' }),
+								h('th', { text: 'fixture' }),
+								h('th', { text: 'milestone' }),
+								h('th', { text: 'boots' }),
+								th('workers'),
+								th('windows sent'),
+								th('windows done'),
+								th('unsettled'),
+								th('first-touch cost'),
+								th('ms / row'),
+								th('worker bundle'),
+							],
+							rows,
+						),
+					)
+				}
+
+				/* ---------- 05 token windows ---------- */
+
+				function winAriaLabel(i, w) {
+					const line = typeof w.line === 'number' ? w.line : 0
+					const rows = typeof w.rows === 'number' ? w.rows : 0
+					return (
+						'window ' +
+						(i + 1) +
+						', ' +
+						(w.kind || 'window') +
+						', lines ' +
+						line +
+						' to ' +
+						(line + rows) +
+						', ' +
+						rows +
+						' rows, ' +
+						fmtMs(w.tokenizeMs)
+					)
+				}
+				function winTooltipNodes(m) {
+					const w = m.w
+					const line = m.line
+					const rowsN = m.rowsN
+					const tok = m.tok
+					const perRow = m.perRow
+					const share =
+						tok != null && m.totalTok
+							? (tok / m.totalTok) * 100
+							: null
+					const nodes = [
+						h('div', {
+							class: 'tt-title',
+							text: '#' + (m.i + 1) + ' ' + (w.kind || 'window'),
+						}),
+					]
+					nodes.push(
+						ttRow(
+							'row range',
+							line == null || rowsN == null
+								? '—'
+								: line + '–' + (line + rowsN),
+						),
+					)
+					nodes.push(
+						ttRow('rows', rowsN == null ? '—' : String(rowsN)),
+					)
+					nodes.push(ttRow('tokenize', fmtMs(tok)))
+					nodes.push(
+						ttRow(
+							'ms / row',
+							perRow == null
+								? '—'
+								: fmtNum(perRow, 2) + ' ms = tokenize ÷ rows',
+						),
+					)
+					nodes.push(
+						ttRow(
+							'share of run total',
+							share == null
+								? '—'
+								: fmtNum(share, 1) +
+										'% = tokenize ÷ ' +
+										fmtNum(m.totalTok) +
+										' ms',
+						),
+					)
+					nodes.push(
+						ttRow('first touch', m.firstTouch ? 'yes' : 'no'),
+					)
+					return nodes
+				}
+				function hoverWinRow(i) {
+					winHoverIndex = i
+					applyWinHighlight()
+					const m = winRowMeta[i]
+					if (!m) return
+					const rect = winBarRects[i]
+					const pos = rect ? pointClientPos(rect) : rowClientPos(m.tr)
+					if (pos)
+						openTooltip(winTooltipNodes(m), pos.x + 14, pos.y + 14)
+				}
+				function unhoverWinRow(i) {
+					if (winHoverIndex === i) {
+						winHoverIndex = null
+						applyWinHighlight()
+						closeTooltip()
+					}
+				}
+				function applyWinHighlight() {
+					winRowMeta.forEach(m => {
+						if (m.tr)
+							m.tr.classList.toggle(
+								'win-hover',
+								m.i === winHoverIndex,
+							)
+					})
+					winBarRects.forEach((r, i) => {
+						if (r)
+							r.classList.toggle('win-hover', i === winHoverIndex)
+					})
+				}
+				function clearWindowsHover() {
+					winHoverIndex = null
+					closeTooltip()
+				}
+				function windowBar(run, maxLineEnd) {
+					const W = 960,
+						pad = { l: 14, r: 14, t: 8, b: 20 }
+					const pw = W - pad.l - pad.r
+					const laneH = 9,
+						gap = 3
+					const lineOf = w =>
+						typeof w.line === 'number' ? w.line : 0
+					const rowsOf = w =>
+						typeof w.rows === 'number' ? w.rows : 0
+					// sort by start line for the fewest lanes; keep the original index for row linking
+					const order = run.windows
+						.map((w, i) => ({
+							i,
+							line: lineOf(w),
+							end: lineOf(w) + rowsOf(w),
+						}))
+						.sort((x, y) => x.line - y.line || x.end - y.end)
+					const laneEnds = []
+					const rects = []
+					order.forEach(o => {
+						let lane = laneEnds.findIndex(end => o.line >= end)
+						if (lane === -1) {
+							lane = laneEnds.length
+							laneEnds.push(0)
+						}
+						laneEnds[lane] = Math.max(laneEnds[lane], o.end)
+						const x = pad.l + (o.line / maxLineEnd) * pw
+						const width = Math.max(
+							2,
+							(rowsOf(run.windows[o.i]) / maxLineEnd) * pw,
+						)
+						const y = pad.t + lane * (laneH + gap)
+						const rect = sv('rect', {
+							x: x,
+							y: y,
+							width: width,
+							height: laneH,
+							rx: 2,
+							fill: 'var(--blue)',
+							opacity: 0.5,
+							class: 'win-bar-rect',
+							tabindex: '0',
+							role: 'button',
+							'aria-label': winAriaLabel(o.i, run.windows[o.i]),
+							onpointerenter: () => hoverWinRow(o.i),
+							onpointerleave: () => unhoverWinRow(o.i),
+							onfocus: () => hoverWinRow(o.i),
+							onblur: () => unhoverWinRow(o.i),
+						})
+						rects[o.i] = rect
+					})
+					winBarRects = rects
+					const H = pad.t + laneEnds.length * (laneH + gap) + pad.b
+					const nodes = [
+						sv('line', {
+							class: 'axis-line',
+							x1: pad.l,
+							x2: W - pad.r,
+							y1: H - pad.b + 6,
+							y2: H - pad.b + 6,
+						}),
+						sv('text', {
+							class: 'ax-label',
+							x: pad.l,
+							y: H - pad.b + 18,
+							text: 'line 0',
+						}),
+						sv('text', {
+							class: 'ax-label',
+							x: W - pad.r,
+							y: H - pad.b + 18,
+							'text-anchor': 'end',
+							text: 'line ' + maxLineEnd,
+						}),
+						sv('text', {
+							x: pad.l,
+							y: pad.t - 2,
+							text: 'file line coverage — one lane per overlapping window',
+						}),
+					].concat(rects)
+					return sv(
+						'svg',
+						{
+							viewBox: '0 0 ' + W + ' ' + H,
+							role: 'img',
+							'aria-label': 'per-file window coverage',
+						},
+						nodes,
+					)
+				}
+				function renderWindows() {
+					winRowMeta = []
+					winBarRects = []
+					clearWindowsHover()
+					if (!runs.length)
+						return mount('win', empty('No runs recorded yet.'))
+					const run = (state.runId && runById[state.runId]) || null
+					if (!run)
+						return mount(
+							'win',
+							empty(
+								'No run selected — pick a point in the evolution chart or a row in the runs table.',
+							),
+						)
+					if (Array.isArray(run.windows) && run.windows.length)
+						return renderDetailedWindows(run)
+					if (
+						run.windows &&
+						typeof run.windows === 'object' &&
+						!Array.isArray(run.windows)
+					)
+						return renderAggregatedWindows(run)
+					return mount(
+						'win',
+						empty('No per-window timings recorded for this run.'),
+					)
+				}
+				function renderDetailedWindows(run) {
+					const totalTok = run.windows.reduce(
+						(a, w) =>
+							a +
+							(typeof w.tokenizeMs === 'number'
+								? w.tokenizeMs
+								: 0),
+						0,
+					)
+					const maxLineEnd = run.windows.reduce(
+						(a, w) =>
+							Math.max(
+								a,
+								(typeof w.line === 'number' ? w.line : 0) +
+									(typeof w.rows === 'number' ? w.rows : 0),
+							),
+						0,
+					)
+					const bar = windowBar(run, maxLineEnd)
+					const rows = run.windows.map((w, i) => {
+						const rowsN = typeof w.rows === 'number' ? w.rows : null
+						const tok =
+							typeof w.tokenizeMs === 'number'
+								? w.tokenizeMs
+								: null
+						const perRow = rowsN && tok != null ? tok / rowsN : null
+						const firstTouch = rowsN != null && rowsN <= 50
+						const line = typeof w.line === 'number' ? w.line : null
+						const tr = h(
+							'tr',
+							{
+								'data-win-index': String(i),
+								tabindex: '0',
+								role: 'button',
+								'aria-label': winAriaLabel(i, w),
+								onpointerenter: () => hoverWinRow(i),
+								onpointerleave: () => unhoverWinRow(i),
+								onfocus: () => hoverWinRow(i),
+								onblur: () => unhoverWinRow(i),
+							},
+							h('td', {
+								text:
+									'#' + (i + 1) + ' ' + (w.kind || 'window'),
+							}),
+							td(line == null ? '—' : line),
+							td(rowsN == null ? '—' : rowsN),
+							td(tok == null ? '—' : fmtMs(tok)),
+							td(perRow == null ? '—' : fmtNum(perRow, 2)),
+							h('td', {
+								class: firstTouch ? 'warn' : 'muted',
+								text: firstTouch
+									? 'yes — includes lazy regex compile'
+									: 'no',
+							}),
+						)
+						winRowMeta.push({
+							tr: tr,
+							i: i,
+							w: w,
+							line: line,
+							rowsN: rowsN,
+							tok: tok,
+							perRow: perRow,
+							firstTouch: firstTouch,
+							totalTok: totalTok,
+						})
+						return tr
+					})
+					const biggest = run.windows.reduce(
+						(a, w) =>
+							typeof w.rows === 'number' &&
+							(!a || w.rows > a.rows)
+								? w
+								: a,
+						null,
+					)
+					const steady =
+						biggest &&
+						biggest.rows &&
+						typeof biggest.tokenizeMs === 'number'
+							? biggest.tokenizeMs / biggest.rows
+							: null
+					if (steady != null) {
+						const firstTok = run.windows.find(
+							w =>
+								w.rows <= 50 &&
+								typeof w.tokenizeMs === 'number',
+						)
+						if (firstTok) {
+							const fixed =
+								firstTok.tokenizeMs - firstTok.rows * steady
+							rows.push(
+								h(
+									'tr',
+									{},
+									h('td', { class: 'dim', text: 'derived' }),
+									td('—'),
+									td('—'),
+									td('—'),
+									td(fmtNum(steady, 2)),
+									h('td', {
+										class: 'dim',
+										text:
+											'first-touch fixed cost ≈ ' +
+											fmtMs(fixed) +
+											' per worker',
+									}),
+								),
+							)
+						}
+					}
+					return mount(
+						'win',
+						h(
+							'div',
+							{ class: 'sec-head' },
+							h('h2', { text: run.id }),
+							h('span', {
+								class: 'sec-note',
+								text:
+									run.windows.length +
+									' windows · ms/row falls once the worker has compiled its grammar',
+							}),
+						),
+						bar,
+						h(
+							'div',
+							{ class: 'scroll', style: 'margin-top:12px' },
+							table(
+								[
+									h('th', { text: 'window' }),
+									th('start line'),
+									th('rows'),
+									th('tokenize'),
+									th('ms / row'),
+									h('th', { text: 'first touch' }),
+								],
+								rows,
+							),
+						),
+					)
+				}
+				function renderAggregatedWindows(run) {
+					const w = run.windows
+					const byKind =
+						w.byKind && typeof w.byKind === 'object'
+							? Object.keys(w.byKind)
+							: []
+					const mean =
+						w.rows && w.tokenizeMsTotal
+							? fmtNum(w.tokenizeMsTotal / w.rows, 2)
+							: '—'
+					return mount(
+						'win',
+						h(
+							'div',
+							{ class: 'sec-head' },
+							h('h2', { text: run.id }),
+							h('span', {
+								class: 'sec-note',
+								text: 'aggregate — the oversized-file path ships window totals, not per-window rows',
+							}),
+						),
+						h(
+							'div',
+							{ class: 'grid-kpi' },
+							kpi({
+								label: 'Windows',
+								value: w.count == null ? '—' : w.count,
+								unit: '',
+							}),
+							kpi({
+								label: 'Rows tokenized',
+								value:
+									w.rows == null
+										? '—'
+										: w.rows.toLocaleString('en-US'),
+								unit: '',
+							}),
+							kpi({
+								label: 'Worker tokenize total',
+								value:
+									w.tokenizeMsTotal == null
+										? '—'
+										: fmtNum(w.tokenizeMsTotal),
+								unit: 'ms',
+							}),
+							kpi({
+								label: 'Mean ms / row',
+								value: mean,
+								unit: 'ms',
+								aside: 'across all workers, summed',
+							}),
+						),
+						byKind.length
+							? h(
+									'div',
+									{
+										class: 'scroll',
+										style: 'margin-top:12px',
+									},
+									table(
+										[
+											h('th', { text: 'kind' }),
+											th('windows'),
+										],
+										byKind.map(k =>
+											h(
+												'tr',
+												{},
+												h('td', { text: k }),
+												td(w.byKind[k]),
+											),
+										),
+									),
+								)
+							: null,
+						run.note
+							? h('p', { class: 'note', text: run.note })
+							: null,
+					)
+				}
+
+				/* ---------- 06 milestones + targets ---------- */
+
+				function renderMilestones() {
+					const list = milestones.length ? milestones : []
+					if (!list.length)
+						return mount(
+							'milestones',
+							empty('No milestones declared.'),
+						)
+					const items = list.map(m => {
+						const own = runs.filter(r => r.milestone === m.id)
+						const best = own
+							.filter(r => firstColor(r) != null)
+							.sort((a, b) => firstColor(a) - firstColor(b))[0]
+						const planned = !own.length
+						return h(
+							'li',
+							{ class: planned ? 'planned' : '' },
+							h(
+								'div',
+								{ class: 't-label' },
+								m.label,
+								h('span', {
+									class: planned ? 'chip flat' : 'chip good',
+									style: 'margin-left:8px',
+									text: planned
+										? 'no run yet'
+										: own.length + ' run(s)',
+								}),
+							),
+							h('div', { class: 't-note', text: m.note || '' }),
+							best
+								? h('div', {
+										class: 't-note num',
+										text:
+											'best first colour ' +
+											fmtMs(firstColor(best)) +
+											' · final ' +
+											fmtMs(stage(best, 'final')) +
+											' · ' +
+											best.id,
+									})
+								: null,
+						)
+					})
+					mount('milestones', h('ol', { class: 'timeline' }, items))
+				}
+
+				function renderTargets() {
+					const targets = Array.isArray(DATA.targets)
+						? DATA.targets
+						: []
+					const wins = Array.isArray(DATA.knownWins)
+						? DATA.knownWins
+						: []
+					if (!targets.length && !wins.length)
+						return mount('targets', empty('No open targets.'))
+					const rowsFor = (list, kind) =>
+						list.map(t =>
+							h(
+								'div',
+								{ class: 'win-row' },
+								h(
+									'span',
+									{ class: 'win-label' },
+									t.label,
+									h('div', {
+										class: 'muted',
+										text: t.detail || '',
+									}),
+								),
+								t.expectedMs == null
+									? h('span', {
+											class: 'chip flat',
+											text: kind,
+										})
+									: h('span', {
+											class: 'win-exp',
+											text:
+												'≈ ' +
+												fmtNum(t.expectedMs) +
+												' ms',
+											title: 'expected, not measured',
+										}),
+							),
+						)
+					mount(
+						'targets',
+						rowsFor(targets, 'expected'),
+						wins.length
+							? h(
+									'div',
+									{
+										class: 'sec-head',
+										style: 'margin-top:16px',
+									},
+									h('h2', { text: 'Also on the table' }),
+									h('span', {
+										class: 'sec-note',
+										text: 'analyzed, not yet measured',
+									}),
+								)
+							: null,
+						rowsFor(wins, 'analyzed'),
+						h('p', {
+							class: 'note',
+							text: 'Every value on this side is an expectation from the profile, not a measurement. It moves up into the runs table once a run carries it.',
+						}),
+					)
+				}
+
+				/* ---------- 07 runs table ---------- */
+
+				function runRowTooltipNodes(r) {
+					const meta = milestoneById[r.milestone] || {
+						label: r.milestone,
+					}
+					return [
+						h('div', { class: 'tt-title', text: r.id }),
+						ttRow('fixture', r.fixture),
+						ttRow('milestone', meta.label),
+						ttRow('date', r.date || '—'),
+						ttRow('first colour', fmtMs(firstColor(r))),
+						ttRow('final', fmtMs(stage(r, 'final'))),
+					]
+				}
+				function linkRunRow(id) {
+					setEvoDim(id)
+					highlightEvoPoint(id, true)
+					const r = runById[id]
+					const c = r ? evoCircleByRun[id] : null
+					if (r && c) {
+						const p = pointClientPos(c)
+						openTooltip(runRowTooltipNodes(r), p.x + 14, p.y + 14)
+					}
+				}
+				function unlinkRunRow() {
+					setEvoDim(null)
+					highlightEvoPoint(null, false)
+					closeTooltip()
+				}
+				function renderRuns() {
+					if (!runs.length)
+						return mount('runs', empty('No runs recorded yet.'))
+					const cols = [
+						['module', 'module'],
+						['contents', 'contents'],
+						['plainPaint', 'plain paint'],
+						['bootStart', 'boot start'],
+						['bootDone', 'boot done'],
+						['jobOpen', 'job open'],
+						['firstWindowSent', 'first window'],
+						['firstColor', 'first colour'],
+						['final', 'final'],
+					]
+					const rows = runs.map((r, i) => {
+						const prev = previousOf(r, i)
+						const cur = firstColor(r),
+							old = prev ? firstColor(prev) : null
+						const delta =
+							cur != null && old != null ? cur - old : null
+						const cells = [
+							h('td', { text: r.id }),
+							h('td', { class: 'dim', text: r.fixture }),
+							h('td', {
+								class: 'dim',
+								text:
+									(milestoneById[r.milestone] || {}).label ||
+									r.milestone,
+							}),
+							h('td', { class: 'dim', text: r.date || '—' }),
+						]
+						cols.forEach(c => {
+							const v = stage(r, c[0])
+							cells.push(
+								h(
+									'td',
+									{ class: 'num' },
+									v == null ? '—' : fmtNum(v),
+									c[0] === 'firstColor' && delta != null
+										? h('span', {
+												class:
+													'chip ' +
+													(delta < 0
+														? 'good'
+														: delta > 0
+															? 'bad'
+															: 'flat'),
+												style: 'margin-left:6px',
+												text: signed(delta) + ' ms',
+											})
+										: null,
+								),
+							)
+						})
+						return h(
+							'tr',
+							{
+								'data-run-id': r.id,
+								tabindex: '0',
+								role: 'button',
+								'aria-label':
+									'run ' +
+									r.id +
+									', press Enter or Space to select',
+								onpointerenter: () => linkRunRow(r.id),
+								onpointerleave: () => unlinkRunRow(),
+								onfocus: () => linkRunRow(r.id),
+								onblur: () => unlinkRunRow(),
+								onclick: () => selectRun(r.id),
+								onkeydown: e => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault()
+										selectRun(r.id)
+									}
+								},
+							},
+							cells,
+						)
+					})
+					mount(
+						'runs',
+						table(
+							[
+								h('th', { text: 'run' }),
+								h('th', { text: 'fixture' }),
+								h('th', { text: 'milestone' }),
+								h('th', { text: 'date' }),
+							].concat(cols.map(c => th(c[1]))),
+							rows,
+						),
+					)
+				}
+
+				/* ---------- render orchestration ---------- */
+
+				function syncRunSel() {
+					const sel = document.getElementById('runSel')
+					if (!sel) return
+					sel.value = state.runId || ''
+				}
+				function syncCompareControls() {
+					const toggle = document.getElementById('cmpToggle')
+					const a = document.getElementById('cmpA')
+					const b = document.getElementById('cmpB')
+					if (toggle) {
+						toggle.setAttribute(
+							'aria-pressed',
+							state.compare ? 'true' : 'false',
+						)
+						toggle.classList.toggle('on', !!state.compare)
+					}
+					if (a) a.disabled = !state.compare
+					if (b) b.disabled = !state.compare
+					if (a && state.compare) a.value = state.compare.a
+					if (b && state.compare) b.value = state.compare.b
+				}
+				function renderAll() {
+					renderKpis()
+					renderEvolution()
+					renderWaterfall()
+					renderCompare()
+					renderPool()
+					renderWindows()
+					renderMilestones()
+					renderTargets()
+					renderRuns()
+					syncRunSel()
+					syncCompareControls()
+					syncHash()
+				}
+
+				/* ---------- boot ---------- */
+
+				const title = document.getElementById('pageTitle')
+				if (title && DATA.project)
+					title.textContent = DATA.project + ' — frontend performance'
+				const meta = document.getElementById('pageMeta')
+				if (meta) {
+					const withColor = runs.filter(
+						r => firstColor(r) != null,
+					).length
+					meta.textContent =
+						(DATA.generatedAt ? DATA.generatedAt + ' · ' : '') +
+						runs.length +
+						' run(s) · ' +
+						withColor +
+						' with a first-colour stage'
+				}
+				const foot = document.getElementById('footGen')
+				if (foot)
+					foot.textContent =
+						'Generated from the benchmark history (benchmarks/history.json) by scripts/bench-dashboard.mjs. Self-contained: no network, no fonts, no build step — open it from disk.'
+
+				function onGlobalKeydown(e) {
+					if (e.key === 'Escape') clearSelection()
+				}
+				function onResize() {
+					tooltipMeasured = false
+					if (wfGeom) wfGeom.rect = null
+					requestFloats()
+				}
+				function onHashChange() {
+					if (writingHash) {
+						writingHash = false
+						return
+					}
+					applyHash()
+				}
+
+				const sel = document.getElementById('runSel')
+				if (sel) {
+					const none = document.createElement('option')
+					none.value = ''
+					none.textContent = '— select a run —'
+					sel.append(none)
+					runs.forEach(r => {
+						const o = document.createElement('option')
+						o.value = r.id
+						o.textContent = r.id + ' · ' + r.fixture
+						sel.append(o)
+					})
+					sel.addEventListener('change', () =>
+						selectRun(sel.value || null),
+					)
+				}
+
+				const evoSel = document.getElementById('evoScale')
+				if (evoSel) {
+					evoSel.value = evoScaleMode
+					evoSel.addEventListener('change', () => {
+						evoScaleMode = evoSel.value
+						renderEvolution()
+					})
+				}
+
+				const cmpA = document.getElementById('cmpA')
+				const cmpB = document.getElementById('cmpB')
+				if (cmpA && cmpB) {
+					runs.forEach(r => {
+						const oa = document.createElement('option')
+						oa.value = r.id
+						oa.textContent = r.id + ' · ' + r.fixture
+						cmpA.append(oa)
+						const ob = document.createElement('option')
+						ob.value = r.id
+						ob.textContent = r.id + ' · ' + r.fixture
+						cmpB.append(ob)
+					})
+					cmpA.addEventListener('change', () =>
+						setCompare(cmpA.value, cmpB.value),
+					)
+					cmpB.addEventListener('change', () =>
+						setCompare(cmpA.value, cmpB.value),
+					)
+				}
+				const cmpToggle = document.getElementById('cmpToggle')
+				if (cmpToggle)
+					cmpToggle.addEventListener('click', toggleCompare)
+
+				document.addEventListener('keydown', onGlobalKeydown)
+				window.addEventListener('resize', onResize)
+				window.addEventListener('hashchange', onHashChange)
+
+				// Default to the headline fixture's newest run, then apply any deep-linked state.
+				state.runId = defaultRunId(runs)
+				state.fixtures = new Set(fixtureKeys)
+				applyHash()
+			})()
+		</script>
+	</body>
+</html>

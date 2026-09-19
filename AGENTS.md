@@ -37,6 +37,15 @@ node --import tsx --test src/state/reconcile.test.ts
 
 CI (`.github/workflows/ci.yml`) runs lint, lint:types, format:check, check, build, test and perf-smoke on Node 24 — all must pass.
 
+## Benchmarks
+
+The frontend perf timeline is tracked data, not a chat log: after a render-path change, measure the
+cold open through `pi-frontend-check` (headless) and record the run with
+`node scripts/bench-dashboard.mjs --record <file>`, then `--check`. Read `benchmarks/README.md` for the
+run shape and stage definitions, and `benchmarks/AGENTS.md` for the rules that keep runs comparable
+(record rejected variants too, one milestone per batch, report the spread). The timeline lives in
+`benchmarks/history.json` and renders to the committed `benchmarks/dashboard.html`.
+
 ## Two compilation worlds
 
 `src/` is split into a Node backend and a browser UI that are built and type-checked separately:
