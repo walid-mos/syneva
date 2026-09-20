@@ -171,8 +171,11 @@ export class JobBoard {
 		isWarm = false,
 	): void {
 		if (!diff.cacheKey) return
+		// A settled final means every row is already tokenized and cached: the renderer adopts it
+		// through getDiffResultCache on its own render pass, and re-opening the job would re-tokenize
+		// the whole file for nothing (that loop was shipping a second final per file).
+		if (this.caches.cachedFinal(diff.cacheKey)) return
 		// The renderer re-requests around its own repaints; a job that is already open just gains
-		// the instance (a second job for the same key would orphan the first one's in-flight work).
 		if (this.jobs.has(diff.cacheKey)) {
 			this.attachInstance(instance, diff.cacheKey)
 			this.drain()

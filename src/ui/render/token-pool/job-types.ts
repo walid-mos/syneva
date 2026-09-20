@@ -41,6 +41,10 @@ export type TokenJob = {
 	// an attached job leaves free, capped to one viewport band, until a renderer attaches (which lifts
 	// the cap and streams the rest of the file normally - the plan is complete either way).
 	isWarm?: boolean
+	// Sticky publish mode: once a publish carried highlighted=true (the viewport band merged), every
+	// later publish for this job must too - @pierre's renderer refetches plain rows whenever its
+	// renderCache says not-highlighted, which would throw the merged token rows away again.
+	highlighted?: boolean
 }
 
 // The slot slice the book needs: it never boots or routes, it parks tasks. `attachedLanguages` is

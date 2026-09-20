@@ -21,9 +21,38 @@ export class PublishBook {
 		private caches: GridCaches,
 	) {}
 
+	// The first publish after this many windows have merged carries highlighted=true: @pierre's
+	// renderer repaints ONLY from a highlighted publish (every partial grid gets overwritten by the
+	// plain rows of its next converge pass), and waiting for the whole file to finish put color
+	// minutes away on big diffs - or never, when the reviewer never scrolls through every line. The
+	// plan dispatches nearest the viewport first and one window holds 192 rows (≈ 2-3 viewports), so
+	// two merged windows all but guarantee the visible band is tokenized. The merged grid always
+	// covers every row (plain where tokens have not landed), so a partial highlighted grid is safe
+	// to paint; later merges spread color through the renderer's own scroll-driven passes.
+	private static readonly BAND_PUBLISH_WINDOWS = 2
+	// A window that never answers must not hold the countdown open forever: the whole-file final
+	// (which settles the result cache) only fires at remaining === 0. Swept passively on every
+	// landing - no timers, nothing to clean up - and stale tasks resolve as failures: their rows
+	// stay plain, the countdown continues.
+	private static readonly WINDOW_TIMEOUT_MS = 30_000
+	private sweepStale(): void {
+		const now = performance.now()
+		const stale: string[] = []
+		for (const [taskId, entry] of this.tasks)
+			if (now - entry.sentAt > PublishBook.WINDOW_TIMEOUT_MS)
+				stale.push(taskId)
+		for (const taskId of stale)
+			this.onWindowFailure(taskId, {
+				type: 'error',
+				id: taskId,
+				error: 'token window timed out',
+			})
+	}
+
 	// The fleet releases the slot before forwarding either path. A landed window merges its rows
 	// into the grids; a failed one keeps its plain rows and the countdown continues.
 	handleWindow(response: WorkerTokenWindowSuccess): void {
+		this.sweepStale()
 		const { job, spec, entry } = this.settle(response.id)
 		if (!job || !spec) return
 		const endSpan = perfSpan('pool:merge')
@@ -76,14 +105,24 @@ export class PublishBook {
 			...rerank(job, spec, 'done'),
 			remaining: job.remaining - 1,
 		}
-		this.jobs.set(job.cacheKey, landed)
-		if (landed.remaining === 0) this.shipFinal(landed)
-		else this.schedulePartialPublish(landed)
+		// Sticky flip: once the band publish fired, every publish after it carries highlighted=true,
+		// so @pierre's renderCache keeps the freshest merged grid instead of refetching plain rows.
+		const published: TokenJob = {
+			...landed,
+			highlighted:
+				landed.highlighted === true || this.bandSettled(landed),
+		}
+		this.jobs.set(job.cacheKey, published)
+		if (published.remaining === 0) {
+			this.settleJob(published)
+			return
+		}
+		this.schedulePublish(published)
 	}
 
-	// One merged grid per publish. The final publish (highlighted=true) stops @pierre's
-	// converge loop and settles the cache.
-	private shipFinal(job: TokenJob): void {
+	// The whole-file countdown reached zero: cache the fully merged grid as the settled result and
+	// publish it highlighted (stops @pierre's converge loop and settles the cache).
+	private settleJob(job: TokenJob): void {
 		this.jobs.delete(job.cacheKey)
 		this.caches.cacheFinal(job.cacheKey, {
 			result: job.merged.result(),
@@ -93,13 +132,23 @@ export class PublishBook {
 		perfMark('pool:final')
 	}
 
-	private schedulePartialPublish(job: TokenJob): void {
+	private bandSettled(job: TokenJob): boolean {
+		return (
+			job.windows.filter(task => task.status === 'done').length >=
+			PublishBook.BAND_PUBLISH_WINDOWS
+		)
+	}
+
+	// One merged grid per publish. A partial publish repaints the converge loop (it keeps asking);
+	// the highlighted one (band merged or whole file) is the one that actually paints color. The
+	// frame reads the CURRENT job so a sticky flip that lands mid-frame is never published stale.
+	private schedulePublish(job: TokenJob): void {
 		if (job.publishFrame) return
 		const frame = requestAnimationFrame(() => {
 			const current = this.jobs.get(job.cacheKey)
 			if (!current) return
 			this.jobs.set(job.cacheKey, { ...current, publishFrame: undefined })
-			this.notify(current, false)
+			this.notify(current, current.highlighted === true)
 		})
 		this.jobs.set(job.cacheKey, { ...job, publishFrame: frame })
 	}
