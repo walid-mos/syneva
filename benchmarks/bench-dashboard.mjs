@@ -3,10 +3,10 @@
 // records new runs into benchmarks/history.json, so the perf story of this UI stays a tracked
 // artifact instead of a chat log.
 //
-//   node scripts/bench-dashboard.mjs               # render benchmarks/dashboard.html
-//   node scripts/bench-dashboard.mjs --out <path>  # render somewhere else (e.g. ~/Desktop)
-//   node scripts/bench-dashboard.mjs --check       # validate history + template, write nothing
-//   node scripts/bench-dashboard.mjs --record <f>  # append the run object in <f> ("-" = stdin)
+//   node benchmarks/bench-dashboard.mjs               # render benchmarks/dashboard.html
+//   node benchmarks/bench-dashboard.mjs --out <path>  # render somewhere else (e.g. ~/Desktop)
+//   node benchmarks/bench-dashboard.mjs --check       # validate history + template, write nothing
+//   node benchmarks/bench-dashboard.mjs --record <f>  # append the run object in <f> ("-" = stdin)
 //
 // A run is one JSON object; the shape the dashboard expects is documented in benchmarks/README.md.
 // Recording is idempotent by run id: re-recording the same id replaces that run in place.

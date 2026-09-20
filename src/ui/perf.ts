@@ -1,6 +1,6 @@
 // Stage timeline for the desk's load -> color path. Every stage is one bounded push, recorded from
 // module evaluation (so `t = 0` is navigation start), and the whole timeline is exposed on
-// `window.synevaPerf` for the browser bench (scripts/browser-bench.mjs) and for diagnosing a slow
+// `window.synevaPerf` for the browser bench (benchmarks/browser-bench.mjs) and for diagnosing a slow
 // desk in the field.
 //
 // Why it exists: the load path crosses four contexts (main thread, HTTP, token workers, the

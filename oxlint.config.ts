@@ -85,8 +85,12 @@ export default defineConfig({
 			// giant, a 2.4MB oversized file) and the browser bench reports with console.log
 			// like perf-smoke does. The shared preset's readability rules (magic numbers,
 			// function length, await depth) fight the fixture specs' shape, not a reviewable
-			// logic path - drop them for the two bench scripts only.
-			files: ['scripts/bench-fixtures.mjs', 'scripts/browser-bench.mjs'],
+			// logic path - drop them for the bench scripts only.
+			files: [
+				'benchmarks/bench-fixtures.mjs',
+				'benchmarks/browser-bench.mjs',
+				'benchmarks/perf-smoke.mjs',
+			],
 			rules: {
 				'eslint/no-magic-numbers': 'off',
 				'eslint/no-console': 'off',

@@ -26,7 +26,7 @@ type LineCallbackPayload = {
 
 // The library's own callback signatures, read off the options type so the handlers below stay in
 // step with the pinned release instead of restating its payloads.
-type DiffCallbacks = FileDiffOptions<AnnotationMeta>
+type DiffCallbacks = FileDiffOptions<AnnotationMeta, undefined>
 type LineClickPayload = Parameters<
 	NonNullable<DiffCallbacks['onLineNumberClick']>
 >[0]

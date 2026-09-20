@@ -25,7 +25,9 @@ const PREVIEW_CSS =
 
 // The @pierre render options for one instance. `renderHeaderMetadata` and `renderCustomHeader`
 // are our own header builders (see file-header.ts).
-export function diffOptions(view: DiffView): FileDiffOptions<AnnotationMeta> {
+export function diffOptions(
+	view: DiffView,
+): FileDiffOptions<AnnotationMeta, undefined> {
 	const { isPreviewing, isExpandedUnchanged } = view
 	return {
 		// The code theme is the user's pick regardless of appearance (the settings dropdown groups

@@ -2,8 +2,25 @@
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
 		"noEmit": true,
-		"declaration": false
+		"declaration": false,
+		"rootDir": ".",
+		"paths": {
+			"@nextnode-solutions/standards/oxfmt": [
+				"./types/standards-oxfmt.d.ts"
+			]
+		}
 	},
-	"include": ["src/**/*.test.ts"],
+	// One noEmit pass for every NodeNext-checked file that never ships in dist:
+	// backend tests, the pi extensions, and the lint/format configs. UI stays out
+	// entirely - its tests import UI modules through bundler-style specifiers, so
+	// they are checked by tsconfig.ui.json in the bundler world.
+	"include": [
+		"src/**/*.test.ts",
+		"extensions/**/*.ts",
+		"oxlint.config.ts",
+		"oxfmt.config.ts",
+		"types/**/*.d.ts"
+	],
+	// Keep the inherited src/ui exclusion and drop the test exclusion.
 	"exclude": ["src/ui/**"]
 }

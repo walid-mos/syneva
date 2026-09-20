@@ -109,7 +109,7 @@ export class VirtualDiff extends VirtualizedFileDiff<AnnotationMeta> {
 		// render() only adopts the first metadata object in the pinned library. Its public
 		// layout-reset seam updates later decision replays while retaining expanded context.
 		this.logicalRows = []
-		this.prepareCodeViewItem(metadata, this.top ?? 0)
+		this.updateCodeViewLayout(metadata, this.top ?? 0)
 		this.rerender()
 	}
 
@@ -137,7 +137,7 @@ export class VirtualDiff extends VirtualizedFileDiff<AnnotationMeta> {
 			hunkLineCount: RENDER_CHUNK_LINES,
 			lineHeight: this.rowEstimate,
 		})
-		this.prepareCodeViewItem(this.fileDiff, this.top ?? 0)
+		this.updateCodeViewLayout(this.fileDiff, this.top ?? 0)
 		this.rerender()
 		return true
 	}
@@ -189,7 +189,7 @@ export class VirtualDiff extends VirtualizedFileDiff<AnnotationMeta> {
 			lineHeight: median,
 		})
 		if (this.fileDiff) {
-			this.prepareCodeViewItem(this.fileDiff, this.top ?? 0)
+			this.updateCodeViewLayout(this.fileDiff, this.top ?? 0)
 			this.rerender()
 		}
 		return true

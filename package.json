@@ -68,15 +68,15 @@
     "dev": "node scripts/build-ui.mjs --watch & tsx src/cli.ts",
     "build": "tsc && tsc -p tsconfig.ui.json && node scripts/build-ui.mjs && cp src/ui/index.html dist/index.html",
     "start": "node dist/cli.js",
-    "check": "tsc --noEmit && tsc -p tsconfig.ui.json && tsc -p tsconfig.extensions.json && tsc -p tsconfig.test.json && tsc -p tsconfig.ui-test.json && tsc -p tsconfig.tooling.json",
+    "check": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.ui.json",
     "lint": "oxlint --deny-warnings",
     "lint:types": "oxlint --type-aware --deny-warnings",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "perf-smoke": "node scripts/perf-smoke.mjs",
-    "bench": "node scripts/bench-fixtures.mjs && node scripts/browser-bench.mjs",
+    "perf-smoke": "node benchmarks/perf-smoke.mjs",
+    "bench": "node benchmarks/bench-fixtures.mjs && node benchmarks/browser-bench.mjs",
     "prepack": "pnpm build",
     "release": "pnpm lint && pnpm lint:types && pnpm format:check && pnpm check && pnpm test && pnpm build && changelogen --release --push",
     "postinstall": "pnpm build"
@@ -98,7 +98,7 @@
     "typescript": "latest"
   },
   "dependencies": {
-    "@pierre/diffs": "1.2.4",
+    "@pierre/diffs": "1.4.3",
     "@shikijs/markdown-it": "^4.2.0",
     "alpinejs": "^3.15.12",
     "dompurify": "^3.4.8",
