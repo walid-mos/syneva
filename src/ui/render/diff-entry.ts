@@ -103,7 +103,7 @@ function discardEntries(): void {
 export function acquireEntry(
 	key: string,
 	metadata: FileDiffMetadata,
-	options: FileDiffOptions<AnnotationMeta>,
+	options: FileDiffOptions<AnnotationMeta, undefined>,
 ): DiffEntry {
 	const cached = D.diffCache.get(key)
 	if (cached?.wrapper.isConnected) {
@@ -143,7 +143,7 @@ export function acquireEntry(
 
 function createWindowedDiff(
 	wrapper: HTMLElement,
-	options: FileDiffOptions<AnnotationMeta>,
+	options: FileDiffOptions<AnnotationMeta, undefined>,
 ): VirtualDiff {
 	virtualizer = createVirtualizer(wrapper)
 	const instance = new VirtualDiff(

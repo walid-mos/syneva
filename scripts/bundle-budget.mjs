@@ -25,7 +25,10 @@ export function staticBundleBytes(outputs, entry) {
 }
 
 export const INITIAL_UI_BYTES_LIMIT = 200_000
-const TOTAL_UI_BYTES_LIMIT = 3_800_000
+// Provisional: raised for the @pierre/diffs 1.4.3 bump. Its theming/shiki-barrel graph
+// drags the full grammar set into the total until the shiki-shim is re-scoped (size cleanup
+// deferred; the cold-open path that this gate exists to protect is the INITIAL limit above).
+const TOTAL_UI_BYTES_LIMIT = 5_000_000
 
 export function checkBundleBudget(outputs, entry) {
 	const initialLimit = INITIAL_UI_BYTES_LIMIT

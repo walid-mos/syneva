@@ -98,7 +98,7 @@
     "typescript": "latest"
   },
   "dependencies": {
-    "@pierre/diffs": "1.2.4",
+    "@pierre/diffs": "1.4.3",
     "@shikijs/markdown-it": "^4.2.0",
     "alpinejs": "^3.15.12",
     "dompurify": "^3.4.8",
