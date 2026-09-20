@@ -15,11 +15,17 @@
 import { DIFFS_TAG_NAME } from '@pierre/diffs'
 
 import { cur } from '../contents'
-import { perfMark } from '../perf'
+import { perfMark, perfSpan } from '../perf'
 import { deferRender } from '../render'
 
 import { clearReplacementViews } from './diff-entry'
-import { isParseMemoized } from './diff-metadata'
+import {
+	isParseMemoized,
+	isViewOnly,
+	parseInputFor,
+	seedPrefetchedMetadata,
+} from './diff-metadata'
+import { parseOffThread } from './parse-offload'
 import { placeholderRows, shouldPlaceholder } from './placeholder-slice'
 
 import type { ReviewState } from '../types'
@@ -40,6 +46,11 @@ let watchFrames = 0
 // provisional rows again and never reach the diff.
 let placeholderKey: string | undefined
 
+// The click-path parses in flight in the parse worker (parse-offload.ts), keyed by the render
+// key: the pass the overlay re-scheduled must not parse inline while the worker is already
+// diffing the same file - the resolve seeds the parse memo and re-renders.
+const offloading = new Set<string>()
+
 // The cold-open policy: a diff whose parse is not memoized, on a file long enough that the parse
 // would be a visible wait. Returns true when it painted provisional rows - the caller must then skip
 // this pass entirely and let the scheduled re-render do the parsing.
@@ -49,7 +60,11 @@ export function paintColdOpen(
 	view: DiffView,
 	key: string,
 ): boolean {
-	if (placeholderKey === key) return false
+	if (placeholderKey === key) {
+		// The pass after the overlay: while the offload runs, stand aside (its resolve re-renders);
+		// once it settles undefined (small file, dead worker), fall through to the inline parse.
+		return offloading.has(key)
+	}
 	if (isParseMemoized(file, view)) return false
 	if (!shouldPlaceholder(cur.newContents)) return false
 	placeholderKey = key
@@ -61,8 +76,28 @@ export function paintColdOpen(
 	// overlay leaves the view in place - something readable beats a blank pane.
 	if (paintPlaceholderOverlay(host, cur.newContents))
 		clearReplacementViews(host)
+	// Kick the click's parse off the main thread NOW (the dedicated worker already runs for the
+	// next-file prefetch, render/prefetch.ts): the overlay holds the pane while the worker diffs,
+	// and the resolve seeds the memo and re-renders, so the main thread never freezes on jsdiff for
+	// a visible-wait parse. A declined or failed offload resolves undefined and the re-scheduled
+	// pass below falls back to today's inline parse - this only ever removes work from the click.
+	const contents = cur
+	const viewOnly = isViewOnly(view.isPreviewing)
+	offloading.add(key)
+	const endOffload = perfSpan('pool:parse:offloaded')
+	const settle = async (): Promise<void> => {
+		const diff = await parseOffThread(
+			parseInputFor(file, contents, viewOnly),
+		)
+		endOffload({ offloaded: !!diff })
+		offloading.delete(key)
+		if (diff) seedPrefetchedMetadata(file, contents, viewOnly, diff)
+		deferRender()
+	}
+	void settle()
 	// The parse must run on a pass that is free to block: deferRender paints first (its own double
-	// frame) and only then calls render() again, which is where the cold metadata is built.
+	// frame) and only then calls render() again - which now finds the offload in flight and waits
+	// for it, or parses inline if the offload declined.
 	deferRender()
 	return true
 }

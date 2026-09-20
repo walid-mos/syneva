@@ -35,8 +35,10 @@ function ckey(s: string): string {
 }
 
 // @pierre renders nothing for a zero-change diff, so a whole-file view (a new file, or a preview -
-// an unchanged file the reviewer opened) is shown as the file's content on one side.
-function isViewOnly(isPreviewing: boolean): boolean {
+// an unchanged file the reviewer opened) is shown as the file's content on one side. Exported for
+// the cold-open parse offload (render/placeholder.ts), which must seed the parse memo under the
+// exact key parseCached will compute.
+export function isViewOnly(isPreviewing: boolean): boolean {
 	if (isPreviewing) return true
 	if (S.state?.mode !== 'file') return false
 	return cur.oldContents === '' || cur.oldContents === cur.newContents

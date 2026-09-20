@@ -844,6 +844,11 @@
 			"id": "streamgate",
 			"label": "Viewport stream gate",
 			"note": "Hypothesis: the token pool tokenized the ENTIRE file for the first paint - 47 planned windows on a dense 8000-line rewrite (~29 s of shiki worker CPU counted on both sides), 127 windows on the 16k bench file - so the pool stayed saturated for seconds after the first coloured band, a fast file switch found a booked pool, and TTC felt broken even though colour was on screen at ~1.5 s. Change: dispatch is gated to the reviewer viewport - the band chunks first, then nearest-queued windows within a 2-window lookahead; noteViewport re-drains on band crossings so the plan follows the scroll, and a warm prefetch only holds the budget while it still has in-gate work. Verdict (pi-frontend-check, bigfile cold open + the gallery dense file): open dispatches 10 windows instead of 127 and goes idle at 10/10 with the rest queued, guard-to-first-colour unchanged (270-286 ms vs 254-267 on scrollfix), a 2000-slot scroll pulls the next 5 windows to the reviewer, and the load-anyway card swap now paints the provisional-rows overlay instead of letting the oversized card stare back during the 800 ms parse. pool:final changes meaning: it lands only after a full scroll-through (dash in the dashboard), not on open."
+		},
+		{
+			"id": "parseoff",
+			"label": "Click-path parse offload",
+			"note": "Hypothesis: the residual click wait on a dense file was never the token stream (the viewport gate holds) but the jsdiff parse running INLINE on the main thread - measured 803 ms on the gallery 8k dense file, with the provisional-rows overlay painted but the page frozen the whole time. Change: paintColdOpen now kicks the click parse through the dedicated parse worker (parse-offload.ts, previously prefetch-only), seeds the parse memo from the worker result and re-renders; a declined/failed offload falls back to the inline parse, so this only removes main-thread work. Measured (bigfile bench + gallery): main-thread parse 803 -> 11 ms (memo hit), worker covers the 801 ms behind the overlay, wall to first colour +15-25 ms on a sparse fixture (60-65 ms parse; the round-trip is paid where the parse was cheap) and unchanged where it was expensive. The page never freezes during a load-anyway."
 		}
 	],
 	"rejected": [
@@ -1947,6 +1952,56 @@
 			},
 			"workerBundleKb": 537,
 			"note": "Second streamgate-bigfile sample (same route, cold desk session streamgate-2, guard dismissed at 3799 ms). Guard-to-first-colour 270 ms vs 286 ms on sample 1: the gate costs nothing at open and leaves the same 10/10 windows on the wire."
+		},
+		{
+			"id": "parseoff-bigfile-1",
+			"fixture": "bigfile",
+			"milestone": "parseoff",
+			"date": "2026-09-20",
+			"stagesMs": {
+				"module": 30,
+				"contents": 759,
+				"plainPaint": 964,
+				"bootStart": 104,
+				"bootDone": 123,
+				"jobOpen": 931,
+				"firstWindowSent": 997,
+				"firstColor": 1028.3,
+				"ttcStart": 727.1
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 10,
+				"windowDone": 10
+			},
+			"workerBundleKb": 537,
+			"note": "Route: pi-frontend-check (headless), cold desk session parseoff-1, 16k-line giant-list.ts through the oversized card (guard dismissed at 727 ms). The click-path parse now offloads to the dedicated parse worker (the one parse-offload.ts already ran for the next-file prefetch): pool:parse:offloaded 65 ms offloaded:true, and the re-scheduled render pass hits the seeded memo (render:parse 11 ms on the main thread, was the whole jsdiff run). Guard-to-first-colour 301 ms vs 270-286 on streamgate: the offload costs ~15-25 ms of wall on a 65 ms parse (worker round-trip + deferred pass) in exchange for a main thread that never freezes - on the 8k dense file the 803 ms inline parse (gallery, measured) becomes 11 ms with the worker covering the 800 ms behind the provisional rows. Stream gate unchanged: 10 windows, desk idle at 10/10."
+		},
+		{
+			"id": "parseoff-bigfile-2",
+			"fixture": "bigfile",
+			"milestone": "parseoff",
+			"date": "2026-09-20",
+			"stagesMs": {
+				"module": 27,
+				"contents": 621,
+				"plainPaint": 805,
+				"bootStart": 88,
+				"bootDone": 106,
+				"jobOpen": 774,
+				"firstWindowSent": 847,
+				"firstColor": 879.5,
+				"ttcStart": 586.4
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 10,
+				"windowDone": 10
+			},
+			"workerBundleKb": 537,
+			"note": "Second parseoff-bigfile sample (same route, cold desk session parseoff-2, guard dismissed at 586 ms). pool:parse:offloaded 60 ms offloaded:true, render:parse 10 ms (memo hit), guard-to-first-colour 293 ms vs 301 on sample 1: the offload round-trip cost is stable at ~15-25 ms of wall on this sparse fixture."
 		}
 	]
 };
