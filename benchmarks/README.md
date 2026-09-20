@@ -4,9 +4,9 @@ The frontend perf history of this repo, as data: `history.json` holds every meas
 dashboard template renders it, and the generator produces a single self-contained HTML file.
 
 ```bash
-node scripts/bench-dashboard.mjs            # benchmarks/dashboard.html (in-repo, commit it)
-node scripts/bench-dashboard.mjs --check    # validate history + template, write nothing
-node scripts/bench-dashboard.mjs --out ~/Desktop/syneva-perf.html   # personal copy
+node benchmarks/bench-dashboard.mjs            # benchmarks/dashboard.html (in-repo, commit it)
+node benchmarks/bench-dashboard.mjs --check    # validate history + template, write nothing
+node benchmarks/bench-dashboard.mjs --out ~/Desktop/syneva-perf.html   # personal copy
 ```
 
 Maintenance rules for agents live next door in `AGENTS.md`; this file owns the shapes below.
@@ -14,7 +14,7 @@ Maintenance rules for agents live next door in `AGENTS.md`; this file owns the s
 ## Recording a run
 
 ```bash
-node scripts/bench-dashboard.mjs --record /tmp/run.json   # or "-" to read stdin
+node benchmarks/bench-dashboard.mjs --record /tmp/run.json   # or "-" to read stdin
 ```
 
 Recording is idempotent by `id`: re-recording the same id replaces that run in place, so a
@@ -42,7 +42,7 @@ A run is one JSON object. Every key below is required; `windows`, `longTasks`, `
 ```
 
 One schema wart, worth knowing before you record: `contents` is the only stage stored as a
-*duration* (the `/api/file-contents` transfer, measured by `scripts/browser-bench.mjs` from the
+*duration* (the `/api/file-contents` transfer, measured by `benchmarks/browser-bench.mjs` from the
 resource-timing entry) rather than a timestamp from navigation start like every other stage. The
 waterfall reads it as the cost of that fetch.
 
@@ -86,7 +86,7 @@ reloaded; nothing is estimated — a derived number says its formula, and an unm
 
 Measure through the `pi-frontend-check` tools (`frontend_open` then `frontend_eval` on
 `window.synevaPerf.snapshot()`), never with a standalone headed browser. Fixtures:
-`node scripts/bench-fixtures.mjs` → `/tmp/syneva-bench/repos/{tiny,small,medium,large,bigfile,patho}`.
+`node benchmarks/bench-fixtures.mjs` → `/tmp/syneva-bench/repos/{tiny,small,medium,large,bigfile,patho}`.
 A cold open means a fresh desk (`rm -rf <repo>/.syneva-review`, new `--session`) and a fresh
 `frontend_open`.
 
@@ -128,5 +128,5 @@ pass before it had not warmed.
 first-occurrence summary, and `marks` carries one entry per event, including per-window worker
 timings (`pool:window:done` → `rows`, `slice`, `tokenize`).
 
-`scripts/browser-bench.mjs` is the older headful latency bench (scroll smoothness, memory). It is
+`benchmarks/browser-bench.mjs` is the older headful latency bench (scroll smoothness, memory). It is
 not the source of `stagesMs`: prefer the `synevaPerf` timeline, and record its numbers here.

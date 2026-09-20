@@ -1,13 +1,13 @@
 // Browser bench: cold open, interaction latencies, scroll smoothness, and memory across
-// the fixture repos scripts/bench-fixtures.mjs builds. Driver: playwright + chromium,
+// the fixture repos benchmarks/bench-fixtures.mjs builds. Driver: playwright + chromium,
 // HEADFUL - headless-shell throttles requestAnimationFrame (~1fps), which would turn every
 // latency into a throttle artifact.
 //
 // Prereqs (not in devDependencies; the bench is a local perf tool, not part of CI):
-//   node scripts/bench-fixtures.mjs
+//   node benchmarks/bench-fixtures.mjs
 //   npm i playwright@~1.63  # in any scratch dir, or: pnpm dlx playwright@1.63 install chromium
 //   pnpm build
-//   node scripts/browser-bench.mjs [repo ...]   # default: every fixture
+//   node benchmarks/browser-bench.mjs [repo ...]   # default: every fixture
 //
 // Output: one result-browser-<repo>.json per repo, plus a summary line per repo on stdout.
 import { mkdtempSync, writeFileSync } from 'node:fs'

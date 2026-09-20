@@ -75,8 +75,8 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "perf-smoke": "node scripts/perf-smoke.mjs",
-    "bench": "node scripts/bench-fixtures.mjs && node scripts/browser-bench.mjs",
+    "perf-smoke": "node benchmarks/perf-smoke.mjs",
+    "bench": "node benchmarks/bench-fixtures.mjs && node benchmarks/browser-bench.mjs",
     "prepack": "pnpm build",
     "release": "pnpm lint && pnpm lint:types && pnpm format:check && pnpm check && pnpm test && pnpm build && changelogen --release --push",
     "postinstall": "pnpm build"
