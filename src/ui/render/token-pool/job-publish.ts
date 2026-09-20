@@ -12,6 +12,9 @@ import type { WindowSpec } from './windows'
 // It needs the same three registries the scheduler owns - open jobs, in-flight tasks, resolved
 // grids - so it takes them by reference instead of copying state across the seam.
 export class PublishBook {
+	// Set by JobBoard post-construction (one owner of the maps, no copies): every publish, with or
+	// without instances, is first-colour bookkeeping for the cold-open reveal hold.
+	onPublish: ((cacheKey: string) => void) | undefined
 	constructor(
 		private jobs: Map<string, TokenJob>,
 		private tasks: Map<string, TaskEntry>,
@@ -102,6 +105,13 @@ export class PublishBook {
 	}
 
 	private notify(job: TokenJob, isHighlighted: boolean): void {
+		// An instance-less publish has nobody to repaint: stash the merged grid so the renderer that
+		// mounts later adopts the colored rows as its plain rows (the load-anyway reveal then paints
+		// colored instead of a grey flash) instead of dropping the work until shipFinal. The stash is
+		// the mount's own merge skeleton slot, so a later window just merges over it.
+		if (job.instances.size === 0)
+			this.caches.stashSkeleton(job.cacheKey, job.merged.result())
+		this.onPublish?.(job.cacheKey)
 		// The renderer re-renders synchronously inside this loop; timing it tells a slow publish
 		// (row rebuild) apart from a slow tokenization (worker work).
 		const endSpan = perfSpan(

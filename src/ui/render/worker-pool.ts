@@ -66,9 +66,32 @@ export function prewarmPoolLanguages(diff: FileDiffMetadata): void {
 
 // Warm the NEXT file's viewport band while the pool is otherwise idle, so the switch publishes colored
 // rows from cache. render/prefetch.ts decides which file and when; the pool only decides whether its
-// workers may spend idle time on it (window-dispatch.ts caps a prefetch to one band).
-export function prefetchPoolDiff(diff: FileDiffMetadata): void {
-	ensurePool().prefetchDiff(diff)
+// workers may spend idle time on it (window-dispatch.ts caps a prefetch to one band). A viewport seeds
+// the primed job's plan (windows.ts is LPT-ordered without one): the cold-open overlay knows the head
+// rows it paints before any renderer exists.
+export function prefetchPoolDiff(
+	diff: FileDiffMetadata,
+	viewport?: { startingLine: number; totalLines: number },
+): void {
+	const pool = ensurePool()
+	if (viewport && diff.cacheKey)
+		pool.board.noteViewport(
+			diff.cacheKey,
+			viewport.startingLine,
+			viewport.totalLines,
+		)
+	pool.prefetchDiff(diff)
+}
+
+// True while the pool still owes this diff its first coloured publish: the cold-open reveal holds
+// the pane on this instead of flashing the plain rows an uncolored mount would paint.
+export function awaitingPoolPublish(cacheKey: string | undefined): boolean {
+	const pool = ensurePool()
+	return (
+		!!cacheKey &&
+		pool.board.jobOpen(cacheKey) &&
+		!pool.board.hasPublished(cacheKey)
+	)
 }
 
 function ensurePool(): TokenPoolManager {

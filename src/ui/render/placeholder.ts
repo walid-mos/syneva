@@ -27,6 +27,7 @@ import {
 } from './diff-metadata'
 import { parseOffThread } from './parse-offload'
 import { placeholderRows, shouldPlaceholder } from './placeholder-slice'
+import { awaitingPoolPublish, prefetchPoolDiff } from './worker-pool'
 
 import type { ReviewState } from '../types'
 import type { DiffView } from './diff-key'
@@ -45,6 +46,10 @@ let watchFrames = 0
 // pass - which finds the parse still cold, since it is the pass that is about to do it - would paint
 // provisional rows again and never reach the diff.
 let placeholderKey: string | undefined
+// The cache key whose first coloured publish the reveal is waiting on, set when the off-thread
+// parse settles (its diff carries the key the pool jobs use). Undefined means no hold: the inline
+// parse path and every diff the pool will not tokenize reveal on rows as before.
+let overlayCacheKey: string | undefined
 
 // The click-path parses in flight in the parse worker (parse-offload.ts), keyed by the render
 // key: the pass the overlay re-scheduled must not parse inline while the worker is already
@@ -91,7 +96,20 @@ export function paintColdOpen(
 		)
 		endOffload({ offloaded: !!diff })
 		offloading.delete(key)
-		if (diff) seedPrefetchedMetadata(file, contents, viewOnly, diff)
+		if (diff) {
+			seedPrefetchedMetadata(file, contents, viewOnly, diff)
+			// The parse is in hand but the mount pass is still frames away: prime the pool for THIS
+			// file now (the next-file prefetch warms other files), viewport on the head rows the
+			// overlay shows, so the visible band tokenizes - and stashes, job-publish.ts keeps
+			// instance-less publishes - before the mount paints. The reveal then holds until the
+			// first publish instead of flashing plain rows, or clears on rows for diffs the pool
+			// will never tokenize.
+			overlayCacheKey = diff.cacheKey
+			prefetchPoolDiff(diff, {
+				startingLine: 0,
+				totalLines: placeholderRows(contents.newContents).length,
+			})
+		}
 		deferRender()
 	}
 	void settle()
@@ -128,9 +146,14 @@ function paneState(host: HTMLElement): 'rows' | 'waiting' | 'gone' {
 function watchReveal(): void {
 	const host = overlayHost
 	if (!overlay || !host) return
+	const state = paneState(host)
+	// A mount whose job still owes its first coloured publish would flash plain rows the moment the
+	// layer lifts: hold until the pool publishes (job-publish.ts also stashes the grid so the mount
+	// itself can paint colored), bounded by the same cap as every other wait. A scroll always
+	// clears at once - the reviewer moves, the pane shows whatever is there.
 	if (
 		!host.isConnected ||
-		paneState(host) !== 'waiting' ||
+		(state !== 'waiting' && !awaitingPoolPublish(overlayCacheKey)) ||
 		++watchFrames >= REVEAL_WATCH_FRAMES
 	) {
 		clearPlaceholderOverlay()
@@ -146,6 +169,7 @@ export function clearPlaceholderOverlay(): void {
 	overlay = undefined
 	overlayHost = undefined
 	overlayScrollHost = undefined
+	overlayCacheKey = undefined
 }
 
 // Paint the provisional rows over the pane. Positioning is fixed and read once from the pane's own

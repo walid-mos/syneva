@@ -81,6 +81,11 @@
 			"id": "parseoff",
 			"label": "Click-path parse offload",
 			"note": "Hypothesis: the residual click wait on a dense file was never the token stream (the viewport gate holds) but the jsdiff parse running INLINE on the main thread - measured 803 ms on the gallery 8k dense file, with the provisional-rows overlay painted but the page frozen the whole time. Change: paintColdOpen now kicks the click parse through the dedicated parse worker (parse-offload.ts, previously prefetch-only), seeds the parse memo from the worker result and re-renders; a declined/failed offload falls back to the inline parse, so this only removes main-thread work. Measured (bigfile bench + gallery): main-thread parse 803 -> 11 ms (memo hit), worker covers the 801 ms behind the overlay, wall to first colour +15-25 ms on a sparse fixture (60-65 ms parse; the round-trip is paid where the parse was cheap) and unchanged where it was expensive. The page never freezes during a load-anyway."
+		},
+		{
+			"id": "nogrey",
+			"label": "No grey reveal",
+			"note": "Hypothesis: even with the parse off-thread and the stream gated, the reviewer still watched grey rows twice - the provisional overlay, then the mounted diff repainting plain-to-colored ~250 ms later. Change: the parse worker result primes the pool for the SAME file with the overlay head rows as viewport (the next-file prefetch warms other files), instance-less publishes stash their merged grid so the mount itself can paint colored, and the cold-open reveal holds the overlay until the pool publishes instead of lifting on bare rows. Fallbacks: a scroll lifts the overlay at once, plain diffs and a failed boot release on rows, the ~10 s reveal cap still bounds everything. Measured (bigfile bench x2 + gallery dense file): first publish 285/287 ms, overlay lift publish+5-25 ms, zero uncolored frames on the revealed diff; window count and TTC unchanged vs parseoff."
 		}
 	],
 	"rejected": [
@@ -1234,6 +1239,56 @@
 			},
 			"workerBundleKb": 537,
 			"note": "Second parseoff-bigfile sample (same route, cold desk session parseoff-2, guard dismissed at 586 ms). pool:parse:offloaded 60 ms offloaded:true, render:parse 10 ms (memo hit), guard-to-first-colour 293 ms vs 301 on sample 1: the offload round-trip cost is stable at ~15-25 ms of wall on this sparse fixture."
+		},
+		{
+			"id": "nogrey-bigfile-1",
+			"fixture": "bigfile",
+			"milestone": "nogrey",
+			"date": "2026-09-20",
+			"stagesMs": {
+				"module": 29,
+				"contents": 760,
+				"plainPaint": 948,
+				"bootStart": 109,
+				"bootDone": 141,
+				"jobOpen": 888,
+				"firstWindowSent": 982,
+				"firstColor": 1007.5,
+				"ttcStart": 722.5
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 10,
+				"windowDone": 10
+			},
+			"workerBundleKb": 537,
+			"note": "Route: pi-frontend-check (headless), cold desk session nogrey-1, 16k-line giant-list.ts through the oversized card (guard dismissed at 723 ms). The grey flash is gone: the parse worker result primes the pool for THIS file with the overlay head rows as viewport, the warm job tokenizes the visible band while the mount paints under the overlay (job-publish.ts stashes instance-less publishes, so a late mount adopts the colored grid), and the reveal watch holds the layer until the first publish - measured publish 285 ms, overlay lift 310 ms (publish + 25), straight onto colored rows. Guard-to-first-colour 285 ms vs 301/293 on parseoff (the priming overlaps the wait instead of adding to it). 10/10 windows, desk idle."
+		},
+		{
+			"id": "nogrey-bigfile-2",
+			"fixture": "bigfile",
+			"milestone": "nogrey",
+			"date": "2026-09-20",
+			"stagesMs": {
+				"module": 28,
+				"contents": 864,
+				"plainPaint": 1072,
+				"bootStart": 96,
+				"bootDone": 114,
+				"jobOpen": 1018,
+				"firstWindowSent": 1103,
+				"firstColor": 1127.8,
+				"ttcStart": 840.8
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 10,
+				"windowDone": 10
+			},
+			"workerBundleKb": 537,
+			"note": "Second nogrey-bigfile sample (same route, cold desk session nogrey-2, guard dismissed at 841 ms). First publish 287 ms, overlay lift 292 ms (publish + 5): the hold is a frame, not a wait, and the reviewer never sees an uncolored row."
 		}
 	]
 }

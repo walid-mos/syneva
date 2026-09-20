@@ -48,7 +48,9 @@ export class TokenPoolManager {
 	private bootDone = false
 	private bootFailed = false
 	private fleet: TokenFleet
-	private board: JobBoard
+	// The cold-open priming surface (render/worker-pool.ts) seeds the viewport and reads the
+	// first-publish bookkeeping directly: the manager's own surface stays @pierre-shaped.
+	readonly board: JobBoard
 	private themeSubscribers = new Set<{ onThemeChange?: () => void }>()
 
 	constructor({

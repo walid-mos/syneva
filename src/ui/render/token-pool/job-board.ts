@@ -31,6 +31,10 @@ export class JobBoard {
 	private tasks = new Map<string, TaskEntry>()
 	private caches = new GridCaches()
 	private publisher = new PublishBook(this.jobs, this.tasks, this.caches)
+	// Cache keys the pool has published colour for, with or without an attached renderer: the
+	// cold-open reveal holds the pane while its key is still missing from here (manager.ts
+	// awaitingFirstPublish). Cleared with the rest of the token state on options invalidation.
+	private published = new Set<string>()
 	private dispatch: WindowDispatch
 
 	constructor(
@@ -44,6 +48,9 @@ export class JobBoard {
 			this.tasks,
 			poolSize,
 		)
+		this.publisher.onPublish = cacheKey => {
+			this.published.add(cacheKey)
+		}
 		// The viewport map stays JobBoard-owned; the dispatcher reads it through the gate hook.
 		this.dispatch.viewportOf = cacheKey => this.viewports.get(cacheKey)
 	}
@@ -116,6 +123,11 @@ export class JobBoard {
 	invalidate(): void {
 		this.jobs.clear()
 		this.caches.invalidate()
+		this.published.clear()
+	}
+
+	hasPublished(cacheKey: string): boolean {
+		return this.published.has(cacheKey)
 	}
 
 	statsShape(): { activeJobs: number; cacheEntries: number } {
