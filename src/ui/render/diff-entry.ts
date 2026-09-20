@@ -66,6 +66,19 @@ export function finishSwap(): void {
 	if (reveal) reveal.style.visibility = ''
 }
 
+// A replacement view (the oversized card, markdown, an error note, the overview) wiped the pane
+// and is not a diff entry, so nothing stages it for the swap - and the incoming wrapper is
+// appended, not mounted over it. The pane's children belong to the virtualizer (placeholder.ts
+// states the invariant): anything that is not a diff-wrap is outgoing here and goes in the same
+// task as whatever replaces it. Shared with paintColdOpen, which removes the card when its
+// provisional-rows overlay takes the pane's place during a big file's parse.
+export function clearReplacementViews(host: HTMLElement): void {
+	for (const node of host.children) {
+		if (node.classList.contains('diff-wrap')) continue
+		node.remove()
+	}
+}
+
 function discardEntries(): void {
 	// Prevent unmount callbacks from applying the new file's decorations to the old DOM.
 	D.instance = null
@@ -76,15 +89,7 @@ function discardEntries(): void {
 		else entry.inst.cleanUp()
 	}
 	D.diffCache.clear()
-	// A replacement view (the oversized card, markdown, an error note, the overview) wiped the pane
-	// and is not a diff entry, so nothing above staged it for the swap - and the incoming wrapper is
-	// appended, not mounted over it (issue: "Load diff anyway" left the card stuck above the diff).
-	// The pane's children belong to the virtualizer (see placeholder.ts): anything that is not a
-	// diff-wrap is outgoing here and goes now, in the same task as the incoming append.
-	for (const node of $('diff').children) {
-		if (node.classList.contains('diff-wrap')) continue
-		node.remove()
-	}
+	clearReplacementViews($('diff'))
 	if (pendingSwap) {
 		// Everything in the pane right now is the outgoing file; the new wrapper is appended after.
 		pendingSwap.nodes = [...$('diff').children]

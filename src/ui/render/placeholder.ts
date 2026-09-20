@@ -18,6 +18,7 @@ import { cur } from '../contents'
 import { perfMark } from '../perf'
 import { deferRender } from '../render'
 
+import { clearReplacementViews } from './diff-entry'
 import { isParseMemoized } from './diff-metadata'
 import { placeholderRows, shouldPlaceholder } from './placeholder-slice'
 
@@ -53,7 +54,13 @@ export function paintColdOpen(
 	if (!shouldPlaceholder(cur.newContents)) return false
 	placeholderKey = key
 	perfMark('render:placeholder')
-	paintPlaceholderOverlay(host, cur.newContents)
+	// Once the provisional rows cover the pane, the outgoing replacement view (the oversized card
+	// a "Load diff anyway" click just left there) must go: beneath the overlay it read as the
+	// click doing nothing (the card came back for the whole parse), and its presence made the
+	// reveal watch classify the pane as 'gone' and clear the overlay one frame later. An unpainted
+	// overlay leaves the view in place - something readable beats a blank pane.
+	if (paintPlaceholderOverlay(host, cur.newContents))
+		clearReplacementViews(host)
 	// The parse must run on a pass that is free to block: deferRender paints first (its own double
 	// frame) and only then calls render() again, which is where the cold metadata is built.
 	deferRender()
@@ -113,11 +120,11 @@ export function clearPlaceholderOverlay(): void {
 export function paintPlaceholderOverlay(
 	host: HTMLElement,
 	contents: string,
-): void {
+): boolean {
 	const rows = placeholderRows(contents)
-	if (!rows.length) return
+	if (!rows.length) return false
 	const rect = host.getBoundingClientRect()
-	if (rect.width < 1 || rect.height < 1) return
+	if (rect.width < 1 || rect.height < 1) return false
 	clearPlaceholderOverlay()
 	const layer = document.createElement('div')
 	layer.className = 'diff-placeholder'
@@ -145,4 +152,5 @@ export function paintPlaceholderOverlay(
 	host.addEventListener('scroll', clearPlaceholderOverlay, { passive: true })
 	watchFrames = 0
 	requestAnimationFrame(watchReveal)
+	return true
 }
