@@ -71,6 +71,11 @@
 			"id": "scrollfix",
 			"label": "Scroll render pass",
 			"note": "Scroll jank batch: the mounted window was quantized at 50-line chunks (150 rows for a ~56-row window) and the row-height estimate behind every unmeasured row was one text box short in wrap mode (rows measure 2x CSS line-height), so the document grew under the scroll anchor (+2040 px per 200k-px sweep) while a fast scroll outran the mounts. Measured on the 8k-line giant-surface.ts (pi-frontend-check, 520-frame 400 px/frame sweep): mount quantum 25 halves rows mounted to 50-75 and the window-change cost, the median-row calibration (eager, one frame after mount, before the first scroll) zeroes the drift (400 089 px document stays put), and overscroll viewport/3 -> viewport/2 restores fling lead at half the mount cost. Coverage unchanged (1 gap frame of 520 vs 2 of 550)."
+		},
+		{
+			"id": "streamgate",
+			"label": "Viewport stream gate",
+			"note": "Hypothesis: the token pool tokenized the ENTIRE file for the first paint - 47 planned windows on a dense 8000-line rewrite (~29 s of shiki worker CPU counted on both sides), 127 windows on the 16k bench file - so the pool stayed saturated for seconds after the first coloured band, a fast file switch found a booked pool, and TTC felt broken even though colour was on screen at ~1.5 s. Change: dispatch is gated to the reviewer viewport - the band chunks first, then nearest-queued windows within a 2-window lookahead; noteViewport re-drains on band crossings so the plan follows the scroll, and a warm prefetch only holds the budget while it still has in-gate work. Verdict (pi-frontend-check, bigfile cold open + the gallery dense file): open dispatches 10 windows instead of 127 and goes idle at 10/10 with the rest queued, guard-to-first-colour unchanged (270-286 ms vs 254-267 on scrollfix), a 2000-slot scroll pulls the next 5 windows to the reviewer, and the load-anyway card swap now paints the provisional-rows overlay instead of letting the oversized card stare back during the 800 ms parse. pool:final changes meaning: it lands only after a full scroll-through (dash in the dashboard), not on open."
 		}
 	],
 	"rejected": [
@@ -1124,6 +1129,56 @@
 			},
 			"workerBundleKb": 540,
 			"note": "Second scrollfix-bigfile sample (route pi-frontend-check, cold desk session scroll-bench-2, 16k-line giant-list.ts through the oversized card, guard dismissed at 2181 ms). Guard-to-first-colour 254 ms vs 267 ms on sample 1 and 278-295 ms on plainfix: the eager mount-frame calibration and the halved mount quantum cost nothing at open."
+		},
+		{
+			"id": "streamgate-bigfile-1",
+			"fixture": "bigfile",
+			"milestone": "streamgate",
+			"date": "2026-09-20",
+			"stagesMs": {
+				"module": 31,
+				"contents": 880,
+				"plainPaint": 1053,
+				"bootStart": 118,
+				"bootDone": 156,
+				"jobOpen": 1012,
+				"firstWindowSent": 1090,
+				"firstColor": 1109.6,
+				"ttcStart": 823.6
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 10,
+				"windowDone": 10
+			},
+			"workerBundleKb": 537,
+			"note": "Route: pi-frontend-check (headless), cold desk session streamgate-1, 16k-line giant-list.ts loaded through the oversized card (guard dismissed at 824 ms). Guard-to-first-colour 286 ms, in line with scrollfix (254-267). The viewport stream gate: 10 windows dispatched on open (viewport band + 2-window lookahead) vs 127 eager on scrollfix; the desk is idle at 10/10 with 117 windows still queued, and pool:final no longer lands on open - the plan now completes only when the reviewer scrolls through the file (dashboard shows a dash). Hypothesis: eager whole-file tokenization paid ~6 s of worker CPU for rows the reviewer never reached on a dense rewrite; verdict: gate holds, colour reaches the visible band on time, scroll extends the stream (verified on the gallery 8k dense file: 11 windows on open, 5 more following a 2000-slot scroll, idle after)."
+		},
+		{
+			"id": "streamgate-bigfile-2",
+			"fixture": "bigfile",
+			"milestone": "streamgate",
+			"date": "2026-09-20",
+			"stagesMs": {
+				"module": 26,
+				"contents": 3856,
+				"plainPaint": 4011,
+				"bootStart": 96,
+				"bootDone": 125,
+				"jobOpen": 3979,
+				"firstWindowSent": 4047,
+				"firstColor": 4068.6,
+				"ttcStart": 3798.6
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 10,
+				"windowDone": 10
+			},
+			"workerBundleKb": 537,
+			"note": "Second streamgate-bigfile sample (same route, cold desk session streamgate-2, guard dismissed at 3799 ms). Guard-to-first-colour 270 ms vs 286 ms on sample 1: the gate costs nothing at open and leaves the same 10/10 windows on the wire."
 		}
 	]
 }

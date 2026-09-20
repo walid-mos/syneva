@@ -1,19 +1,29 @@
 import { perfMark, perfSpan } from '../../perf'
 
 import { rerank } from './job-publish'
+import { STREAM_LOOKAHEAD_SLOTS } from './windows'
 
 import type { ResolvedLanguage } from '@pierre/diffs/worker'
-import type { SlotView, TaskEntry, TokenJob } from './job-types'
+import type { SlotView, TaskEntry, TokenJob, WindowTask } from './job-types'
 import type { WorkerRequest } from './protocol'
-import type { WindowSpec } from './windows'
+import type { WindowSpec, WindowViewport } from './windows'
 
 // Windows that have landed. The warm cap counts color actually on screen, not windows dispatched, and
 // job-publish.ts counts `final` the same way.
 const settledWindows = (job: TokenJob): number =>
 	job.windows.filter(task => task.status === 'done').length
 
-const hasQueuedWindow = (job: TokenJob | undefined): boolean =>
-	!!job?.windows.some(task => task.status === 'queued')
+// Slots between a window and the reviewer's viewport: 0 when they overlap (the window is what
+// the reviewer is looking at), otherwise the gap to the nearer edge.
+function viewportGap(window: WindowSpec, viewport: WindowViewport): number {
+	const windowFrom = window.startingLine
+	const windowTo = windowFrom + window.totalLines
+	const viewFrom = viewport.startingLine
+	const viewTo = viewFrom + viewport.totalLines
+	if (windowTo <= viewFrom) return viewFrom - windowTo
+	if (windowFrom >= viewTo) return windowFrom - viewTo
+	return 0
+}
 
 // One worker is never handed to a prefetch, whatever else is idle: the next click then finds a free
 // slot and starts its first window immediately instead of queueing behind band work nobody asked for.
@@ -28,6 +38,12 @@ const WARM_SLOT_RESERVE = 1
 // drain() and hands over the two registries by reference - same seam as PublishBook.
 export class WindowDispatch {
 	private nextTaskId = 0
+
+	// The reviewer's own view window per job key (job-board owns the map and assigns this after
+	// construction, keeping the constructor at the rule's parameter cap): the stream's gate. Until
+	// it is set, dispatch falls back to the plan's own order.
+	viewportOf: (cacheKey: string) => WindowViewport | undefined = () =>
+		undefined
 
 	constructor(
 		private idleSlot: () => SlotView | undefined,
@@ -65,7 +81,10 @@ export class WindowDispatch {
 		}
 		for (const cacheKey of attached) this.dispatchStalled(cacheKey)
 		if (!newestWarm) return
-		if (attached.some(cacheKey => hasQueuedWindow(this.jobs.get(cacheKey))))
+		// An attached job only holds the warm budget back while it still has work inside the stream
+		// gate: queued windows beyond it are rows the reviewer has not scrolled to, and blocking the
+		// prefetch on them would idle the pool exactly when the reviewer is reading in place.
+		if (attached.some(cacheKey => this.nextQueued(this.jobs.get(cacheKey))))
 			return
 		const budget =
 			this.warmWindowCap - WARM_SLOT_RESERVE - this.inFlightWarm()
@@ -91,12 +110,30 @@ export class WindowDispatch {
 		for (let sent = 0; sent < budget; sent++) {
 			const job = this.jobs.get(cacheKey)
 			if (!job?.languages) return
-			const queued = job.windows.find(task => task.status === 'queued')
+			const queued = this.nextQueued(job)
 			if (!queued) return
 			const slot = this.idleSlot()
 			if (!slot) return
 			this.dispatchWindow(slot, cacheKey, queued.spec)
 		}
+	}
+
+	// The queued window closest to what the reviewer is looking at, provided it sits inside the
+	// stream lookahead (windows.ts STREAM_LOOKAHEAD_SLOTS). Without a recorded viewport the plan's
+	// own order stands. Beyond the gate a window stays queued - the plan is complete either way,
+	// and noteViewport's re-drain on band changes brings it in when the reviewer approaches.
+	private nextQueued(job: TokenJob | undefined): WindowTask | undefined {
+		if (!job) return undefined
+		const viewport = this.viewportOf(job.cacheKey)
+		const [nearest] = job.windows
+			.filter(task => task.status === 'queued')
+			.map(task => ({
+				task,
+				gap: viewport ? viewportGap(task.spec, viewport) : 0,
+			}))
+			.toSorted((a, b) => a.gap - b.gap)
+		if (!nearest || nearest.gap > STREAM_LOOKAHEAD_SLOTS) return undefined
+		return nearest.task
 	}
 
 	private dispatchWindow(

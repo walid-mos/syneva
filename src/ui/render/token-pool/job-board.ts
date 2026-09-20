@@ -5,7 +5,7 @@ import { PublishBook } from './job-publish'
 import { LanguageBook } from './languages'
 import { createSkeleton, MergeGrid } from './merge'
 import { WindowDispatch } from './window-dispatch'
-import { planWindowOrder } from './windows'
+import { planWindowOrder, STREAM_LOOKAHEAD_SLOTS } from './windows'
 
 // Job book for the token pool: the open jobs keyed by diff cacheKey, their window task registry, the
 // resolved-grid caches, and the wiring of the two collaborators that do the rest - scheduling to the
@@ -44,6 +44,8 @@ export class JobBoard {
 			this.tasks,
 			poolSize,
 		)
+		// The viewport map stays JobBoard-owned; the dispatcher reads it through the gate hook.
+		this.dispatch.viewportOf = cacheKey => this.viewports.get(cacheKey)
 	}
 
 	// A viewport range arrives on every pass the renderer paints; only the first few are worth a
@@ -71,7 +73,17 @@ export class JobBoard {
 		totalLines: number,
 	): void {
 		if (!cacheKey) return
+		const previous = this.viewports.get(cacheKey)
 		this.viewports.set(cacheKey, { startingLine, totalLines })
+		// A reviewer scrolling into unscheduled slots must move the stream with them: re-drain when
+		// the viewport crosses into a new lookahead band. The dispatch itself is a nearest-queued
+		// scan over the job's plan, so the re-drain is cheap enough to ride every crossing.
+		const band = Math.floor(startingLine / STREAM_LOOKAHEAD_SLOTS)
+		if (
+			previous &&
+			Math.floor(previous.startingLine / STREAM_LOOKAHEAD_SLOTS) !== band
+		)
+			this.dispatch.drain()
 		if (this.rangeMarks < JobBoard.VIEWPORT_MARK_CAP) {
 			this.rangeMarks++
 			perfMark('pool:range', {

@@ -19,6 +19,9 @@ import type {
 // Target work per window, in slot rows. 192±4 was the Lab-B sweet spot: small enough for
 // progressive arrival, large enough that the ~35-45 ms per-task fixed overhead stays negligible.
 export const WINDOW_SLOTS = 192
+// The stream lookahead is two windows wide: one band plus a window of read-ahead in each
+// direction feels continuous on a wheel scroll, while the plan stays paused past it.
+const STREAM_LOOKAHEAD_WINDOWS = 2
 // Adjacent hunks closer than this merge into one cluster window (matches jsdiff's own context
 // gap: anything closer was already merged into one hunk at parse time).
 export const CLUSTER_GAP = 3
@@ -26,6 +29,14 @@ export const CLUSTER_GAP = 3
 // per-hunk windows collapse toward n=1. Fixed-height windows over just that cluster are the
 // fallback; rows outside the dense span stay plain (pathological rewrites, documented tradeoff).
 export const DENSE_SLOT_SHARE = 0.4
+
+// How far past the reviewer's viewport the background stream may run, in slots. Beyond it a
+// window stays queued until a scroll brings it in range: eagerly tokenizing the whole file made
+// the five workers chew ~29 s of shiki work for a dense 8000-line rewrite (measured, both sides
+// counted) to colour rows the reviewer had not reached, and a fast switch to another file then
+// found a fully booked pool. noteViewport re-drains on band changes, so the stream follows the
+// reviewer instead of pre-paying for rows they may never read.
+export const STREAM_LOOKAHEAD_SLOTS = STREAM_LOOKAHEAD_WINDOWS * WINDOW_SLOTS
 
 // Cluster windows slice whole hunks (no clipping; the slice may emit a few rows beyond the
 // nominal bounds - strictly more highlighted rows). Sweep windows clip hunk segments to their
