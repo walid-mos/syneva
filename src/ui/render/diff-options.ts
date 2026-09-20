@@ -8,6 +8,7 @@ import { D, S } from '../store'
 import { createDiffHeader, headerActions } from './file-header'
 import { scheduleOverviewRuler } from './overview-ruler'
 import { activeViewport } from './viewport'
+import { VirtualDiff } from './virtual-diff'
 
 import type { FileDiffOptions } from '@pierre/diffs'
 import type { AnnotationMeta } from '../types'
@@ -54,6 +55,16 @@ export function diffOptions(view: DiffView): FileDiffOptions<AnnotationMeta> {
 			// which never routes through our render()), so the cursor's cached row list is stale.
 			invalidateCursorRows()
 			if (phase === 'unmount') return
+			// Calibrate the row-height estimate as soon as real rows are committed (mount, cached
+			// remount): the library only runs its own reconcile on window changes, so an estimate left
+			// 1× short in wrap mode would inflate the whole document coordinate space under the scroll
+			// anchor on the reviewer's first scroll tick instead. One rAF out: the rows just committed;
+			// a frame later their heights are laid out and scrollTop is still 0, so the correction is
+			// invisible. Self-guarding - a no-op once calibrated.
+			if (instance instanceof VirtualDiff) {
+				const diff = instance
+				requestAnimationFrame(() => diff.calibrateLineHeight())
+			}
 			activeViewport()?.afterPaint()
 			requestAnimationFrame(restorePendingComposerFocus)
 			if (!isPreviewing && isExpandedUnchanged) scheduleOverviewRuler()

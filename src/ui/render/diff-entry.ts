@@ -2,7 +2,12 @@ import { DIFFS_TAG_NAME } from '@pierre/diffs'
 
 import { $, D } from '../store'
 
-import { bindVirtualDiff, createVirtualizer, VirtualDiff } from './virtual-diff'
+import {
+	bindVirtualDiff,
+	createVirtualizer,
+	RENDER_CHUNK_LINES,
+	VirtualDiff,
+} from './virtual-diff'
 import { diffWorkerPool } from './worker-pool'
 
 import type { FileDiff } from '@pierre/diffs'
@@ -130,7 +135,8 @@ function createWindowedDiff(
 	const instance = new VirtualDiff(
 		options,
 		virtualizer,
-		undefined,
+		// Mount quantization: this is a per-instance metrics knob (the Virtualizer itself takes none).
+		{ hunkLineCount: RENDER_CHUNK_LINES },
 		diffWorkerPool(),
 	)
 	bindVirtualDiff(instance)

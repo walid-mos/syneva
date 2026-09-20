@@ -17,6 +17,16 @@ import type { LineAlignment } from './viewport'
 const CENTER_FRACTION = 0.5
 const STABLE_REVEAL_FRAMES = 2
 const MAX_REVEAL_FRAMES = 12
+
+// Render-range quantization: the pinned library mounts the window rounded up to whole chunks of
+// hunkLineCount lines plus one spare chunk (its default 50 mounted 150 rows for a ~56-row window on
+// the 8k-line fixture). 25 halves that to 75 rows, and with it every window change's cost (measured:
+// render avg 5.1 ms → 2.7 ms, max 38 ms → 13 ms on the 200k-px fixture) - the cost that decides
+// whether a fast scroll paints black while the main thread catches up. Checkpoints are laid out
+// every 5000 rows (pinned constant), so the finer quantum only affects window sizing, not their
+// accuracy; the token window plan (WINDOW_SLOTS) is independent of this knob.
+const RENDER_CHUNK_LINES = 25
+export { RENDER_CHUNK_LINES }
 type LineReveal = {
 	side: Side
 	line: number
@@ -30,6 +40,10 @@ export class VirtualDiff extends VirtualizedFileDiff<AnnotationMeta> {
 	private logicalRows: Row[] = []
 	private expansionKey = ''
 	private headerHeight = 0
+	// Row-height estimate we last handed to setMetrics (seeded from CSS, then calibrated). The
+	// library's `metrics` is private, so this local mirror is what reconcileHeights restates.
+	private rowEstimate: number | undefined
+	private calibrated = false
 	private requestedLine: LineReveal | undefined
 	private revealFrame = 0
 	private stableRevealFrames = 0
@@ -104,6 +118,7 @@ export class VirtualDiff extends VirtualizedFileDiff<AnnotationMeta> {
 		// Simple Virtualizer ignores this method's boolean result. Re-arm it explicitly
 		// or a newly measured wrap/thread can leave the pane stuck on an empty window.
 		if (changed) this.rerender()
+		this.calibrateLineHeight()
 		const header = this.fileContainer?.querySelector<HTMLElement>('.ghdr')
 		const height = header?.getBoundingClientRect().height ?? 0
 		if (
@@ -114,15 +129,69 @@ export class VirtualDiff extends VirtualizedFileDiff<AnnotationMeta> {
 		)
 			return changed
 		this.headerHeight = height
-		const codeLine =
-			this.fileContainer.shadowRoot?.querySelector('[data-line]')
-		const lineHeight = Number.parseFloat(
-			getComputedStyle(codeLine ?? this.fileContainer).lineHeight,
-		)
-		if (!Number.isFinite(lineHeight)) return changed
-		this.setMetrics({ diffHeaderHeight: height, lineHeight })
+		if (!this.rowEstimate) return changed
+		this.setMetrics({
+			diffHeaderHeight: height,
+			// setMetrics merges the partial over the LIBRARY DEFAULTS, so every key we own must be
+			// restated or it silently reverts (hunkLineCount would fall back to 50).
+			hunkLineCount: RENDER_CHUNK_LINES,
+			lineHeight: this.rowEstimate,
+		})
 		this.prepareCodeViewItem(this.fileDiff, this.top ?? 0)
 		this.rerender()
+		return true
+	}
+
+	// The estimate behind every UNMEASURED row (checkpoints, total height, window placement) is
+	// metrics.lineHeight - initialized from the CSS line-height, which is one text box. In wrap mode
+	// (the default) a row wraps to two boxes and measures 2× that, so every estimate starts 2× short:
+	// the document grows by +20 px per measured row as the reviewer scrolls (measured +2 040 px on the
+	// 8k-line fixture per sweep), shifting content under the scroll anchor - the black bands and jumps
+	// of a fast scroll. Calibrate once per instance to the median height of the rows actually mounted
+	// (the dominant wrap count of this file), then let per-row deltas handle the outliers. Once, not
+	// per pass: a rolling recalibration would reset the measured deltas on every window whose median
+	// drifts, thrashing the layout mid-scroll.
+	//
+	// Public: the library only invokes reconcileHeights on window changes, so left alone the
+	// correction lands on the reviewer's first scroll tick - the whole document coordinate space
+	// (still 1× short) inflates under the scroll anchor at once. diff-options' onPostRender calls
+	// this one frame after mount, while scrollTop is still 0, so the estimate is already right
+	// before any scrolling starts.
+	calibrateLineHeight(): boolean {
+		if (!this.fileContainer) return false
+		if (!this.rowEstimate) {
+			const cssLineHeight = Number.parseFloat(
+				getComputedStyle(this.fileContainer).lineHeight,
+			)
+			if (!Number.isFinite(cssLineHeight)) return false
+			this.rowEstimate = cssLineHeight
+		}
+		if (this.calibrated) return false
+		const rows =
+			this.fileContainer.shadowRoot?.querySelectorAll<HTMLElement>(
+				'[data-line]',
+			)
+		if (!rows || rows.length < MIN_ROWS_FOR_CALIBRATION) return false
+		const heights: number[] = []
+		const sample = Math.min(rows.length, CALIBRATION_SAMPLE)
+		for (let i = 0; i < sample; i++)
+			heights.push(rows[i].getBoundingClientRect().height)
+		heights.sort((a, b) => a - b)
+		const median = heights[Math.floor(heights.length / MEDIAN_RANK)]
+		this.calibrated = true
+		if (!Number.isFinite(median) || median <= 0) return false
+		if (Math.abs(median - this.rowEstimate) < 1) return false
+		this.rowEstimate = median
+		this.setMetrics({
+			// Restate diffHeaderHeight/hunkLineCount: setMetrics merges over the LIBRARY DEFAULTS.
+			diffHeaderHeight: this.headerHeight,
+			hunkLineCount: RENDER_CHUNK_LINES,
+			lineHeight: median,
+		})
+		if (this.fileDiff) {
+			this.prepareCodeViewItem(this.fileDiff, this.top ?? 0)
+			this.rerender()
+		}
 		return true
 	}
 
@@ -196,13 +265,23 @@ export function bindVirtualDiff(instance: VirtualDiff): void {
 	})
 }
 
-// Lookahead kept mounted beyond the viewport: a third of the visible height on each side. The mount
-// window is the viewport plus this margin, so a margin proportional to what the reviewer actually sees
-// is the only form that fits every window - a third of a screen is ≈ a dozen rows at our line height,
-// enough for a fast scroll to land on painted rows. The fixed 600px it replaces was ≈ a screen on a
-// short window: measured there at ~10 500 shadow nodes for the first paint of a dense 400-line file,
-// twice the visible band.
-const OVERSCROLL_VIEWPORT_DIVISOR = 3
+// Lookahead kept mounted beyond the viewport. The mount window is the viewport plus this margin, so
+// a margin proportional to what the reviewer actually sees is the only form that fits every window.
+// Half a pane (measured: the mount window's quantization spare already adds ~25 rows of lead per
+// side at RENDER_CHUNK_LINES 25) leaves ≈660 px of painted runway per side on the 8k-line fixture -
+// ~1.6 frames of a hard trackpad fling - while the calibrated line height and the finer chunk
+// quantum keep the total mount at half of what the old viewport/3 + uncalibrated-estimate build
+// mounted (150 rows → 75-100).
+const OVERSCROLL_VIEWPORT_DIVISOR = 2
+
+// Calibration needs a representative sample of mounted rows: below this the median is one or two
+// rows' opinion, not the file's.
+const MIN_ROWS_FOR_CALIBRATION = 8
+const CALIBRATION_SAMPLE = 48
+// Median of the sorted sample: for an even count this takes the upper middle, biasing the estimate
+// toward the taller (more wrapped) rows - under-estimating scroll distance is the failure mode we
+// are fixing.
+const MEDIAN_RANK = 2
 
 // One scroll observer for the active window. Disposing it when switching files also cancels
 // queued work from an old file; detached instances must never run current-file decorators.

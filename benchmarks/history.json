@@ -66,6 +66,11 @@
 			"id": "plainfix",
 			"label": "Plain-diff fix: text-typed diffs paint",
 			"note": "Correctness fix, not a perf change: getPlainDiffAST returned undefined for plain-text diffs (both sides lang 'text' - Dockerfile, .svg, .txt...), and since the renderer asks the pool for plain rows on EVERY diff, those files painted an empty pane forever. The fix serves the plain grid for plain diffs; only token scheduling stays gated. The sweep below is the post-fix baseline across all six fixtures (tiny/small/large/patho get their first recorded rows). No regression claim without comparing to the warm/parallel rows on medium/bigfile."
+		},
+		{
+			"id": "scrollfix",
+			"label": "Scroll render pass",
+			"note": "Scroll jank batch: the mounted window was quantized at 50-line chunks (150 rows for a ~56-row window) and the row-height estimate behind every unmeasured row was one text box short in wrap mode (rows measure 2x CSS line-height), so the document grew under the scroll anchor (+2040 px per 200k-px sweep) while a fast scroll outran the mounts. Measured on the 8k-line giant-surface.ts (pi-frontend-check, 520-frame 400 px/frame sweep): mount quantum 25 halves rows mounted to 50-75 and the window-change cost, the median-row calibration (eager, one frame after mount, before the first scroll) zeroes the drift (400 089 px document stays put), and overscroll viewport/3 -> viewport/2 restores fling lead at half the mount cost. Coverage unchanged (1 gap frame of 520 vs 2 of 550)."
 		}
 	],
 	"rejected": [
@@ -1067,6 +1072,56 @@
 			},
 			"workerBundleKb": 550,
 			"note": "second tiny sample; windowSent includes the next file's prefetch (4+1)."
+		},
+		{
+			"id": "scrollfix-bigfile-1",
+			"fixture": "bigfile",
+			"milestone": "scrollfix",
+			"date": "2026-09-20",
+			"stagesMs": {
+				"module": 25,
+				"contents": 37,
+				"plainPaint": 2025.1,
+				"bootStart": 110.5,
+				"bootDone": 133.2,
+				"jobOpen": 1992,
+				"firstWindowSent": 2068.9,
+				"firstColor": 2080.9,
+				"final": 3037.7
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 127,
+				"windowDone": 127
+			},
+			"workerBundleKb": 540,
+			"note": "Route: pi-frontend-check (headless), cold desk session scroll-bench-1, 16k-line giant-list.ts loaded through the oversized card (guard dismissed at 1814 ms). Scroll-render batch 1: mount quantum 50 -> 25 lines, row-height estimate calibrated once per instance from the median mounted row (the wrap-mode estimate was 1 text box short), eager calibration one frame after mount, overscroll viewport/3 -> viewport/2. Cold open unchanged within noise (guard-to-first-colour 267 ms vs 278-295 ms on plainfix) and the scroll sweep on the 8k-line giant-surface.ts (200k px, 520 frames) went from 150 rows mounted / +2040 px drift per sweep / 2 gap frames to 50-75 rows / 0 drift / 1 gap frame (41 px, single frame)."
+		},
+		{
+			"id": "scrollfix-bigfile-2",
+			"fixture": "bigfile",
+			"milestone": "scrollfix",
+			"date": "2026-09-20",
+			"stagesMs": {
+				"module": 26.6,
+				"contents": 38,
+				"plainPaint": 2377.4,
+				"bootStart": 111,
+				"bootDone": 145.3,
+				"jobOpen": 2344.4,
+				"firstWindowSent": 2417.8,
+				"firstColor": 2435.2,
+				"final": 3393.8
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 127,
+				"windowDone": 127
+			},
+			"workerBundleKb": 540,
+			"note": "Second scrollfix-bigfile sample (route pi-frontend-check, cold desk session scroll-bench-2, 16k-line giant-list.ts through the oversized card, guard dismissed at 2181 ms). Guard-to-first-colour 254 ms vs 267 ms on sample 1 and 278-295 ms on plainfix: the eager mount-frame calibration and the halved mount quantum cost nothing at open."
 		}
 	]
 }
