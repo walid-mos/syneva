@@ -76,6 +76,15 @@ function discardEntries(): void {
 		else entry.inst.cleanUp()
 	}
 	D.diffCache.clear()
+	// A replacement view (the oversized card, markdown, an error note, the overview) wiped the pane
+	// and is not a diff entry, so nothing above staged it for the swap - and the incoming wrapper is
+	// appended, not mounted over it (issue: "Load diff anyway" left the card stuck above the diff).
+	// The pane's children belong to the virtualizer (see placeholder.ts): anything that is not a
+	// diff-wrap is outgoing here and goes now, in the same task as the incoming append.
+	for (const node of $('diff').children) {
+		if (node.classList.contains('diff-wrap')) continue
+		node.remove()
+	}
 	if (pendingSwap) {
 		// Everything in the pane right now is the outgoing file; the new wrapper is appended after.
 		pendingSwap.nodes = [...$('diff').children]
