@@ -4,10 +4,13 @@
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"lib": ["ES2023", "DOM", "DOM.Iterable"],
-		"types": [],
+		"types": ["node"],
 		"noEmit": true,
 		"declaration": false
 	},
+	// The whole browser world, tests included: UI tests import UI modules through
+	// bundler-style specifiers, so they cannot be checked in the NodeNext worlds.
 	"include": ["src/ui/**/*.ts"],
-	"exclude": ["src/ui/**/*.test.ts"]
+	// Drop the inherited emit excludes: they would hide every file from this world.
+	"exclude": []
 }
