@@ -26,11 +26,9 @@ export default defineConfig({
 			// narrow view. Every assertion lives next to its seam and is documented there.
 			// Token-pool files also log failures (an unhighlighted desk must show WHY, not stay
 			// silent), and post worker messages without target-origin (workers post by identity,
-			// the rule targets window contexts) - parse-offload.ts posts the prefetch's parse to
-			// its own dedicated worker the same way.
+			// the rule targets window contexts).
 			files: [
 				'src/ui/render/worker-pool.ts',
-				'src/ui/render/parse-offload.ts',
 				'src/ui/worker/diff-token-worker.ts',
 				'src/ui/render/token-pool/*.ts',
 			],
@@ -41,6 +39,15 @@ export default defineConfig({
 				'typescript/no-unsafe-type-assertion': 'off',
 				'unicorn/require-post-message-target-origin': 'off',
 				'eslint/no-console': 'off',
+				// The pool's PoolJob/WindowTask records are one piece of shared mutable state the
+				// class owns: settlement paths (window landed, worker crashed, options adopted)
+				// mutate the same record through their parameters by design - copying it per call
+				// would fork the state the countdown and the gate are read from.
+				'eslint/no-param-reassign': 'off',
+				// The single-class pool (pool.ts) is deliberate: the v1 book split the same state
+				// machine across six modules whose only seams were call boundaries. Keep the file
+				// cap from splitting it again.
+				'eslint/max-lines': 'off',
 			},
 		},
 		{

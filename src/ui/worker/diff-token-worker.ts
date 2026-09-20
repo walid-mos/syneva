@@ -27,6 +27,8 @@ import type {
 	WorkerFailure,
 	WorkerParseDiff,
 	WorkerParseDiffSuccess,
+	WorkerPlainGridRequest,
+	WorkerPlainGridSuccess,
 	WorkerRequest,
 	WorkerResponse,
 	WorkerSuccess,
@@ -76,7 +78,7 @@ async function run(request: WorkerRequest): Promise<void> {
 			case 'open-diff':
 				rememberDiff(request.cacheKey, request.diff)
 				break
-			// Grammars arrive once per worker (job-board's attachLanguages) instead of riding every
+			// Grammars arrive once per worker (the pool's attachLanguages) instead of riding every
 			// window dispatch: a window is posted right after its attach, in message order.
 			case 'attach-languages':
 				attachLanguages(
@@ -86,6 +88,8 @@ async function run(request: WorkerRequest): Promise<void> {
 				break
 			case 'token-window':
 				return forWindow(request)
+			case 'plain-grid':
+				return forPlainGrid(request)
 			case 'parse-diff':
 				return forParseDiff(request)
 		}
@@ -100,9 +104,9 @@ async function run(request: WorkerRequest): Promise<void> {
 	}
 }
 
-// The prefetch's off-thread parse (render/parse-offload.ts): the very same call the main thread makes
-// (render/parse-input.ts), posted back as a structured clone of the metadata - `open-diff` already proves
-// that payload survives the boundary in the other direction.
+// The pool task's off-thread parse (protocol.ts WorkerParseDiff): the very same call the main
+// thread makes (render/parse-input.ts), posted back as a structured clone of the metadata -
+// `open-diff` already proves that payload survives the boundary in the other direction.
 function forParseDiff(request: WorkerParseDiff): void {
 	scope.postMessage({
 		type: 'success',
@@ -110,6 +114,40 @@ function forParseDiff(request: WorkerParseDiff): void {
 		id: request.id,
 		diff: parseFileDiff(request.input),
 	} satisfies WorkerParseDiffSuccess)
+}
+
+// The job's plain base (pool.ts sends it ahead of the window plan): the whole file rendered as
+// plain rows with every expansion state covered - the skeleton every token window merges over.
+function forPlainGrid(request: WorkerPlainGridRequest): void {
+	const options = renderOptions
+	const shiki = requireHighlighter('plain-grid')
+	if (!options)
+		throw new Error('plain-grid: worker has no adopted render options yet')
+	const diff = openDiffs.get(request.cacheKey)
+	if (!diff)
+		throw new Error(
+			`plain-grid: no open diff for cacheKey "${request.cacheKey}"`,
+		)
+	const start = performance.now()
+	// Same cast as the window task: @pierre types the parameter against the full shiki barrel;
+	// the lean shiki/core instance exposes the same runtime surface this call touches.
+	const plain = renderDiffWithHighlighter(
+		diff,
+		shiki as unknown as DiffsHighlighter,
+		options,
+		{ forcePlainText: true, expandedHunks: true },
+	)
+	post({
+		type: 'success',
+		requestType: 'plain-grid',
+		id: request.id,
+		cacheKey: request.cacheKey,
+		code: plain.code,
+		themeStyles: plain.themeStyles,
+		baseThemeType: plain.baseThemeType,
+		options,
+		ms: tenths(performance.now() - start),
+	} satisfies WorkerPlainGridSuccess)
 }
 
 // renderDiffWithHighlighter's row order (bucket concatenation, ascending content indexes per

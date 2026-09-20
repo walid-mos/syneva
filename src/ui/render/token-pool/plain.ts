@@ -103,7 +103,7 @@ export async function resolveLanguagesFor(
 	const missing = names.filter(name => !hasResolvedLanguages([name]))
 	if (missing.length > 0) {
 		// Chunk fetch + grammar registration: the long half, and the reason the resolve is started
-		// before the worker boot (see job-board's prewarmLanguages).
+		// before the worker boot (see pool.ts's prewarmLanguages).
 		const endLoad = perfSpan('pool:languages:load')
 		await resolveLanguages(missing)
 		endLoad({ missing: missing.length })

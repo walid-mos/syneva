@@ -110,8 +110,8 @@ function parseCached(
 	return parsed
 }
 
-// The parse's inputs, built here so a prefetch can hand the SAME payload to a worker
-// (render/parse-offload.ts) instead of rebuilding them at the call site.
+// The parse's inputs, built here so a prefetch can hand the SAME payload to the token pool's
+// parse task (render/worker-pool.ts parseDiffInPool) instead of rebuilding them at the call site.
 export function parseInputFor(
 	file: ReviewFile,
 	contents: FileContents,

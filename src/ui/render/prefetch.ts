@@ -1,5 +1,4 @@
 import { peekContents, prefetchContents } from '../contents'
-import { perfSpan } from '../perf'
 import { S } from '../store'
 
 import {
@@ -9,8 +8,7 @@ import {
 	seedPrefetchedMetadata,
 } from './diff-metadata'
 import { isExpandCapped } from './expand-cap'
-import { parseOffThread } from './parse-offload'
-import { prefetchPoolDiff } from './worker-pool'
+import { parseDiffInPool, prefetchPoolDiff } from './worker-pool'
 
 import type { ReviewState } from '../types'
 import type { DiffView } from './diff-key'
@@ -20,7 +18,7 @@ type ReviewFile = ReviewState['files'][number]
 // Token prefetch for the file the reviewer will most likely open next: the row below the one on screen.
 // The metric he feels is click -> colored rows, and the wait is a tokenize pass he watches as grey rows,
 // so warming the next file's viewport band while the pool is idle is what turns the next click into a
-// publish from cache (window-dispatch.ts caps the warm job to exactly that band).
+// publish from cache (pool.ts caps the warm job to one window per drain, never the last slot).
 //
 // Sequential order on purpose: the guide's own order lives in bindings/navigate.ts, and importing it
 // here would drag the navigation bindings into the render graph for a prefetch whose wrong guess costs
@@ -74,19 +72,18 @@ async function warm(next: ReviewFile): Promise<void> {
 			S.settings.unchangedLines === 'expand' &&
 			!isExpandCapped(contents.newContents),
 	}
-	// Eligibility and the parse's shape come from diff-metadata (it owns that decision), the off-thread
-	// attempt from parse-offload. When the worker answers, the click finds a memo hit and the main thread
-	// never diffed the file at all; when it declines (small file, no Worker) or fails, today's synchronous
-	// parse runs unchanged - so this can lose the warming, never the click.
+	// Eligibility and the parse's shape come from diff-metadata (it owns that decision), the
+	// off-thread attempt from the pool's parse task. When the pool answers, the click finds a memo
+	// hit and the main thread never diffed the file at all; when it declines (small file, failed
+	// boot) or fails, today's synchronous parse runs unchanged - so this can lose the warming,
+	// never the click. The offload's own stage: `render:parse` only covers what the MAIN thread
+	// paid, so this stamp is what tells a bench (or a slow desk in the field) whether the prefetch
+	// parsed off-thread at all.
 	const plan = prefetchableParse(next, view)
 	if (!plan) return
-	// The offload's own stage: `render:parse` only covers what the MAIN thread paid, so this stamp is
-	// what tells a bench (or a slow desk in the field) whether the prefetch parsed off-thread at all.
-	const endOffload = perfSpan('pool:parse:offloaded')
-	const offThread = await parseOffThread(
+	const offThread = await parseDiffInPool(
 		parseInputFor(next, plan.contents, plan.isViewOnly),
 	)
-	endOffload({ offloaded: !!offThread })
 	if (offThread) {
 		seedPrefetchedMetadata(next, plan.contents, plan.isViewOnly, offThread)
 		prefetchPoolDiff(offThread)

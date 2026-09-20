@@ -44,7 +44,7 @@ function afterRender(view: DiffView): void {
 // decision replay, and it blocks the first paint of the rows. It is also the first moment this pass
 // knows which grammar the file needs, so it starts the pool's grammar resolve here: that resolve is
 // a chunk fetch plus registration, longer than the worker boot, and prewarming it lets it overlap
-// the boot instead of queueing behind it (job-board.prewarmLanguages).
+// the boot instead of queueing behind it (pool.ts prewarmLanguages).
 function parseMetadata(file: ReviewFile, view: DiffView): FileDiffMetadata {
 	const endParse = perfSpan('render:parse')
 	const metadata = memoizedDiffMetadata(file, view)

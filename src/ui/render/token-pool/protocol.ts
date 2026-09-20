@@ -42,7 +42,7 @@ export type WorkerOpenDiff = {
 	diff: FileDiffMetadata
 }
 
-// Attach grammars to a worker ONCE (job-board's attachLanguages), instead of structured-cloning
+// Attach grammars to a worker ONCE (pool.ts's attachLanguages), instead of structured-cloning
 // the grammar data with every window dispatch. Ordered before the window that needs it, so the
 // worker never has to wait on it.
 export type WorkerAttachLanguages = {
@@ -61,17 +61,27 @@ type WorkerTokenWindow = {
 	window: WindowSpec
 }
 
+// The merge skeleton's plain base for one open diff: a full-file forcePlainText render with
+// every expansion state covered, one task to one worker ahead of the job's window plan. Every
+// window result merges over it (merge.ts), so the grid never has holes.
+export type WorkerPlainGridRequest = {
+	type: 'plain-grid'
+	id: string
+	cacheKey: string
+}
+
 export type WorkerRequest =
 	| WorkerInitialize
 	| WorkerSetRenderOptions
 	| WorkerOpenDiff
 	| WorkerAttachLanguages
 	| WorkerTokenWindow
+	| WorkerPlainGridRequest
 	| WorkerParseDiff
 
 // Requests the pool posts without awaiting a task result: the worker replies with a plain ack,
-// so they are baggage for the slot that carries them (job-fleet.ts registers them, or their acks
-// would free a worker that is still tokenizing).
+// so they are baggage for the slot that carries them (pool.ts's postBaggage registers them, or
+// their acks would free a worker that is still tokenizing).
 export type WorkerBaggage =
 	| Omit<WorkerOpenDiff, 'id'>
 	| Omit<WorkerAttachLanguages, 'id'>
@@ -100,17 +110,32 @@ export type WorkerTokenWindowSuccess = {
 	timings: WorkerTimings
 }
 
+// The plain base: the whole file's rows plus the theme styles the merged grid carries. `ms` is
+// the render cost, so a slow base is attributable in the perf timeline like a window is.
+export type WorkerPlainGridSuccess = {
+	type: 'success'
+	requestType: 'plain-grid'
+	id: string
+	cacheKey: string
+	code: ThemedDiffResult['code']
+	themeStyles: ThemedDiffResult['themeStyles']
+	baseThemeType: ThemedDiffResult['baseThemeType']
+	options: WorkerRenderingOptions
+	ms: number
+}
+
 export type WorkerSuccess =
 	| { type: 'success'; requestType: 'initialize'; id: string }
 	| { type: 'success'; requestType: 'set-render-options'; id: string }
 	| { type: 'success'; requestType: 'open-diff'; id: string }
 	| { type: 'success'; requestType: 'attach-languages'; id: string }
 	| WorkerTokenWindowSuccess
+	| WorkerPlainGridSuccess
 	| WorkerParseDiffSuccess
 
-// The prefetch's parse, run off the main thread (render/parse-offload.ts). Self-contained by design: no
-// initialize, no cacheKey, no job - a DEDICATED worker instance on this same script answers it, so the
-// pool's job accounting and the visible file's window queue are untouched by a prefetch.
+// A click-path or prefetch parse (render/prefetch.ts, render/placeholder.ts), run as a pool
+// task that needs no shiki: it dispatches ahead of the window work and streams while the
+// initialize round trips run. Self-contained by design: no initialize, no cacheKey, no job.
 // The inputs are parse-input.ts's, i.e. exactly the ones the main-thread parse would use.
 export type WorkerParseDiff = {
 	type: 'parse-diff'
