@@ -11,7 +11,7 @@ Syneva is a CLI (`syneva`) that serves a localhost browser UI for reviewing a gi
 ```bash
 pnpm dev          # esbuild --watch for the UI + run the CLI from source via tsx
 pnpm build        # tsc (backend) + tsc -p tsconfig.ui.json (UI typecheck) + esbuild bundle + copy index.html
-pnpm check        # typecheck every world, no emit - 3 configs: tsconfig.json (backend emit, checked noEmit), tsconfig.check.json (backend tests + extensions + lint configs, NodeNext), tsconfig.ui.json (browser world incl. its tests, bundler + DOM)
+pnpm check        # typecheck every world, no emit - 3 configs: tsconfig.json (backend emit, checked noEmit), tsconfig.test.json (backend tests + extensions + lint configs, NodeNext), tsconfig.ui.json (browser world incl. its tests, bundler + DOM)
 pnpm lint         # oxlint (shared @nextnode-solutions/standards preset)
 pnpm lint:types   # oxlint --type-aware (tsgolint)
 pnpm lint:fix     # oxlint --fix — safe fixes only, never --fix-dangerously

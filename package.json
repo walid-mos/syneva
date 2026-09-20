@@ -68,7 +68,7 @@
     "dev": "node scripts/build-ui.mjs --watch & tsx src/cli.ts",
     "build": "tsc && tsc -p tsconfig.ui.json && node scripts/build-ui.mjs && cp src/ui/index.html dist/index.html",
     "start": "node dist/cli.js",
-    "check": "tsc --noEmit && tsc -p tsconfig.check.json && tsc -p tsconfig.ui.json",
+    "check": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.ui.json",
     "lint": "oxlint --deny-warnings",
     "lint:types": "oxlint --type-aware --deny-warnings",
     "lint:fix": "oxlint --fix",

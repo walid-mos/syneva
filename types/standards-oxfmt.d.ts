@@ -3,7 +3,7 @@ import type { OxfmtConfig } from 'oxfmt'
 // The shared preset ships its oxfmt options as a plain object literal, so TypeScript widens
 // enum-like values (`arrowParens: string`) and spreading it into `oxfmt`'s `defineConfig` fails
 // with TS2345 - even though the preset's `base.js` is exactly the shape `OxfmtConfig` describes.
-// The oxfmt preset specifier is resolved by the `paths` mapping in `tsconfig.check.json`
+// The oxfmt preset specifier is resolved by the `paths` mapping in `tsconfig.test.json`
 // so the config files are type-checked
 // against the real contract instead of silencing the error with an `as` assertion.
 // `ignorePatterns` is required (not optional as in `OxfmtConfig`): the preset always ships it and
