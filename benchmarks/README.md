@@ -49,8 +49,13 @@ waterfall reads it as the cost of that fetch.
 `stagesMs` is the cold-open timeline of the UI, in ms from navigation start: `module` (script
 evaluation), `contents` (first file's diff parsed), `plainPaint` (uncolored rows visible),
 `bootStart`/`bootDone` (token pool), `jobOpen`, `firstWindowSent`, `firstColor` (the metric that
-matters: colored rows on screen), `final` (whole file tokenized). `pool.windowSent` vs `windowDone`
-is the duplicate-dispatch check; `boots` is the pool-boot-idempotency check.
+matters: colored rows on screen), `final` (whole file tokenized). `ttcStart` is optional and marks
+the interaction that starts the reviewer's own clock - a file-row click on the switch fixtures, the
+oversized-guard dismissal on `bigfile` - still in ms from navigation start, so it sits in the same
+waterfall. TTC (time to colour, the reviewer-perceived wait) is derived, never stored:
+`firstColor − ttcStart`; a pure cold open has no interaction to clock from and omits `ttcStart`, so
+it has no TTC. `pool.windowSent` vs `windowDone` is the duplicate-dispatch check; `boots` is the
+pool-boot-idempotency check.
 
 ## Reading the dashboard
 

@@ -1855,7 +1855,8 @@
 				"jobOpen": 1992,
 				"firstWindowSent": 2068.9,
 				"firstColor": 2080.9,
-				"final": 3037.7
+				"final": 3037.7,
+				"ttcStart": 1814
 			},
 			"pool": {
 				"boots": 1,
@@ -1880,7 +1881,8 @@
 				"jobOpen": 2344.4,
 				"firstWindowSent": 2417.8,
 				"firstColor": 2435.2,
-				"final": 3393.8
+				"final": 3393.8,
+				"ttcStart": 2181
 			},
 			"pool": {
 				"boots": 1,
@@ -2045,6 +2047,19 @@
 					return typeof v === 'number' && isFinite(v) ? v : null
 				}
 				const firstColor = run => stage(run, 'firstColor')
+				// TTC (time to colour): the reviewer's own clock - from the interaction that opened the
+				// view (a file-row click, an oversized-guard dismissal, recorded as the ttcStart stage)
+				// to the first coloured rows on screen. A pure cold open has no interaction to clock
+				// from, so its run omits ttcStart and has no TTC. The formula is stated wherever TTC
+				// renders: first colour − ttc start.
+				const ttc = run => {
+					const s = stage(run, 'ttcStart')
+					const c = firstColor(run)
+					return s == null || c == null ? null : Math.max(0, c - s)
+				}
+				// Compare + run-table cells: TTC is derived (first colour − ttc start), not a stored stage.
+				const cellValue = (run, key) =>
+					key === 'ttc' ? ttc(run) : stage(run, key)
 				const fixtureOrderOf = () =>
 					runs
 						.map(r => r.fixture)
@@ -2771,6 +2786,13 @@
 					if (fixtures[r.fixture] && fixtures[r.fixture].detail)
 						nodes.push(ttRow('fixture', fixtures[r.fixture].detail))
 					nodes.push(ttRow('first colour', fmtMs(v)))
+					if (ttc(r) != null)
+						nodes.push(
+							ttRow(
+								'time to colour',
+								fmtMs(ttc(r)) + ' (first colour − ttc start)',
+							),
+						)
 					nodes.push(
 						ttRow(
 							'Δ vs previous',
@@ -3646,6 +3668,7 @@
 					'jobOpen',
 					'firstWindowSent',
 					'firstColor',
+					'ttc',
 					'final',
 				]
 				const STAGE_LABELS = {
@@ -3657,6 +3680,8 @@
 					jobOpen: 'job open',
 					firstWindowSent: 'first window',
 					firstColor: 'first colour',
+					ttc: 'TTC (first colour − ttc start)',
+					ttcStart: 'ttc start',
 					final: 'final',
 				}
 				function compareBar(av, bv, maxVal) {
@@ -3710,8 +3735,10 @@
 
 					const aKeys = Object.keys(a.stagesMs || {})
 					const bKeys = Object.keys(b.stagesMs || {})
-					const ordered = STAGE_ORDER.filter(
-						k => aKeys.includes(k) || bKeys.includes(k),
+					const ordered = STAGE_ORDER.filter(k =>
+						k === 'ttc'
+							? ttc(a) != null || ttc(b) != null
+							: aKeys.includes(k) || bKeys.includes(k),
 					)
 					const extras = aKeys
 						.concat(bKeys)
@@ -3725,15 +3752,15 @@
 						(m, k) =>
 							Math.max(
 								m,
-								stage(a, k) == null ? 0 : stage(a, k),
-								stage(b, k) == null ? 0 : stage(b, k),
+								cellValue(a, k) == null ? 0 : cellValue(a, k),
+								cellValue(b, k) == null ? 0 : cellValue(b, k),
 							),
 						1,
 					)
 
 					const rows = allKeys.map(k => {
-						const av = stage(a, k),
-							bv = stage(b, k)
+						const av = cellValue(a, k),
+							bv = cellValue(b, k)
 						const delta = av != null && bv != null ? bv - av : null
 						const rel =
 							av != null && bv != null && av !== 0
@@ -4455,6 +4482,12 @@
 						ttRow('milestone', meta.label),
 						ttRow('date', r.date || '—'),
 						ttRow('first colour', fmtMs(firstColor(r))),
+						ttRow(
+							'time to colour',
+							ttc(r) == null
+								? '—'
+								: fmtMs(ttc(r)) + ' (first colour − ttc start)',
+						),
 						ttRow('final', fmtMs(stage(r, 'final'))),
 					]
 				}
@@ -4485,6 +4518,7 @@
 						['jobOpen', 'job open'],
 						['firstWindowSent', 'first window'],
 						['firstColor', 'first colour'],
+						['ttc', 'TTC'],
 						['final', 'final'],
 					]
 					const rows = runs.map((r, i) => {
@@ -4505,7 +4539,7 @@
 							h('td', { class: 'dim', text: r.date || '—' }),
 						]
 						cols.forEach(c => {
-							const v = stage(r, c[0])
+							const v = cellValue(r, c[0])
 							cells.push(
 								h(
 									'td',

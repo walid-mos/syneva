@@ -1087,7 +1087,8 @@
 				"jobOpen": 1992,
 				"firstWindowSent": 2068.9,
 				"firstColor": 2080.9,
-				"final": 3037.7
+				"final": 3037.7,
+				"ttcStart": 1814
 			},
 			"pool": {
 				"boots": 1,
@@ -1112,7 +1113,8 @@
 				"jobOpen": 2344.4,
 				"firstWindowSent": 2417.8,
 				"firstColor": 2435.2,
-				"final": 3393.8
+				"final": 3393.8,
+				"ttcStart": 2181
 			},
 			"pool": {
 				"boots": 1,
