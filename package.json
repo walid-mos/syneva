@@ -83,7 +83,7 @@
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",
-    "@nextnode-solutions/standards": "1.24.0",
+    "@nextnode-solutions/standards": "1.25.0",
     "@types/alpinejs": "^3.13.11",
     "@types/alpinejs__persist": "^3.13.4",
     "@types/markdown-it": "^14.1.2",

@@ -3,12 +3,7 @@
 	"compilerOptions": {
 		"noEmit": true,
 		"declaration": false,
-		"rootDir": ".",
-		"paths": {
-			"@nextnode-solutions/standards/oxfmt": [
-				"./types/standards-oxfmt.d.ts"
-			]
-		}
+		"rootDir": "."
 	},
 	// One noEmit pass for every NodeNext-checked file that never ships in dist:
 	// backend tests, the pi extensions, and the lint/format configs. UI stays out
@@ -18,8 +13,7 @@
 		"src/**/*.test.ts",
 		"extensions/**/*.ts",
 		"oxlint.config.ts",
-		"oxfmt.config.ts",
-		"types/**/*.d.ts"
+		"oxfmt.config.ts"
 	],
 	// Keep the inherited src/ui exclusion and drop the test exclusion.
 	"exclude": ["src/ui/**"]
