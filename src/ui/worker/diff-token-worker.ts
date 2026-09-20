@@ -254,10 +254,14 @@ async function forWindow(
 	// Cast: @pierre types the parameter against the full shiki barrel; the lean shiki/core
 	// instance exposes the same runtime surface this call touches.
 	const startTokenize = performance.now()
+	// expandedHunks: the positions were collected for EVERY covered row (the merge skeleton
+	// covers every expansion state), so the slice must render expanded too - a collapsed render
+	// would emit only the change rows and misalign every scatter position.
 	const tokenized = renderDiffWithHighlighter(
 		sliced.slice,
 		shiki as unknown as DiffsHighlighter,
 		options,
+		{ forcePlainText: false, expandedHunks: true },
 	)
 	const tokenizeMs = performance.now() - startTokenize
 	assertRowAlignment(request.window, tokenized, sliced.positions)

@@ -9,11 +9,11 @@
 //   plain skeleton - so a converge pass can never throw token rows away.
 // - The merged grid always covers every row (plain where tokens have not landed): @pierre indexes
 //   rows by per-side content index, so one full-coverage grid serves every range and expansion.
-// - The mount happens once the visible band has MERGED, not merely once the plain base landed:
-//   the cold-open path (placeholder.ts) holds the pane on `openFileJob`'s gate until the band
-//   chunks are folded in, so the ONE mount paints token rows and no publish ever repaints a
-//   plain flash. Small files skip the gate: their base is a synchronous main-thread plain render
-//   (INLINE_MAX_CHARS) and @pierre's own highlight request streams the windows after the mount.
+// - Every publish lands as a highlighted flip (publishNow clears the renderer's renderCache
+//   first): the pinned renderer repaints mounted rows only on a range change or that one-time
+//   flip - never on a later publish - so without the forced flip a stationary reviewer would
+//   stare at plain rows forever while the grid behind them colors. The mount itself is plain
+//   rows (the base/skeleton); the first publish repaints them colored.
 // - A window that never answers must not hold the countdown (and the final) forever: tasks stuck
 //   in `sent` past WINDOW_TIMEOUT_MS are reaped as failures on every landing - passive, no timers.
 // - Render options are options-scoped: a drift invalidates jobs and caches, workers adopt in
@@ -64,6 +64,9 @@ export type PublishRenderer = {
 		options: WorkerRenderingOptions,
 		highlighted?: boolean,
 	) => void
+	// The pinned renderer's repaint trigger (a private constructor param = the island's
+	// rerender): public at runtime, reachable only through this duck.
+	onRenderUpdate?: () => unknown
 }
 
 // Below this many characters of old+new side the parse AND the plain base are a few milliseconds
@@ -98,8 +101,6 @@ export const BAND_CHUNKS = WORKER_POOL_SIZE
 type WindowTask = {
 	spec: WindowSpec
 	status: 'queued' | 'sent' | 'done'
-	// Part of the mount gate's prefix: the visible band's chunks, whose merge opens the gate.
-	band: boolean
 }
 type InFlight = {
 	jobKey: string
@@ -123,22 +124,12 @@ type PoolJob = {
 	merged: MergeGrid | undefined
 	windows: WindowTask[]
 	remaining: number
-	// The mount gate's countdown: the visible band's chunks still outstanding. The gate opens at
-	// zero (or immediately for a job with no viewport, whose plan has no band prefix).
-	bandLeft: number
 	instances: Set<PublishRenderer>
 	languages: ResolvedLanguage[] | undefined
 	publishFrame: number | undefined
 	// A job nobody is attached to (the next-file prefetch): it moves only on slots the visible
 	// file's job leaves free, capped to one viewport band.
 	isWarm: boolean
-	// The click path is waiting on this job's gate (the cold-open hold): the pool dispatches it
-	// like an attached job, because no @pierre instance can exist before the mount it unblocks.
-	gated: boolean
-	// The mount gate (placeholder.ts): resolves true once the grid is colored enough to mount,
-	// false when the pipeline failed (the plain fetch serves the mount instead). Single waiter by
-	// design - the cold-open hold is the only caller that awaits a job it did not open.
-	resolveReady: ((ok: boolean) => void) | undefined
 	// The stream gate: the freshest statement of what the reviewer is looking at.
 	viewport: WindowViewport | undefined
 }
@@ -414,16 +405,6 @@ export class TokenPool {
 		this.openJob(diff, undefined, true)
 	}
 
-	// Whether the mount can proceed colored right now: a settled final, a live job whose visible
-	// band has merged - or a diff the pool will never tokenize (plain, failed boot), whose mount
-	// the plain fetch serves.
-	isGridReady(diff: FileDiffMetadata): boolean {
-		if (this.bootFailed || isPlainDiff(diff) || !diff.cacheKey) return true
-		if (this.finals.has(diff.cacheKey)) return true
-		const job = this.jobs.get(diff.cacheKey)
-		return !!job && !!job.merged && job.bandLeft === 0
-	}
-
 	cleanUpTasks(instance: PublishRenderer): void {
 		// Detach only: sent windows keep running so the result lands in the cache (a revisit
 		// reuses it instead of re-tokenizing).
@@ -463,14 +444,10 @@ export class TokenPool {
 		this.waiting.clear()
 		this.tasks.clear()
 		for (const parse of this.parseQueue.splice(0)) parse.accept(undefined)
-		for (const base of this.pendingBases.splice(0))
-			base.job.resolveReady?.(false)
+		this.pendingBases = []
 		// A copy: settleJobFailed mutates the same map the loop reads.
 		const jobs = [...this.jobs.values()]
-		for (const job of jobs) {
-			job.resolveReady?.(!!job.merged)
-			job.resolveReady = undefined
-		}
+		for (const job of jobs) this.settleJobFailed(job)
 		this.jobs.clear()
 		this.finals.clear()
 		this.skeletons.clear()
@@ -507,14 +484,8 @@ export class TokenPool {
 		if (!this.adoptionPending) return
 		this.adoptionPending = false
 		try {
-			// Token state is options-scoped and dies with the version. A mount gate waiting on a
-			// job that will never finish under the old options must not hold the pane: resolve
-			// it false - the mount's plain fetch serves the NEW options' plain render.
-			const jobs = [...this.jobs.values()]
-			for (const job of jobs) {
-				job.resolveReady?.(false)
-				job.resolveReady = undefined
-			}
+			// Token state is options-scoped and dies with the version: the jobs are dropped and the
+			// mounts re-render from the NEW options' plain fetch.
 			this.jobs.clear()
 			this.finals.clear()
 			this.skeletons.clear()
@@ -599,43 +570,18 @@ export class TokenPool {
 		})
 	}
 
-	// The whole file pipeline for one diff: plain base (worker for big files, main thread for
-	// small ones) + every token window, band-first. Resolves true once the mount can paint
-	// colored rows (base landed AND the visible band merged), false when the pipeline failed.
-	// A warm job (no instance yet) is dispatched only on slots the visible file leaves free.
-	async openFileJob(
+	// The warm pipeline for a diff nobody is looking at yet (the next-file prefetch): opens the
+	// job once the boot has settled, so its windows ride the idle slots. The cold path has no
+	// caller here - @pierre's own highlight request opens the job at mount time
+	// (highlightDiffAST), attached from its first window.
+	async primeJob(
 		diff: FileDiffMetadata,
 		viewport: WindowViewport | undefined,
-		isWarm = false,
-	): Promise<boolean> {
-		if (!diff.cacheKey || isPlainDiff(diff)) return false
-		const existing = this.jobs.get(diff.cacheKey)
-		if (existing) return this.awaitJob(existing)
+	): Promise<void> {
+		if (!diff.cacheKey || isPlainDiff(diff)) return
 		await this.warmBoot()
-		if (this.bootFailed) return false
-		// A second caller may have opened the job while the boot settled.
-		const raced = this.jobs.get(diff.cacheKey)
-		if (raced) return this.awaitJob(raced)
-		const job = this.openJob(diff, undefined, isWarm, viewport)
-		if (!job) return false
-		if (job.merged) return true
-		// The gate waiter makes the job dispatchable (drainWindows): a gated job has no @pierre
-		// instance yet - the mount is what this promise unblocks - so attachment cannot be the
-		// dispatch signal for it.
-		if (!isWarm) job.gated = true
-		this.drain()
-		return new Promise(resolve => {
-			job.resolveReady = resolve
-		})
-	}
-
-	// ══════════════ job lifecycle ══════════════
-
-	private awaitJob(job: PoolJob): Promise<boolean> {
-		if (job.merged && job.bandLeft === 0) return Promise.resolve(true)
-		return new Promise(resolve => {
-			job.resolveReady = resolve
-		})
+		if (this.bootFailed || this.jobs.has(diff.cacheKey)) return
+		this.openJob(diff, undefined, true, viewport)
 	}
 
 	// Open (or fail) synchronously; the base is queued for the drain. Undefined means there is
@@ -653,10 +599,8 @@ export class TokenPool {
 		const windows: WindowTask[] = plan.map(spec => ({
 			spec,
 			status: 'queued',
-			band: false,
 		}))
 		const merged = this.inlineBase(diff, cacheKey)
-		const bandLeft = this.markBandPrefix(windows, viewport)
 		perfMark('pool:job:open', {
 			key: cacheKey,
 			windows: plan.length,
@@ -670,13 +614,10 @@ export class TokenPool {
 			merged,
 			windows,
 			remaining: plan.length,
-			bandLeft,
 			instances: instance ? new Set([instance]) : new Set(),
 			languages: this.languageValues.get(cacheKey),
 			publishFrame: undefined,
 			isWarm,
-			gated: false,
-			resolveReady: undefined,
 			viewport,
 		}
 		this.jobs.set(cacheKey, job)
@@ -707,39 +648,8 @@ export class TokenPool {
 		return new MergeGrid(createSkeleton(plain))
 	}
 
-	// The band chunks are the plan's prefix (planWindowOrder prepends them): they are the mount
-	// gate's countdown, so the ONE mount paints token rows. Returns how many windows that is.
-	private markBandPrefix(
-		windows: WindowTask[],
-		viewport: WindowViewport | undefined,
-	): number {
-		if (!viewport) return 0
-		const bandFrom = viewport.startingLine
-		const bandTo = bandFrom + viewport.totalLines
-		let bandLeft = 0
-		for (const { spec } of windows) {
-			if (
-				spec.startingLine >= bandTo ||
-				spec.startingLine + spec.totalLines <= bandFrom
-			)
-				break
-			windows[bandLeft].band = true
-			bandLeft++
-		}
-		return bandLeft
-	}
-
-	// The mount gate. Called from every settle path; idempotent per job via resolveReady.
-	private tryOpenGate(job: PoolJob): void {
-		if (!job.resolveReady || !job.merged || job.bandLeft > 0) return
-		job.resolveReady(true)
-		job.resolveReady = undefined
-	}
-
 	private settleJobFailed(job: PoolJob): void {
 		this.jobs.delete(job.cacheKey)
-		job.resolveReady?.(false)
-		job.resolveReady = undefined
 	}
 
 	// The whole-file countdown reached zero: publish the last rows synchronously (the rAF would
@@ -748,8 +658,6 @@ export class TokenPool {
 		const grid = job.merged
 		this.publishNow(job)
 		this.jobs.delete(job.cacheKey)
-		job.resolveReady?.(!!grid)
-		job.resolveReady = undefined
 		if (grid) {
 			this.finals.set(job.cacheKey, {
 				result: grid.result(),
@@ -761,16 +669,14 @@ export class TokenPool {
 	}
 
 	// One merged window settled (success, failure, reaper, or worker crash): the shared tail that
-	// keeps the countdown, the gate and the publish cadence honest.
+	// keeps the countdown and the publish cadence honest.
 	private finishTask(job: PoolJob, task: WindowTask): void {
 		task.status = 'done'
 		job.remaining--
-		if (task.band && job.bandLeft > 0) job.bandLeft--
 		if (job.remaining === 0) {
 			this.settleJobFinal(job)
 			return
 		}
-		this.tryOpenGate(job)
 		this.schedulePublish(job)
 		this.drain()
 	}
@@ -828,7 +734,7 @@ export class TokenPool {
 		const attached: string[] = []
 		let newestWarm: string | undefined
 		for (const [cacheKey, job] of this.jobs) {
-			if (job.instances.size > 0 || job.gated) attached.push(cacheKey)
+			if (job.instances.size > 0) attached.push(cacheKey)
 			else if (
 				job.isWarm &&
 				job.windows.filter(window => window.status === 'done').length <
@@ -1082,10 +988,9 @@ export class TokenPool {
 			}),
 		)
 		this.skeletons.delete(job.cacheKey)
-		// Windows can move now that the grid exists; then the gate (a job without a band
-		// prefix opens here) and a publish for any instance that attached early.
+		// Windows can move now that the grid exists; a publish follows for any instance that
+		// attached early (the mount's own highlight request).
 		this.drain()
-		this.tryOpenGate(job)
 		this.schedulePublish(job)
 	}
 
@@ -1217,9 +1122,9 @@ export class TokenPool {
 
 	// ══════════════ publishes ══════════════
 
-	// One merged grid per rAF, always highlighted=true: the first publish flips @pierre's
-	// renderCache to highlighted and repaints; later ones refresh renderCache.result (color
-	// spreads on the renderer's own scroll-driven passes - it never refetches plain over them).
+	// One merged grid per rAF, always highlighted=true: publishNow clears each instance's
+	// renderCache first, so the publish lands as the highlighted flip and the pinned renderer's
+	// own flip-repaint paints the merged grid's token rows into the DOM.
 	private schedulePublish(job: PoolJob): void {
 		if (job.publishFrame || !job.merged) return
 		const frame = requestAnimationFrame(() => {
@@ -1233,13 +1138,22 @@ export class TokenPool {
 	private publishNow(job: PoolJob): void {
 		if (!job.merged) return
 		const endSpan = perfSpan('pool:publish')
-		for (const instance of job.instances)
+		for (const instance of job.instances) {
+			// The pinned renderer repaints mounted rows only through its flip: onHighlightSuccess
+			// fires its private onRenderUpdate (= the island's rerender) ONLY when the cache was
+			// not already highlighted - so after the first publish, later publishes refresh
+			// cache.result while the DOM keeps the stale paint. Fire the repaint trigger on every
+			// publish; the cache stays (clearing it would make onHighlightSuccess early-return and
+			// swallow the update). Note onHighlightSuccess also resets renderRange to undefined,
+			// so the refreshed cache is valid for whatever window is on screen.
 			instance.onHighlightSuccess(
 				job.diff,
 				job.merged.result(),
 				job.options,
 				true,
 			)
+			instance.onRenderUpdate?.()
+		}
 		endSpan({
 			key: job.cacheKey,
 			landed: job.windows.filter(window => window.status === 'done')
@@ -1272,7 +1186,8 @@ export class TokenPool {
 		this.fallbackHighlighter ??= this.bootFallbackHighlighter()
 	}
 
-	private noteViewport(
+	// The stream gate: the freshest statement of what the reviewer is looking at.
+	noteViewport(
 		cacheKey: string | undefined,
 		startingLine: number,
 		totalLines: number,

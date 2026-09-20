@@ -235,6 +235,20 @@ export class VirtualDiff extends VirtualizedFileDiff<AnnotationMeta> {
 		return { top: (this.top ?? 0) + location.top, height: location.height }
 	}
 
+	// The pool's stream gate needs the slice on screen, but a cache-hit range (the renderCache
+	// holds the full grid) serves rows without a plain fetch - so the render layer reports it
+	// from the committed rows instead. The first row's addition index is the viewport start;
+	// the mounted count is its length.
+	renderedViewport(): { start: number; count: number } | undefined {
+		const rows =
+			this.fileContainer?.shadowRoot?.querySelectorAll('[data-line]')
+		if (!rows?.length) return undefined
+		const parts = rows[0]?.getAttribute('data-line-index')?.split(',') ?? []
+		const start = Number(parts[0])
+		if (!Number.isFinite(start)) return undefined
+		return { start, count: rows.length }
+	}
+
 	rows(): Row[] {
 		if (!this.fileDiff) return []
 		const expanded = this.options.expandUnchanged

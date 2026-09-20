@@ -7,12 +7,14 @@ import type { FileDiffMetadata } from '@pierre/diffs'
 import type { WorkerPoolManager } from '@pierre/diffs/worker'
 import type { ParseInput } from './parse-input'
 import type { WindowViewport } from './token-pool/windows'
+import type { VirtualDiff } from './virtual-diff'
 
 // The token pool: Shiki tokenization/highlighting runs in Web Workers on windowed slices of each
 // diff (render/token-pool/pool.ts) instead of one whole-file task, so a 16k-line sparse file
 // streams colored rows in ~1 s instead of paying a ~53 s single task. The pool owns the plain
-// base, the merge grid and the publishes; the mount (placeholder.ts) holds on `openPoolJob`
-// until the visible band has merged, so a cold open paints token rows from the first frame.
+// base, the merge grid and the publishes; the mount paints plain rows and every publish lands
+// as a highlighted flip (pool.ts publishNow clears the renderer's cache first), so color
+// always reaches the rows on screen.
 //
 // Token-relevant settings (theme, per-line diff) must reach the POOL - syncPoolRenderOptions()
 // at every render pass - or cached token grids go stale for the current settings (the pool
@@ -73,34 +75,42 @@ export function parseDiffInPool(
 	return ensurePool().parseDiff(input)
 }
 
-// The whole-file pipeline for one diff: plain base + every token window, band-first. Resolves
-// true once the visible band has merged (the mount paints token rows), false when the pool will
-// not tokenize the diff (plain, failed boot) and the plain fetch serves the mount instead.
-export function openPoolJob(
-	diff: FileDiffMetadata,
-	viewport?: WindowViewport,
-	isWarm = false,
-): Promise<boolean> {
-	return ensurePool().openFileJob(diff, viewport, isWarm)
-}
-
-// Whether the mount can proceed colored right now: a settled grid, a live band-merged job - or
-// a diff the pool will never tokenize. The cold-open hold (placeholder.ts) asks this instead of
-// peeking at pool internals.
-export function poolGridReady(diff: FileDiffMetadata): boolean {
-	return ensurePool().isGridReady(diff)
-}
-
-// Warm the NEXT file's viewport band while the pool is otherwise idle, so the switch publishes colored
-// rows from cache. render/prefetch.ts decides which file and when; the pool only decides whether its
-// workers may spend idle time on it (one window of warm budget per drain, never the last free slot).
-// A viewport seeds the primed job's plan (windows.ts is LPT-ordered without one): the cold-open overlay
-// knows the head rows it paints before any renderer exists.
+// Warm the NEXT file's viewport band while the pool is otherwise idle, so the switch finds
+// colored rows in the caches. render/prefetch.ts decides which file and when; the pool only
+// decides whether its workers may spend idle time on it (one window of warm budget per drain,
+// never the last free slot).
 export function prefetchPoolDiff(
 	diff: FileDiffMetadata,
 	viewport?: WindowViewport,
 ): void {
-	void openPoolJob(diff, viewport, true)
+	void ensurePool().primeJob(diff, viewport)
+}
+
+// The rendered slice is also the reviewer's viewport - but a cache-hit range (the renderer's
+// renderCache holds the full grid) serves rows without a plain fetch, so the pool would never
+// learn the reviewer jumped. Called from onPostRender every time rows commit.
+//
+// The renderer's render range counts EMITTED unified rows (a 1:1 change emits a deletion row
+// and an addition row for one content slot), while the pool's window plan counts content slots
+// - the two spaces drift apart as changes accumulate, so the range is converted through the
+// same emission list the island already caches (its rows() = virtualLines with the renderer's
+// own expansion options). The first emitted row's line number minus one is its content slot.
+export function noteRenderedViewport(inst: VirtualDiff): void {
+	const key = inst.fileDiff?.cacheKey
+	if (!key) return
+	const view = inst.renderedViewport()
+	if (!view) return
+	const rows = inst.rows()
+	const first = rows.at(view.start)
+	const last = rows.at(view.start + view.count - 1)
+	if (!first || !last) {
+		ensurePool().noteViewport(key, view.start, view.count)
+		return
+	}
+	const start = first.line - 1
+	const total = last.line - start
+	if (!Number.isFinite(start) || total <= 0) return
+	ensurePool().noteViewport(key, start, total)
 }
 
 // Boot the pool on idle, while the desk state is still in flight.

@@ -2,7 +2,9 @@
 // parse is size-dependent (measured 187 ms at 3 700 lines, 1 339 ms when the file is fully rewritten)
 // - no frame, no rows, nothing readable until it returns. The placeholder breaks that dependency: the
 // opening rows of the new side go up as soon as the contents are in hand, while the parse runs in the
-// token pool and the grid job tokenizes the head band; the mount then happens once, on colored rows.
+// token pool. When the parse lands, the mount paints plain rows immediately; the job opens through
+// @pierre's own highlight request and every publish repaints the island (worker-pool.ts), so the
+// color follows the moment windows land - the reviewer stationary included.
 //
 // It is deliberately not a diff: the old side and the change marks are exactly what the parse
 // produces, so there is nothing to show of them without it. What it does show is genuinely the file
@@ -22,17 +24,14 @@ import { clearReplacementViews } from './diff-entry'
 import {
 	isParseMemoized,
 	isViewOnly,
-	memoizedDiffMetadata,
 	parseInputFor,
 	seedPrefetchedMetadata,
 } from './diff-metadata'
 import { placeholderRows, shouldPlaceholder } from './placeholder-slice'
-import { openPoolJob, parseDiffInPool, poolGridReady } from './worker-pool'
+import { parseDiffInPool } from './worker-pool'
 
-import type { FileDiffMetadata } from '@pierre/diffs'
 import type { ReviewState } from '../types'
 import type { DiffView } from './diff-key'
-import type { WindowViewport } from './token-pool/windows'
 
 type ReviewFile = ReviewState['files'][number]
 
@@ -49,16 +48,15 @@ let watchFrames = 0
 // provisional rows again and never reach the diff.
 let placeholderKey: string | undefined
 
-// The render keys whose pool pipeline (off-thread parse + grid job) is still running: the pass
-// the overlay re-scheduled must stand aside - the settle deletes the key, seeds the parse memo
-// and re-renders, so no pass parses inline behind a pipeline that already owns the file.
-const pendingPipeline = new Set<string>()
+// The render keys whose off-thread parse is still running: the pass the overlay re-scheduled must
+// stand aside - the settle deletes the key, seeds the parse memo and re-renders, so no pass parses
+// inline behind a pipeline that already owns the file.
+const pendingParse = new Set<string>()
 
 // The cold-open policy. A diff whose parse is not memoized and whose file is long enough that the
-// parse would be a visible wait paints provisional rows and hands the parse + the grid job to the
-// pool. A memoized parse without a colored grid holds on the job instead: the mount happens once
-// the visible band has merged, so the ONE mount paints token rows - never a plain flash that a
-// publish would repaint. Returns true when it painted the hold - the caller must then skip this
+// parse would be a visible wait paints provisional rows and hands the parse to the pool; the settle
+// re-renders and the mount paints plain rows that the publishes color in. A memoized parse mounts
+// at once - same path. Returns true when it painted the hold - the caller must then skip this
 // pass entirely and let the scheduled re-render do the work.
 export function paintColdOpen(
 	host: HTMLElement,
@@ -67,20 +65,11 @@ export function paintColdOpen(
 	key: string,
 ): boolean {
 	if (placeholderKey === key) {
-		// The pass after the overlay: stand aside while the pool pipeline runs; its settle deletes
-		// the key and re-renders. A settled pipeline falls through to the mount.
-		return pendingPipeline.has(key)
+		// The pass after the overlay: stand aside while the pool's parse runs; its settle deletes
+		// the key and re-renders.
+		return pendingParse.has(key)
 	}
-	if (isParseMemoized(file, view)) {
-		// The parse is already paid. What the mount needs now is a colored grid: when the pool can
-		// serve one (settled final, live band-merged job, or a diff it will never tokenize), the
-		// mount proceeds at once - memoizedDiffMetadata is a memo hit here, and what it builds is
-		// exactly what the pass below would rebuild.
-		const metadata = memoizedDiffMetadata(file, view)
-		if (poolGridReady(metadata)) return false
-		holdForGrid(host, key, metadata, cur)
-		return true
-	}
+	if (isParseMemoized(file, view)) return false
 	if (!shouldPlaceholder(cur.newContents)) return false
 	placeholderKey = key
 	perfMark('render:placeholder')
@@ -92,25 +81,19 @@ export function paintColdOpen(
 	if (paintPlaceholderOverlay(host, cur.newContents))
 		clearReplacementViews(host)
 	// Hand the click's parse to the pool NOW (a priority task, no shiki needed - it streams while
-	// the worker boot runs): the overlay holds the pane while the workers diff and tokenize, and
-	// the resolve seeds the parse memo and opens the job whose band merge re-renders. A declined
-	// or failed parse resolves undefined and the re-scheduled pass below falls back to today's
-	// inline parse - this only ever removes work from the click.
+	// the worker boot runs): the overlay holds the pane while the workers diff, the resolve seeds
+	// the parse memo, and the re-render mounts - plain rows first, color on the publishes. A
+	// declined or failed parse resolves undefined and the re-scheduled pass below falls back to
+	// today's inline parse - this only ever removes work from the click.
 	const contents = cur
 	const viewOnly = isViewOnly(view.isPreviewing)
-	pendingPipeline.add(key)
+	pendingParse.add(key)
 	void (async (): Promise<void> => {
 		const diff = await parseDiffInPool(
 			parseInputFor(file, contents, viewOnly),
 		)
-		if (!diff) {
-			pendingPipeline.delete(key)
-			deferRender()
-			return
-		}
-		seedPrefetchedMetadata(file, contents, viewOnly, diff)
-		await openPoolJob(diff, headViewport(contents))
-		pendingPipeline.delete(key)
+		pendingParse.delete(key)
+		if (diff) seedPrefetchedMetadata(file, contents, viewOnly, diff)
 		deferRender()
 	})()
 	// The parse must run on a pass that is free to block: deferRender paints first (its own double
@@ -118,40 +101,6 @@ export function paintColdOpen(
 	// for it, or parses inline if the pool declined.
 	deferRender()
 	return true
-}
-
-// The memoized branch's hold: paint the overlay, open (or attach to) the job with the head rows
-// as its viewport, and re-render when the gate settles - true to mount colored, false to mount
-// on the plain fetch (plain diff, failed boot): openPoolJob resolves false in the same
-// microtask for those, so the hold costs one frame at most there.
-function holdForGrid(
-	host: HTMLElement,
-	key: string,
-	diff: FileDiffMetadata,
-	contents: { oldContents: string; newContents: string },
-): void {
-	placeholderKey = key
-	perfMark('render:placeholder')
-	if (paintPlaceholderOverlay(host, contents.newContents))
-		clearReplacementViews(host)
-	pendingPipeline.add(key)
-	void (async (): Promise<void> => {
-		await openPoolJob(diff, headViewport(contents))
-		pendingPipeline.delete(key)
-		deferRender()
-	})()
-	deferRender()
-}
-
-// The job's stream starts on the rows the overlay shows: the file's head band.
-function headViewport(contents: {
-	oldContents: string
-	newContents: string
-}): WindowViewport {
-	return {
-		startingLine: 0,
-		totalLines: placeholderRows(contents.newContents).length,
-	}
 }
 
 // A pass that mounted the real rows frees the policy again: the parse memo evicts, so the same file
@@ -181,17 +130,12 @@ function watchReveal(): void {
 	const host = overlayHost
 	if (!overlay || !host) return
 	const state = paneState(host)
-	// The mount only happens once the pool's grid exists (paintColdOpen holds the pane on the
-	// job's gate), so rows here are already token rows where tokens exist - no publish wait, no
-	// plain flash. A scroll always clears at once - the reviewer moves, the pane shows whatever
-	// is there - and a mount that never produces rows is bounded by the same cap as every other
-	// wait (~10 s at 60 fps).
+	// Rows here are the mount's plain rows - the publishes color them in (worker-pool.ts
+	// repaints the island for every publish of the file on screen). A scroll always clears at
+	// once - the reviewer moves, the pane shows whatever is there - and a mount that never
+	// produces rows is bounded by the same cap as every other wait (~10 s at 60 fps).
 	const capped = ++watchFrames >= REVEAL_WATCH_FRAMES
 	if (!host.isConnected || state !== 'waiting' || capped) {
-		// The cap must break the hold too: a gate that never opens would leave every pass for
-		// this file standing aside forever. The next pass falls through to the mount, and the
-		// plain fetch serves it until the job's own publish lands.
-		if (capped && placeholderKey) pendingPipeline.delete(placeholderKey)
 		clearPlaceholderOverlay()
 		return
 	}

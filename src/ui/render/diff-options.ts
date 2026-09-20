@@ -9,6 +9,7 @@ import { createDiffHeader, headerActions } from './file-header'
 import { scheduleOverviewRuler } from './overview-ruler'
 import { activeViewport } from './viewport'
 import { VirtualDiff } from './virtual-diff'
+import { noteRenderedViewport } from './worker-pool'
 
 import type { FileDiffOptions } from '@pierre/diffs'
 import type { AnnotationMeta } from '../types'
@@ -63,6 +64,10 @@ export function diffOptions(view: DiffView): FileDiffOptions<AnnotationMeta> {
 			// invisible. Self-guarding - a no-op once calibrated.
 			if (instance instanceof VirtualDiff) {
 				const diff = instance
+				// Rows committed: tell the pool which slice is on screen. A cache-hit range (the
+				// renderCache holds the full grid) serves rows without a plain fetch, so the
+				// stream would never learn the reviewer moved - and never tokenize what they see.
+				noteRenderedViewport(diff)
 				requestAnimationFrame(() => diff.calibrateLineHeight())
 			}
 			activeViewport()?.afterPaint()
