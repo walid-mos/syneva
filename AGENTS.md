@@ -22,20 +22,22 @@ The perf timeline is tracked data, not a chat log: after a render-path change, m
 
 ## Two compilation worlds
 
-`src/` is split into a Node backend (`src/*.ts`, ESM NodeNext — intra-backend imports use `.js` extensions, compiled by `tsc` to `dist/`) and a browser UI (`src/ui/*`, Alpine.js bundled by esbuild from `src/ui/main.ts`, checked by `tsconfig.ui.json`). The two worlds never import each other at runtime: `src/types.ts` is the single source of truth for the shared wire shapes, and `src/ui/types.ts` re-exports what it needs type-only — change a wire type in `src/types.ts` alone.
+`src/` is split into a Node backend (`src/backend/**` plus the shared `src/contracts/**` dependency sink, ESM NodeNext — intra-backend imports use `.js` extensions, compiled by `tsc` to `dist/`) and a browser frontend (`src/frontend/**`, Alpine.js bundled by esbuild from `src/frontend/app/main.ts`, checked by `tsconfig.ui.json`). The two worlds never import each other at runtime: `src/contracts/` (`review.ts`, `browser.ts`, `agent.ts`, `routes.ts`, `spec.ts`) is the single source of truth for the shared wire shapes (the backend's persisted shapes live in `src/backend/domain/review.ts`), and the frontend entities map contract DTOs into frontend-owned models at their `entities/*/api.ts` boundaries — change a wire type in `src/contracts/` alone. The backend layers: `src/backend/domain` (pure review/diff/guide/identity rules, no IO), `src/backend/application` (use cases, DTO mappers, cache/mutation ownership), `src/backend/adapters/{inbound/{cli,http,pi},outbound/{git,filesystem,editor,package-registry,console}}` (transport and IO), and `src/backend/bootstrap` (composition roots; `dist/backend/bootstrap/cli.js` is the published bin).
+
+The frontend follows Feature-Sliced Design with layer aliases (`@app/*`, `@pages/*`, `@widgets/*`, `@features/*`, `@entities/*`, `@shared/*`, `@contracts/*` — declared in `tsconfig.json`, wired in `tsconfig.ui.json`, `scripts/build-ui.mjs`, and oxlint's layer rules). The layers, strictly downward: `app` (bootstrap, the single Alpine `$store.g` facade, hotkeys, polling, global shell, `index.html`), `pages` (`desk` — `overview.ts` is a desk view mode, not a separate page), `widgets` (`diff-view`, `chrome`, `dialogs`), `features` (`decide-change`, `manage-comment`, `send-review`, `expand-context`, `open-editor`), `entities` (`review` — one review aggregate including its change/comment/guide/file segments — plus `settings`), and `shared` (API transport, UI/lib primitives, markdown, the generic diff renderer/highlighting infra, icons). Composition happens above: same-layer slices don't import each other's internals, lower layers never import `app`, and the imperative render path reaches the funnel only through the narrow scheduler seam (`@shared/lib/render-scheduler`). Only the entity API boundary modules (`entities/*/api.ts`) name HTTP paths — always via `@contracts/routes` — and decode contract DTOs into the frontend-owned models (`entities/review/decode.ts` mapping onto `entities/review/model.ts`). The tokenization worker is its own composition root under `src/frontend/worker/` (bundled to `dist/worker.js`).
 
 Lint/format behaviour is the shared `@nextnode-solutions/standards` preset; `oxlint.config.ts`/`oxfmt.config.ts` hold only repo-specific ignores and narrow overrides with a stated reason.
 
 ## Render path
 
-All render passes funnel through `src/ui/render.ts`. Before touching windowing or tokenization, read `render/token-pool/` and `render/virtual-diff.ts` — the adapter compensates for @pierre/diffs's one-time metadata adoption and height-reconciliation behavior, and windows must derive from already-parsed metadata (never re-parse diffs to split work). `scripts/bundle-budget.mjs` budgets the whole static import graph, not just `ui.js`. `@pierre/diffs` renumbers lines per render — display anchors are derived, raw file lines stay canonical.
+All render passes funnel through `src/frontend/pages/desk/render.ts`. Before touching windowing or tokenization, read `shared/diff-renderer/token-pool/` and `widgets/diff-view/virtual-diff.ts` — the adapter compensates for @pierre/diffs's one-time metadata adoption and height-reconciliation behavior, and windows must derive from already-parsed metadata (never re-parse diffs to split work). `scripts/bundle-budget.mjs` budgets the whole static import graph, not just `ui.js`. `@pierre/diffs` renumbers lines per render — display anchors are derived, raw file lines stay canonical.
 
 ## Key invariants
 
 - `Decision` records (keyed `path:stableKey`) — not git staging and not the rendered diff — are the source of truth for accept/reject. They survive reloads even when accepting staged the hunk out of the working-tree diff.
 - `contentHash`/`reviewedHash` pairs detect staleness: if the agent rewrites a block (or a file) after it was decided/approved, the decision/approval resets to pending on reload. The same pattern invalidates comment anchors (`anchorText` → re-anchoring → `unanchored`) and guides (`baseDiffHash`).
 - Desks are idempotent per repo+session: `stablePort` hashes repo+session to a port in 41000–50999 so a restarted desk binds the same origin and an open tab self-heals; a desk lock file is trusted only if the server actually answers (`deskAlive`).
-- `server/state-cache.ts` caches the serialized browser response per review revision: `DeskContext.serialize` invalidates around mutations, and the cache must never be keyed solely on `baseDiffHash`.
+- `src/backend/application/state-cache.ts` caches the serialized browser response per review revision: `DeskContext.serialize` invalidates around mutations, and the cache must never be keyed solely on `baseDiffHash`.
 
 ## Harness module
 
@@ -43,7 +45,7 @@ Everything a coding-agent harness loads from this package (the extension entry, 
 
 ## Agent contract
 
-`src/spec.ts` is the single source of truth for the CLI/HTTP contract (flags, events, `ReviewResult` shape) and is printed by `syneva spec` — the skill and the server's error responses point consuming agents at it. If you change the CLI flags, events, or ReviewResult shape, update `src/spec.ts` in the same change. `src/spec.test.ts`, `src/cli.test.ts`, and `src/server.test.ts` cover the documented contract.
+`src/contracts/spec.ts` is the single source of truth for the CLI/HTTP contract (flags, events, `ReviewResult` shape) and is printed by `syneva spec` — the skill and the server's error responses point consuming agents at it. If you change the CLI flags, events, or ReviewResult shape, update `src/contracts/spec.ts` in the same change. `src/contracts/spec.test.ts`, `src/backend/bootstrap/cli.test.ts`, and `src/backend/bootstrap/server.test.ts` cover the documented contract.
 
 ## Conventions
 
