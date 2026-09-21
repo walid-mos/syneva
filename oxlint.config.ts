@@ -87,9 +87,9 @@ export default defineConfig({
 			// function length, await depth) fight the fixture specs' shape, not a reviewable
 			// logic path - drop them for the bench scripts only.
 			files: [
-				'benchmarks/bench-fixtures.mjs',
-				'benchmarks/browser-bench.mjs',
-				'benchmarks/perf-smoke.mjs',
+				'test/benchmarks/bench-fixtures.mjs',
+				'test/benchmarks/browser-bench.mjs',
+				'test/benchmarks/perf-smoke.mjs',
 			],
 			rules: {
 				'eslint/no-magic-numbers': 'off',
@@ -109,10 +109,10 @@ export default defineConfig({
 			},
 		},
 		{
-			// The pi extension entry point default-exports its register function by
+			// The harness extension entry point default-exports its register function by
 			// design: pi's loader contract, the same class of exception as framework
 			// pages in the shared preset.
-			files: ['extensions/syneva.ts'],
+			files: ['extension/syneva.ts'],
 			rules: {
 				'import/no-default-export': 'off',
 			},

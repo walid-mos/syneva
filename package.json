@@ -38,17 +38,17 @@
   },
   "pi": {
     "extensions": [
-      "extensions"
+      "extension/syneva.ts"
     ],
     "skills": [
-      "skills/syneva"
+      "extension/skills"
     ],
     "prompts": [
-      "prompts"
+      "extension/prompts"
     ],
     "subagents": {
       "agents": [
-        "./agents"
+        "extension/subagents"
       ]
     }
   },
@@ -59,7 +59,8 @@
     "@earendil-works/pi-coding-agent": "*"
   },
   "files": [
-    "dist"
+    "dist",
+    "extension"
   ],
   "publishConfig": {
     "access": "public"
@@ -75,15 +76,15 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "perf-smoke": "node benchmarks/perf-smoke.mjs",
-    "bench": "node benchmarks/bench-fixtures.mjs && node benchmarks/browser-bench.mjs",
+    "perf-smoke": "node test/benchmarks/perf-smoke.mjs",
+    "bench": "node test/benchmarks/bench-fixtures.mjs && node test/benchmarks/browser-bench.mjs",
     "prepack": "pnpm build",
     "release": "pnpm lint && pnpm lint:types && pnpm format:check && pnpm check && pnpm test && pnpm build && changelogen --release --push",
     "postinstall": "pnpm build"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",
-    "@nextnode-solutions/standards": "1.24.0",
+    "@nextnode-solutions/standards": "1.25.0",
     "@types/alpinejs": "^3.13.11",
     "@types/alpinejs__persist": "^3.13.4",
     "@types/markdown-it": "^14.1.2",
