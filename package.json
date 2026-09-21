@@ -38,17 +38,17 @@
   },
   "pi": {
     "extensions": [
-      "extensions"
+      "extension/syneva.ts"
     ],
     "skills": [
-      "skills/syneva"
+      "extension/skills"
     ],
     "prompts": [
-      "prompts"
+      "extension/prompts"
     ],
     "subagents": {
       "agents": [
-        "./agents"
+        "extension/subagents"
       ]
     }
   },
@@ -59,7 +59,8 @@
     "@earendil-works/pi-coding-agent": "*"
   },
   "files": [
-    "dist"
+    "dist",
+    "extension"
   ],
   "publishConfig": {
     "access": "public"

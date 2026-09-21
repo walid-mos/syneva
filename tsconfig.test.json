@@ -6,12 +6,12 @@
 		"rootDir": "."
 	},
 	// One noEmit pass for every NodeNext-checked file that never ships in dist:
-	// backend tests, the pi extensions, and the lint/format configs. UI stays out
-	// entirely - its tests import UI modules through bundler-style specifiers, so
-	// they are checked by tsconfig.ui.json in the bundler world.
+	// backend tests, the harness extension module, and the lint/format configs.
+	// UI stays out entirely - its tests import UI modules through bundler-style
+	// specifiers, so they are checked by tsconfig.ui.json in the bundler world.
 	"include": [
 		"src/**/*.test.ts",
-		"extensions/**/*.ts",
+		"extension/**/*.ts",
 		"oxlint.config.ts",
 		"oxfmt.config.ts"
 	],

@@ -109,10 +109,10 @@ export default defineConfig({
 			},
 		},
 		{
-			// The pi extension entry point default-exports its register function by
+			// The harness extension entry point default-exports its register function by
 			// design: pi's loader contract, the same class of exception as framework
 			// pages in the shared preset.
-			files: ['extensions/syneva.ts'],
+			files: ['extension/syneva.ts'],
 			rules: {
 				'import/no-default-export': 'off',
 			},
