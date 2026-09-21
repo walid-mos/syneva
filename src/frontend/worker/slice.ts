@@ -127,9 +127,11 @@ class HunkWalk {
 
 	#step(segment: ContextContent | ChangeContent): void {
 		const segmentSlots = segmentSlotsOf(segment)
-		const keepFrom = this.whole ? 0 : Math.max(this.#slot, this.#withinFrom)
+		const keepFrom = this.whole
+			? this.#slot
+			: Math.max(this.#slot, this.#withinFrom)
 		const keepTo = this.whole
-			? segmentSlots
+			? this.#slot + segmentSlots
 			: Math.min(this.#slot + segmentSlots, this.#withinTo)
 		if (keepFrom < keepTo) {
 			this.#rebased ??= this.#rebasedStarts(keepFrom)
