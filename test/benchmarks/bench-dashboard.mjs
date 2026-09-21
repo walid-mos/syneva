@@ -1,27 +1,28 @@
 #!/usr/bin/env node
 // Renders the benchmark history into one self-contained HTML dashboard (no server, no CDN) and
-// records new runs into benchmarks/history.json, so the perf story of this UI stays a tracked
+// records new runs into test/benchmarks/history.json, so the perf story of this UI stays a tracked
 // artifact instead of a chat log.
 //
-//   node benchmarks/bench-dashboard.mjs               # render benchmarks/dashboard.html
-//   node benchmarks/bench-dashboard.mjs --out <path>  # render somewhere else (e.g. ~/Desktop)
-//   node benchmarks/bench-dashboard.mjs --check       # validate history + template, write nothing
-//   node benchmarks/bench-dashboard.mjs --record <f>  # append the run object in <f> ("-" = stdin)
+//   node test/benchmarks/bench-dashboard.mjs               # render test/benchmarks/dashboard.html
+//   node test/benchmarks/bench-dashboard.mjs --out <path>  # render somewhere else (e.g. ~/Desktop)
+//   node test/benchmarks/bench-dashboard.mjs --check       # validate history + template, write nothing
+//   node test/benchmarks/bench-dashboard.mjs --record <f>  # append the run object in <f> ("-" = stdin)
 //
-// A run is one JSON object; the shape the dashboard expects is documented in benchmarks/README.md.
+// A run is one JSON object; the shape the dashboard expects is documented in test/benchmarks/README.md.
 // Recording is idempotent by run id: re-recording the same id replaces that run in place.
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
-const HISTORY = path.join(ROOT, 'benchmarks', 'history.json')
-const TEMPLATE = path.join(ROOT, 'benchmarks', 'dashboard-template.html')
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+const DIR = path.join(ROOT, 'test', 'benchmarks')
+const HISTORY = path.join(DIR, 'history.json')
+const TEMPLATE = path.join(DIR, 'dashboard-template.html')
 const DATA_START = '/*BENCH_DATA_START*/'
 const DATA_END = '/*BENCH_DATA_END*/'
 // In-repo by default: the timeline is a tracked artifact, and a copy in someone's home directory is
 // not. `--out` renders anywhere else (a personal Desktop copy, a scratch comparison).
-const DEFAULT_OUT = path.join(ROOT, 'benchmarks', 'dashboard.html')
+const DEFAULT_OUT = path.join(DIR, 'dashboard.html')
 const BYTES_PER_KB = 1024
 
 const REQUIRED_RUN_KEYS = [

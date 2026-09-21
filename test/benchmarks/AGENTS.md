@@ -16,7 +16,7 @@ rules that keep the timeline comparable over time.
 - **Never hand-edit a number** in `history.json`. Runs come from `--record` (idempotent by `id`), a
   wrong point leaves with `--forget`, and `--check` must pass before you finish.
 - **Say which route measured the run.** Rows taken through `pi-frontend-check` carry stage marks only;
-  the older `parallel-*` rows came from `benchmarks/browser-bench.mjs` (headful, never run it from an agent
+  the older `parallel-*` rows came from `test/benchmarks/browser-bench.mjs` (headful, never run it from an agent
   session — desktop focus) and add per-request timings. Only the shared stage marks compare across
   routes, so the `note` names the route and the caveat.
 - **Report the spread, not the best run.** Two samples minimum per fixture before claiming a gain: the
@@ -25,5 +25,5 @@ rules that keep the timeline comparable over time.
   CPU-bound, so rescheduling work (the pool boot included) only moves the paint — measure before moving
   anything again.
 - **Keep the artifact reproducible**: `dashboard-template.html` must keep its
-  `/*BENCH_DATA_START*/`/`/*BENCH_DATA_END*/` markers, and `benchmarks/dashboard.html` is regenerated
+  `/*BENCH_DATA_START*/`/`/*BENCH_DATA_END*/` markers, and `test/benchmarks/dashboard.html` is regenerated
   and committed with the run that changed it.

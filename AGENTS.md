@@ -37,14 +37,20 @@ node --import tsx --test src/state/reconcile.test.ts
 
 CI (`.github/workflows/ci.yml`) runs lint, lint:types, format:check, check, build, test and perf-smoke on Node 24 — all must pass.
 
+## Test layout
+
+Unit tests stay colocated with the file they test (`src/**/*.test.ts`, run by `pnpm test`). Everything
+end-to-end lives in `test/`: `test/benchmarks/` holds the frontend perf benchmarks (below), and future
+e2e suites join the same folder.
+
 ## Benchmarks
 
 The frontend perf timeline is tracked data, not a chat log: after a render-path change, measure the
 cold open through `pi-frontend-check` (headless) and record the run with
-`node benchmarks/bench-dashboard.mjs --record <file>`, then `--check`. Read `benchmarks/README.md` for the
-run shape and stage definitions, and `benchmarks/AGENTS.md` for the rules that keep runs comparable
+`node test/benchmarks/bench-dashboard.mjs --record <file>`, then `--check`. Read `test/benchmarks/README.md` for the
+run shape and stage definitions, and `test/benchmarks/AGENTS.md` for the rules that keep runs comparable
 (record rejected variants too, one milestone per batch, report the spread). The timeline lives in
-`benchmarks/history.json` and renders to the committed `benchmarks/dashboard.html`.
+`test/benchmarks/history.json` and renders to the committed `test/benchmarks/dashboard.html`.
 
 ## Two compilation worlds
 

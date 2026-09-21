@@ -766,1301 +766,217 @@
 
 		<script>
 			/*BENCH_DATA_START*/
-	const BENCH_DATA = {
-	"project": "Syneva",
-	"generatedAt": "2026-09-17",
-	"fixtures": {
-		"tiny": {
-			"title": "tiny",
-			"detail": "8 changed files · first file 40 lines · TypeScript"
-		},
-		"small": {
-			"title": "small",
-			"detail": "40 changed files · first file 150 lines · TypeScript"
-		},
-		"medium": {
-			"title": "medium",
-			"detail": "120 changed files · first file 400 lines · TypeScript"
-		},
-		"bigfile": {
-			"title": "bigfile",
-			"detail": "first file 2.8 MB / 16k lines, behind the oversized-file guard"
-		},
-		"large": {
-			"title": "large",
-			"detail": "1000 changed files · first file 700 lines · TypeScript"
-		},
-		"patho": {
-			"title": "patho",
-			"detail": "first file 2400 lines, every line rewritten · pathological for re-render and reconcile"
-		},
-		"medium-switch": {
-			"title": "medium-switch",
-			"detail": "click on the next file of the 120-file desk, every number measured from the click (not from a cold load) - the latency a reviewer actually feels"
-		}
-	},
-	"milestones": [
-		{
-			"id": "baseline",
-			"label": "Baseline (audit)",
-			"note": "4 overlapping pool boots (12-16 workers, 4 copies of a 2.5 MB grammar bundle), tail-first window plan, duplicate window dispatch. Measured: medium first colour 1391 ms, worker.js 2566 KB."
-		},
-		{
-			"id": "af",
-			"label": "Fixes A-F",
-			"note": "One idempotent boot, one grammar attach per worker, viewport-first band split across the pool, lazy per-language grammar chunks. Measured: medium first colour 1391 -> 804-911 ms (three samples), worker.js 2566 -> 539 KB, pool:languages:load 308 -> 76 ms (the resolve moved into the boot window). The band was dispatchable at 366 ms but the first window only left at 668: the dispatch continuation was a microtask queued behind the 314 ms paint task, which fix G removes."
-		},
-		{
-			"id": "g",
-			"label": "Fix G",
-			"note": "Synchronous language handoff: a job whose grammars already resolved dispatches its first window in the same turn, inside the renderer's paint task instead of after it. Measured: first window sent 668 -> 344 ms, medium first colour 772 ms (against 804-911 ms with fixes A-F alone); the band finishes at 744 ms and the publish waits for the main thread to free at ~694 ms."
-		},
-		{
-			"id": "parallel",
-			"label": "Parallelization pass",
-			"note": "Job priority by attachment (window-dispatch ranks attached jobs first), pool width from hardwareConcurrency capped by the memory budget. Measured: the 5th worker cuts the 16k-line fixture's token phase 1614 -> 1275 ms (-21%) while a normal file stays inside run-to-run noise (medium first colour 713 vs 680 ms, final 1283 vs 1241); the suspected serial sections are all free (merge, publish and the open-diff clone 0-3 ms), so nothing moved to the workers."
-		},
-		{
-			"id": "warm",
-			"label": "Batch 1: idle warm-up, parallel boot, empty-sweep filter",
-			"note": "Idle warm-up (the pool boot starts on the first idle slot), parallel boot (the highlighter and the themes resolve together), and an empty-sweep filter (sweep slots that reach no hunk are dropped). Measured: the warm-up saves 15-20 ms of boot and is a structural win only where the contents fetch is the long pole (its earlier placement is recorded as a rejected run), the parallel boot saves 15-25 ms, and the filter removes 22 of 149 windows on the 16k-line fixture (-15%); medium first colour 684 ms, bigfile 2301 ms."
-		},
-		{
-			"id": "switch",
-			"label": "Switch: no dispatch for a file the reviewer has left",
-			"note": "Dispatch and warming both follow the reviewer. window-dispatch gives slots only to jobs with a renderer attached (a job is a snapshot; detaching and re-attaching around @pierre's converge pass only delays its own next window by one pass), and the render pass warms the NEXT file's viewport band while the pool is idle - through a side-effect-free metadata builder (diff-metadata.ts, whose parse memo the click then adopts), an off-thread parse (parse-offload.ts) and a cap of one band per warm job. Measured on the 8000-line fixture, switching to a 200-line file mid-job: before, 29 more windows of the abandoned file were dispatched (26392 ms of worker tokenize, 25 publishes) behind the reviewer's back; after, 0 new windows and only the 6 already in flight land (5275 ms). On the quiet medium desk the scoping alone leaves the reviewer's numbers unchanged (470/478 ms click->first colour against 449/477 before) - it removes contention, it does not make a quiet pool faster - while the prefetch is what shortens that wait: 375/360 ms click->first colour on the prefetched next file with 0 windows left to send at the click, against 519 ms for the same build's cold control."
-		},
-		{
-			"id": "plainfix",
-			"label": "Plain-diff fix: text-typed diffs paint",
-			"note": "Correctness fix, not a perf change: getPlainDiffAST returned undefined for plain-text diffs (both sides lang 'text' - Dockerfile, .svg, .txt...), and since the renderer asks the pool for plain rows on EVERY diff, those files painted an empty pane forever. The fix serves the plain grid for plain diffs; only token scheduling stays gated. The sweep below is the post-fix baseline across all six fixtures (tiny/small/large/patho get their first recorded rows). No regression claim without comparing to the warm/parallel rows on medium/bigfile."
-		},
-		{
-			"id": "scrollfix",
-			"label": "Scroll render pass",
-			"note": "Scroll jank batch: the mounted window was quantized at 50-line chunks (150 rows for a ~56-row window) and the row-height estimate behind every unmeasured row was one text box short in wrap mode (rows measure 2x CSS line-height), so the document grew under the scroll anchor (+2040 px per 200k-px sweep) while a fast scroll outran the mounts. Measured on the 8k-line giant-surface.ts (pi-frontend-check, 520-frame 400 px/frame sweep): mount quantum 25 halves rows mounted to 50-75 and the window-change cost, the median-row calibration (eager, one frame after mount, before the first scroll) zeroes the drift (400 089 px document stays put), and overscroll viewport/3 -> viewport/2 restores fling lead at half the mount cost. Coverage unchanged (1 gap frame of 520 vs 2 of 550)."
-		},
-		{
-			"id": "streamgate",
-			"label": "Viewport stream gate",
-			"note": "Hypothesis: the token pool tokenized the ENTIRE file for the first paint - 47 planned windows on a dense 8000-line rewrite (~29 s of shiki worker CPU counted on both sides), 127 windows on the 16k bench file - so the pool stayed saturated for seconds after the first coloured band, a fast file switch found a booked pool, and TTC felt broken even though colour was on screen at ~1.5 s. Change: dispatch is gated to the reviewer viewport - the band chunks first, then nearest-queued windows within a 2-window lookahead; noteViewport re-drains on band crossings so the plan follows the scroll, and a warm prefetch only holds the budget while it still has in-gate work. Verdict (pi-frontend-check, bigfile cold open + the gallery dense file): open dispatches 10 windows instead of 127 and goes idle at 10/10 with the rest queued, guard-to-first-colour unchanged (270-286 ms vs 254-267 on scrollfix), a 2000-slot scroll pulls the next 5 windows to the reviewer, and the load-anyway card swap now paints the provisional-rows overlay instead of letting the oversized card stare back during the 800 ms parse. pool:final changes meaning: it lands only after a full scroll-through (dash in the dashboard), not on open."
-		},
-		{
-			"id": "parseoff",
-			"label": "Click-path parse offload",
-			"note": "Hypothesis: the residual click wait on a dense file was never the token stream (the viewport gate holds) but the jsdiff parse running INLINE on the main thread - measured 803 ms on the gallery 8k dense file, with the provisional-rows overlay painted but the page frozen the whole time. Change: paintColdOpen now kicks the click parse through the dedicated parse worker (parse-offload.ts, previously prefetch-only), seeds the parse memo from the worker result and re-renders; a declined/failed offload falls back to the inline parse, so this only removes main-thread work. Measured (bigfile bench + gallery): main-thread parse 803 -> 11 ms (memo hit), worker covers the 801 ms behind the overlay, wall to first colour +15-25 ms on a sparse fixture (60-65 ms parse; the round-trip is paid where the parse was cheap) and unchanged where it was expensive. The page never freezes during a load-anyway."
-		},
-		{
-			"id": "nogrey",
-			"label": "No grey reveal",
-			"note": "Hypothesis: even with the parse off-thread and the stream gated, the reviewer still watched grey rows twice - the provisional overlay, then the mounted diff repainting plain-to-colored ~250 ms later. Change: the parse worker result primes the pool for the SAME file with the overlay head rows as viewport (the next-file prefetch warms other files), instance-less publishes stash their merged grid so the mount itself can paint colored, and the cold-open reveal holds the overlay until the pool publishes instead of lifting on bare rows. Fallbacks: a scroll lifts the overlay at once, plain diffs and a failed boot release on rows, the ~10 s reveal cap still bounds everything. Measured (bigfile bench x2 + gallery dense file): first publish 285/287 ms, overlay lift publish+5-25 ms, zero uncolored frames on the revealed diff; window count and TTC unchanged vs parseoff."
-		}
-	],
-	"rejected": [
-		{
-			"label": "Fix H: prime each worker's grammar with a one-line tokenize",
-			"measurement": "a one-line tokenize absorbs the fixed cost (81 ms of compile, then 0.79 ms/row in Node), but compile + rows is the same worker time either way; with fix G the gate is the renderer's 359 ms paint task and the ~165 ms of clone/contention per first window, so priming is shadowed. Not landed."
-		}
-	],
-	"targets": [
-		{
-			"label": "shorten the renderer's first paint task",
-			"expectedMs": 250,
-			"detail": "359 ms main-thread task starting right after the plain grid is handed over; our own spans inside it (render:acquire 1 ms, render:paint 10 ms) say it is the renderer's own row layout"
-		},
-		{
-			"label": "cut the clone/contention overhead of a first window",
-			"expectedMs": 160,
-			"detail": "band windows: 400 ms wall for 235 ms of reported tokenize - structured-clone deserialization plus 4 workers competing with the painting main thread"
-		},
-		{
-			"label": "move grammar registration off the main thread",
-			"expectedMs": 100,
-			"detail": "pool:languages:load is still 101-384 ms of chunk parse + shiki registration on the main thread. The grammar shards shrank the chunk (worker.js 2566 -> 539 KB) but registration stayed there, and letting workers import their own grammar chunk is closed by design (scripts/build-ui.mjs stubs every grammar module out of the worker build), so this needs a shape of its own - a grammar registered once and shared, or registration inside a worker."
-		}
-	],
-	"knownWins": [
-		{
-			"label": "viewport-only incremental sweep (the VS Code model)",
-			"detail": "bigfile tokenizes 2154 rows across 148 windows; 88 of them contain zero changed rows. The empty-sweep filter (milestone warm) already drops those slots; what remains is a scroll-driven sweep instead of a whole-file one"
-		},
-		{
-			"label": "oniguruma wasm engine",
-			"detail": "~1.6x faster per row (0.57 vs 0.90 ms/row measured in Node) for ~+600 KB of worker bundle; affects whole-file finalization, not first color"
-		},
-		{
-			"label": "band-sized pool",
-			"detail": "the pool is sized from the machine (hardwareConcurrency capped at 6, milestone parallel), not from the job: 4-6 workers for a 400-line first file is more parallelism than the visible band needs"
-		},
-		{
-			"label": "desk-side diff build for oversized files",
-			"detail": "the desk needs ~49.5 s to build the diff of a 2.8 MB file server-side, before the UI sees anything (separate from the token pipeline)"
-		}
-	],
-	"runs": [
-		{
-			"id": "baseline-medium",
-			"fixture": "medium",
-			"milestone": "baseline",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 51,
-				"contents": 181,
-				"plainPaint": 249,
-				"bootStart": 212,
-				"bootDone": 381,
-				"jobOpen": 399,
-				"firstWindowSent": 692,
-				"firstColor": 1391,
-				"final": 1392
-			},
-			"pool": {
-				"boots": 4,
-				"workers": 16,
-				"windowSent": 6,
-				"windowDone": 6
-			},
-			"workerBundleKb": 2566,
-			"perRowMs": 3.45,
-			"perWindowFixedMs": 126,
-			"longTasks": []
-		},
-		{
-			"id": "af-medium-run1",
-			"fixture": "medium",
-			"milestone": "af",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"plainPaint": 221,
-				"bootDone": 601,
-				"firstColor": 804,
-				"final": 1376
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 4,
-				"windowSent": 7,
-				"windowDone": 7
-			},
-			"workerBundleKb": 539,
-			"note": "grammar prewarm moved the whole resolve into the boot window: pool:languages:load 308 -> 76 ms"
-		},
-		{
-			"id": "af-medium-run2",
-			"fixture": "medium",
-			"milestone": "af",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 68,
-				"contents": 214,
-				"plainPaint": 270,
-				"bootStart": 239,
-				"bootDone": 645,
-				"jobOpen": 656,
-				"firstWindowSent": 664,
-				"firstColor": 857,
-				"final": 1448
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 4,
-				"windowSent": 7,
-				"windowDone": 7
-			},
-			"workerBundleKb": 539,
-			"note": "post-refactor verification run (job book split into scheduler/dispatch/publish)"
-		},
-		{
-			"id": "af-medium-run3",
-			"fixture": "medium",
-			"milestone": "af",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 36,
-				"contents": 202,
-				"plainPaint": 253,
-				"bootStart": 217,
-				"bootDone": 358,
-				"jobOpen": 366,
-				"firstWindowSent": 668,
-				"firstColor": 911,
-				"final": 1612
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 4,
-				"windowSent": 7,
-				"windowDone": 7
-			},
-			"workerBundleKb": 539,
-			"perRowMs": 1.7,
-			"perWindowFixedMs": 150,
-			"longTasks": [
-				{
-					"start": 112,
-					"ms": 79,
-					"label": "bootstrap"
+			const BENCH_DATA = {
+				project: 'Syneva',
+				generatedAt: '2026-09-17',
+				fixtures: {
+					medium: {
+						title: 'medium',
+						detail: '120 changed files · first file 400 lines · TypeScript',
+					},
+					bigfile: {
+						title: 'bigfile',
+						detail: 'first file 2.8 MB / 16k lines, behind the oversized-file guard',
+					},
 				},
-				{
-					"start": 213,
-					"ms": 95,
-					"label": "pool create + plain highlighter"
-				},
-				{
-					"start": 358,
-					"ms": 314,
-					"label": "plain-grid handoff to the renderer"
-				}
-			],
-			"windows": [
-				{
-					"kind": "sweep",
-					"line": 0,
-					"rows": 50,
-					"tokenizeMs": 233.4
-				},
-				{
-					"kind": "sweep",
-					"line": 50,
-					"rows": 50,
-					"tokenizeMs": 239.7
-				},
-				{
-					"kind": "sweep",
-					"line": 25,
-					"rows": 50,
-					"tokenizeMs": 241.2
-				},
-				{
-					"kind": "sweep",
-					"line": 75,
-					"rows": 50,
-					"tokenizeMs": 250.1
-				},
-				{
-					"kind": "sweep",
-					"line": 384,
-					"rows": 32,
-					"tokenizeMs": 71.9
-				},
-				{
-					"kind": "sweep",
-					"line": 192,
-					"rows": 384,
-					"tokenizeMs": 658.5
-				},
-				{
-					"kind": "sweep",
-					"line": 0,
-					"rows": 384,
-					"tokenizeMs": 679.2
-				}
-			],
-			"note": "the band was dispatchable at 366 but the first window left only at 668: the dispatch continuation was a microtask queued behind the 314 ms paint task"
-		},
-		{
-			"id": "g-medium",
-			"fixture": "medium",
-			"milestone": "g",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 29,
-				"contents": 164,
-				"plainPaint": 212,
-				"bootStart": 179,
-				"bootDone": 320,
-				"jobOpen": 343,
-				"firstWindowSent": 344,
-				"firstColor": 772,
-				"final": 1390
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 4,
-				"windowSent": 7,
-				"windowDone": 7
-			},
-			"workerBundleKb": 539,
-			"perRowMs": 1.7,
-			"spans": {
-				"render:acquire": 1,
-				"render:paint": 10
-			},
-			"longTasks": [
-				{
-					"start": 80,
-					"ms": 71,
-					"label": "bootstrap"
-				},
-				{
-					"start": 175,
-					"ms": 103,
-					"label": "pool create + plain highlighter"
-				},
-				{
-					"start": 335,
-					"ms": 359,
-					"label": "renderer row layout after the plain grid"
-				}
-			],
-			"windows": [
-				{
-					"kind": "sweep",
-					"line": 0,
-					"rows": 50,
-					"tokenizeMs": 230.5
-				},
-				{
-					"kind": "sweep",
-					"line": 75,
-					"rows": 50,
-					"tokenizeMs": 236.8
-				},
-				{
-					"kind": "sweep",
-					"line": 25,
-					"rows": 50,
-					"tokenizeMs": 246.2
-				},
-				{
-					"kind": "sweep",
-					"line": 50,
-					"rows": 50,
-					"tokenizeMs": 262
-				},
-				{
-					"kind": "sweep",
-					"line": 384,
-					"rows": 32,
-					"tokenizeMs": 65.1
-				},
-				{
-					"kind": "sweep",
-					"line": 0,
-					"rows": 384,
-					"tokenizeMs": 604.2
-				},
-				{
-					"kind": "sweep",
-					"line": 192,
-					"rows": 384,
-					"tokenizeMs": 603.5
-				}
-			],
-			"note": "dispatch moved into the paint task (668 -> 344 ms); the band now finishes at 744 and the publish waits for the main thread to free at ~694"
-		},
-		{
-			"id": "af-bigfile",
-			"fixture": "bigfile",
-			"milestone": "af",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 59,
-				"contents": 49525,
-				"plainPaint": 49586,
-				"bootStart": 49540,
-				"bootDone": 49616,
-				"jobOpen": 49686,
-				"firstWindowSent": 49731,
-				"firstColor": 49757,
-				"final": 50957
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 4,
-				"windowSent": 148,
-				"windowDone": 148
-			},
-			"workerBundleKb": 539,
-			"windows": {
-				"count": 148,
-				"rows": 2154,
-				"tokenizeMsTotal": 4287,
-				"byKind": {
-					"sweep": 88,
-					"cluster": 60
-				}
-			},
-			"note": "contents: the desk needs ~49.5 s to build the diff of a 2.8 MB file server-side; the UI colors the visible rows 232 ms after the file lands NOT REPRODUCIBLE as of fix G: a fresh cold open of the same file behind the guard measures contents 34 ms, plainPaint 2725 ms, first colour 2885 ms, final 4072 ms (see bigfile-guard-cold). Treat this point as suspect: the 49.5 s was recorded in one harness run and no longer repeats; the harness also records contents as a fetch duration while the other stages are timestamps."
-		},
-		{
-			"id": "bigfile-guard-cold",
-			"fixture": "bigfile",
-			"milestone": "g",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 23,
-				"contents": 34,
-				"plainPaint": 2725,
-				"bootStart": 2682,
-				"bootDone": 2854,
-				"jobOpen": 2861,
-				"firstWindowSent": 2864,
-				"firstColor": 2885,
-				"final": 4072
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 4,
-				"windowSent": 148,
-				"windowDone": 148
-			},
-			"workerBundleKb": 539,
-			"note": "body-to-first-colour of the 2.8 MB / 16k-line file: the oversized-file guard was dismissed at t=2627 ms, /api/file-contents then took 34 ms for 5.98 MB, plain rows painted at 2725 ms, first colour at 2885 ms, whole file tokenized at 4072 ms (148 windows, 88 sweep + 60 cluster, 2154 rows, 4293 ms of worker tokenize in ~1.2 s wall clock = 3.6x on 4 workers, every window sent = done). contents is a fetch DURATION here (the harness records it that way); the other stages are ms from navigation start."
-		},
-		{
-			"id": "parallel-pool4-bigfile",
-			"fixture": "bigfile",
-			"milestone": "parallel",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 63,
-				"contents": 37,
-				"plainPaint": 1773,
-				"bootStart": 1731,
-				"bootDone": 1818,
-				"jobOpen": 1863,
-				"firstWindowSent": 1866,
-				"firstColor": 1953,
-				"final": 3480
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 4,
-				"windowSent": 148,
-				"windowDone": 148
-			},
-			"workerBundleKb": 526,
-			"note": "Before-point for the pool-size A/B (the guard was dismissed at t=1650). contents is the /api/file-contents fetch duration (37 ms, 5.98 MB); every other stage is ms from navigation start. Token phase (firstWindowSent -> final) 1614 ms; first-colour latency 87 ms; 148 windows, 2154 rows, 4258 ms of worker tokenize. Main-thread spans: pool:plain 43 ms for the whole 16k-line grid, pool:open-diff 4 posts x 2-3 ms = 9 ms, pool:merge 148 x 0 ms, pool:publish 60 x 0 ms, pool:publish:final 0 ms. Long tasks during the open: 3, 224 ms total, max 118 ms."
-		},
-		{
-			"id": "parallel-pool4-medium",
-			"fixture": "medium",
-			"milestone": "parallel",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 38,
-				"contents": 12,
-				"plainPaint": 227,
-				"bootStart": 197,
-				"bootDone": 319,
-				"jobOpen": 327,
-				"firstWindowSent": 327,
-				"firstColor": 680,
-				"final": 1241
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 4,
-				"windowSent": 7,
-				"windowDone": 7
-			},
-			"workerBundleKb": 526,
-			"note": "121-file fixture, first file auto-opened, pool at the historical 4. Token phase 914 ms; first-colour latency (firstWindowSent -> firstColor) 353 ms; 7 windows, 1000 rows. Main-thread spans: pool:plain 7 ms, pool:open-diff 4 x 0 ms, pool:merge 7 x 0 ms, pool:publish 2 x 0 ms, pool:publish:final 0 ms."
-		},
-		{
-			"id": "parallel-pool5-bigfile",
-			"fixture": "bigfile",
-			"milestone": "parallel",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 57,
-				"contents": 37,
-				"plainPaint": 3990,
-				"bootStart": 3948,
-				"bootDone": 4019,
-				"jobOpen": 4071,
-				"firstWindowSent": 4073,
-				"firstColor": 4174,
-				"final": 5348
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 149,
-				"windowDone": 149
-			},
-			"workerBundleKb": 526,
-			"note": "Same flow with the pool sized from hardwareConcurrency (6 cores -> 5). Token phase 1275 ms vs 1614 ms at 4 workers (-21%, -339 ms) on the same 148-window job; first-colour latency 101 ms (vs 87). 149 windows (the viewport band splits into one more chunk), 4373 ms of worker tokenize. pool:plain 45 ms. Long-task census not armed in this run."
-		},
-		{
-			"id": "parallel-pool5-medium",
-			"fixture": "medium",
-			"milestone": "parallel",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 58,
-				"contents": 15,
-				"plainPaint": 241,
-				"bootStart": 204,
-				"bootDone": 336,
-				"jobOpen": 343,
-				"firstWindowSent": 344,
-				"firstColor": 713,
-				"final": 1283
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 8,
-				"windowDone": 8
-			},
-			"workerBundleKb": 526,
-			"note": "Same flow with 5 workers (re-run after a contended first attempt whose boot took 465 ms): boot 131 ms, token phase 939 ms vs 914 ms at 4 workers, first-colour latency 369 ms vs 353 ms. A short job gains nothing from a wider pool; the extra worker costs one more grammar compile. 8 windows, 2044 ms of worker tokenize."
-		},
-		{
-			"id": "warm-medium",
-			"fixture": "medium",
-			"milestone": "warm",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 35,
-				"plainPaint": 203,
-				"bootStart": 173,
-				"bootDone": 291,
-				"jobOpen": 299,
-				"firstWindowSent": 300,
-				"firstColor": 684,
-				"final": 1221
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 8,
-				"windowDone": 8
-			},
-			"workerBundleKb": 526,
-			"note": "Batch 1 (A+B+C) with the idle warm-up placed after the settings/state fetch. Two samples of this final build: this one (boot 173 -> 291 ms, first colour 684, final 1221) and a contended one (boot 183 -> 659 ms, first colour 841, final 1444) - the pre-batch rows show the same 131-vs-465 ms boot spread, so treat the pair as the range. Recorded parallel-pool5-medium is 713/1283 and the audit run 689/1254: first colour and final stay inside the spread, and the boot is now warm before the first render pass (173 ms vs 198-205) although it still ends ~90 ms after the paint, which is why first colour does not move. What B does show consistently is the boot's own duration: highlighter || themes, 108-118 ms against 127. No `contents` stage: this route reads stage marks, not the per-request fetch timings the browser-bench rows carry."
-		},
-		{
-			"id": "warm-early-medium",
-			"fixture": "medium",
-			"milestone": "warm",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 30,
-				"plainPaint": 510,
-				"bootStart": 66,
-				"bootDone": 177,
-				"jobOpen": 216,
-				"firstWindowSent": 651,
-				"firstColor": 825,
-				"final": 1404
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 8,
-				"windowDone": 8
-			},
-			"workerBundleKb": 526,
-			"note": "REJECTED placement, measured twice (825/1404 and 813/1398): the warm-up scheduled before the settings/state fetch does start the boot in the fetch gap (66 ms, done at 177 - a full second before it is needed on a big file), but the highlighter engine work and the 5 worker boots then run inside the parse: painted slips 203 -> 510 ms, and first colour lands 120-140 ms later than the accepted placement. The revert is in main.ts with this measurement in its comment."
-		},
-		{
-			"id": "warm-bigfile",
-			"fixture": "bigfile",
-			"milestone": "warm",
-			"date": "2026-09-17",
-			"stagesMs": {
-				"module": 33,
-				"plainPaint": 2187,
-				"bootStart": 130,
-				"bootDone": 177,
-				"jobOpen": 2150,
-				"firstWindowSent": 2266,
-				"firstColor": 2301,
-				"final": 3598
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 127,
-				"windowDone": 127
-			},
-			"workerBundleKb": 526,
-			"note": "Batch 1 (A+B+C), 16k-line fixture loaded through the guard card. C is the visible change: 127 windows instead of 149 (-15%, the 22 empty sweep slots that reached no hunk). The whole pool boot is off the critical path (130 -> 177 ms, ~2 s before the first window needs a token). First colour and final sit inside the recorded spread: audit run 2077/3126 in a session whose contents fetch was 203 ms faster, recorded parallel-pool5-bigfile 4174/5348 in a session whose own note admits contention. No `contents` stage on this route. Long-task census not armed here."
-		},
-		{
-			"id": "switch-medium-after-1",
-			"fixture": "medium-switch",
-			"milestone": "switch",
-			"date": "2026-09-18",
-			"stagesMs": {
-				"mount": 329,
-				"firstColor": 470,
-				"queueAtClick": 0,
-				"planWindows": 7,
-				"windowsSent": 7,
-				"windowsBeforeColor": 2,
-				"tokenizeBeforeColor": 150
-			},
-			"pool": {
-				"workers": 5,
-				"bootDoneMs": 15
+				milestones: [
+					{
+						id: 'baseline',
+						label: 'Baseline (audit)',
+						note: '4 overlapping pool boots (12-16 workers), eager 2.5 MB grammar in the worker bundle, tail-first window plan, duplicate window dispatch',
+					},
+					{
+						id: 'af',
+						label: 'Fixes A-F',
+						note: 'single idempotent boot, one grammar attach per worker, viewport-first band split across the pool, lazy per-language grammar chunks',
+					},
+					{
+						id: 'gh',
+						label: 'Fixes G-H',
+						note: 'synchronous language handoff (dispatch before the render task blocks the thread), worker grammar priming',
+					},
+				],
+				targets: [
+					{
+						label: 'next: dispatch before the paint blocks',
+						expectedMs: 240,
+						detail: 'the band is dispatchable 300 ms before the main thread frees',
+					},
+					{
+						label: 'next: prime worker grammars',
+						expectedMs: 150,
+						detail: 'lazy regex compile per worker, paid on the first window',
+					},
+					{
+						label: 'next: shorten the plain-paint long task',
+						expectedMs: 200,
+						detail: '314 ms main-thread task before the pool gets a turn',
+					},
+				],
+				runs: [
+					{
+						id: 'baseline-medium',
+						fixture: 'medium',
+						milestone: 'baseline',
+						date: '2026-09-17',
+						stagesMs: {
+							module: 51,
+							contents: 181,
+							plainPaint: 249,
+							bootStart: 212,
+							bootDone: 381,
+							jobOpen: 399,
+							firstWindowSent: 692,
+							firstColor: 1391,
+							final: 1448,
+						},
+						pool: {
+							boots: 4,
+							workers: 16,
+							windowSent: 6,
+							windowDone: 6,
+						},
+						workerBundleKb: 2566,
+						perRowMs: 3.45,
+						perWindowFixedMs: 126,
+						longTasks: [],
+					},
+					{
+						id: 'af-medium-run3',
+						fixture: 'medium',
+						milestone: 'af',
+						date: '2026-09-17',
+						stagesMs: {
+							module: 36,
+							contents: 202,
+							plainPaint: 253,
+							bootStart: 217,
+							bootDone: 358,
+							jobOpen: 366,
+							firstWindowSent: 668,
+							firstColor: 911,
+							final: 1612,
+						},
+						pool: {
+							boots: 1,
+							workers: 4,
+							windowSent: 7,
+							windowDone: 7,
+						},
+						workerBundleKb: 539,
+						perRowMs: 1.7,
+						perWindowFixedMs: 150,
+						longTasks: [
+							{ start: 112, ms: 79, label: 'bootstrap' },
+							{
+								start: 213,
+								ms: 95,
+								label: 'pool create + plain highlighter',
+							},
+							{
+								start: 358,
+								ms: 314,
+								label: 'plain-grid handoff to the renderer',
+							},
+						],
+						windows: [
+							{
+								kind: 'sweep',
+								line: 0,
+								rows: 50,
+								tokenizeMs: 233.4,
+							},
+							{
+								kind: 'sweep',
+								line: 50,
+								rows: 50,
+								tokenizeMs: 239.7,
+							},
+							{
+								kind: 'sweep',
+								line: 25,
+								rows: 50,
+								tokenizeMs: 241.2,
+							},
+							{
+								kind: 'sweep',
+								line: 75,
+								rows: 50,
+								tokenizeMs: 250.1,
+							},
+							{
+								kind: 'sweep',
+								line: 384,
+								rows: 32,
+								tokenizeMs: 71.9,
+							},
+							{
+								kind: 'sweep',
+								line: 192,
+								rows: 384,
+								tokenizeMs: 658.5,
+							},
+							{
+								kind: 'sweep',
+								line: 0,
+								rows: 384,
+								tokenizeMs: 679.2,
+							},
+						],
+					},
+					{
+						id: 'af-bigfile',
+						fixture: 'bigfile',
+						milestone: 'af',
+						date: '2026-09-17',
+						stagesMs: {
+							module: 59,
+							contents: 49525,
+							plainPaint: 49586,
+							bootStart: 49540,
+							bootDone: 49616,
+							jobOpen: 49686,
+							firstWindowSent: 49731,
+							firstColor: 49757,
+							final: 50957,
+						},
+						pool: {
+							boots: 1,
+							workers: 4,
+							windowSent: 148,
+							windowDone: 148,
+						},
+						workerBundleKb: 539,
+						note: 'contents: the desk needs ~49.5 s to build the diff of a 2.8 MB file server-side; the UI colors the visible rows 232 ms after the file lands',
+						windows: {
+							count: 148,
+							rows: 2154,
+							tokenizeMsTotal: 4287,
+							byKind: { sweep: 88, cluster: 60 },
+						},
+					},
+				],
+				knownWins: [
+					{
+						label: 'move grammar evaluation off the main thread',
+						expectedMs: 100,
+						detail: 'pool:languages:load is 101-384 ms of chunk parse + shiki registration on the main thread; let workers import their own grammar chunk',
+					},
+					{
+						label: 'oniguruma wasm engine',
+						detail: '~1.6x faster per row (0.57 vs 0.90 ms/row measured in Node) for ~+600 KB of worker bundle; affects whole-file finalization, not first color',
+					},
+					{
+						label: 'viewport-only incremental sweep',
+						detail: 'bigfile tokenizes 2154 rows in 148 windows; 88 of them contain zero changed rows. A scroll-driven sweep (the VS Code model) would cut CPU massively',
+					},
+					{
+						label: 'adaptive pool size',
+						detail: '4 workers for a 400-line file is more parallelism than the band needs',
+					},
+				],
 			}
-		},
-		{
-			"id": "switch-medium-after-2",
-			"fixture": "medium-switch",
-			"milestone": "switch",
-			"date": "2026-09-18",
-			"stagesMs": {
-				"mount": 329,
-				"firstColor": 478,
-				"queueAtClick": 0,
-				"planWindows": 7,
-				"windowsSent": 7,
-				"windowsBeforeColor": 4,
-				"tokenizeBeforeColor": 296
-			},
-			"pool": {
-				"workers": 5,
-				"bootDoneMs": 15
-			}
-		},
-		{
-			"id": "switch-medium-before-1",
-			"fixture": "medium-switch",
-			"milestone": "warm",
-			"date": "2026-09-18",
-			"stagesMs": {
-				"mount": 352,
-				"firstColor": 477,
-				"queueAtClick": 0,
-				"windowsSent": 8,
-				"windowsBeforeColor": 5,
-				"tokenizeBeforeColor": 324
-			},
-			"pool": {
-				"workers": 5,
-				"bootDoneMs": 15
-			}
-		},
-		{
-			"id": "switch-medium-before-2",
-			"fixture": "medium-switch",
-			"milestone": "warm",
-			"date": "2026-09-18",
-			"stagesMs": {
-				"mount": 354,
-				"firstColor": 449,
-				"queueAtClick": 3,
-				"windowsSent": 3,
-				"windowsBeforeColor": 1,
-				"tokenizeBeforeColor": 52
-			},
-			"pool": {
-				"workers": 5,
-				"bootDoneMs": 15
-			}
-		},
-		{
-			"id": "switch-medium-after-cold-control",
-			"fixture": "medium-switch",
-			"milestone": "switch",
-			"date": "2026-09-18",
-			"stagesMs": {
-				"mount": 356,
-				"firstColor": 519,
-				"queueAtClick": 0,
-				"planWindows": 7,
-				"windowsSent": 7,
-				"windowsBeforeColor": 4,
-				"tokenizeBeforeColor": 304
-			},
-			"pool": {
-				"workers": 5,
-				"bootDoneMs": 15
-			},
-			"note": "Same-build cold control, click on module-core-15.ts (deliberately NOT the prefetched next file: the prefetch only warms the immediately following row). 7 windows dispatched from the click, first colour after 304 ms of worker tokenization - which is exactly the wait Fix 3b removes; the 145-160 ms gap to the warm rows is the saving a reviewer feels."
-		},
-		{
-			"id": "switch-medium-after-prefetch-1",
-			"fixture": "medium-switch",
-			"milestone": "switch",
-			"date": "2026-09-18",
-			"stagesMs": {
-				"mount": 375,
-				"firstColor": 375,
-				"queueAtClick": 0,
-				"planWindows": 3,
-				"windowsSent": 0,
-				"windowsBeforeColor": 0,
-				"tokenizeBeforeColor": 0
-			},
-			"pool": {
-				"workers": 5,
-				"bootDoneMs": 15
-			},
-			"note": "Fix 3b, click on module-core-102.ts - the file the render pass before it had PREFETCHED. firstColor = mount on purpose: the warm job's whole plan (3 windows) had already been merged before the click (pool:publish 3/3 for that job's key, pre-click), so the click sent 0 windows and the renderer took the finished grid inside its own paint. Measured from the click, same desk/session as the cold control below; the pre-Fix-3b baseline series is 449-478 ms (switch-medium-before-*/after-*) with 7 windows and 52-324 ms of tokenize before the first colour."
-		},
-		{
-			"id": "switch-medium-after-prefetch-2",
-			"fixture": "medium-switch",
-			"milestone": "switch",
-			"date": "2026-09-18",
-			"stagesMs": {
-				"mount": 360,
-				"firstColor": 360,
-				"queueAtClick": 0,
-				"planWindows": 3,
-				"windowsSent": 0,
-				"windowsBeforeColor": 0,
-				"tokenizeBeforeColor": 0
-			},
-			"pool": {
-				"workers": 5,
-				"bootDoneMs": 15
-			},
-			"note": "Fix 3b second sample, click on module-core-111.ts (prefetched by the pass that rendered the previous file). Same shape as sample 1: 0 windows sent for the clicked file, 3 sends after the click all belonging to the FOLLOWING file's prefetch job (perf marks carry the job key since this build, which is what made the attribution unambiguous)."
-		},
-		{
-			"id": "plainfix-bigfile-1",
-			"fixture": "bigfile",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 42,
-				"contents": 4723,
-				"plainPaint": 4911,
-				"bootStart": 121,
-				"bootDone": 148,
-				"jobOpen": 4877,
-				"firstWindowSent": 4953,
-				"firstColor": 4969,
-				"final": 6479
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 125,
-				"windowDone": 125
-			},
-			"workerBundleKb": 550,
-			"note": "16k-line file loaded through the oversized card (guard dismissed at 4674 ms - on a cold desk that wait is mostly the desk building the 2.4 MB diff; the /api/file-contents fetch itself took 49 ms). Plain rows 4911, first color 4969 (+58 ms), whole file tokenized 6479 (125 windows). Warm-batch rows: plainPaint 2187, first color 2301, final 3598 - those dismissed the guard on a warm desk, so the pre-click wait is not comparable; the guard-to-color span is (4969-4674)=295 ms."
-		},
-		{
-			"id": "plainfix-bigfile-2",
-			"fixture": "bigfile",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 38,
-				"contents": 2398,
-				"plainPaint": 2560,
-				"bootStart": 120,
-				"bootDone": 137,
-				"jobOpen": 2526,
-				"firstWindowSent": 2597,
-				"firstColor": 2616,
-				"final": 4123
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 125,
-				"windowDone": 125
-			},
-			"workerBundleKb": 550,
-			"note": "second bigfile sample: guard dismissed at 2338 ms, guard-to-color 278 ms (sample 1: 295), tokenize to pool:final 4123 (125 windows)."
-		},
-		{
-			"id": "plainfix-large-1",
-			"fixture": "large",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 44,
-				"contents": 472,
-				"plainPaint": 2851,
-				"bootStart": 485,
-				"bootDone": 524,
-				"jobOpen": 671,
-				"firstWindowSent": 3186,
-				"firstColor": 3390,
-				"final": 4343
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 9,
-				"windowDone": 7
-			},
-			"workerBundleKb": 550,
-			"note": "1000-file desk: the cost sits in the client parse/tree (plainPaint 2851 ms), not the pool (boot done 524, job open 671). The token job waits for the paint (first window 3186); first color 3390, final 4343. windowSent 9 = first job 8 + prefetch 1, 2 windows still in flight at pool:final."
-		},
-		{
-			"id": "plainfix-large-2",
-			"fixture": "large",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 51,
-				"contents": 474,
-				"plainPaint": 2862,
-				"bootStart": 488,
-				"bootDone": 3190,
-				"jobOpen": 3315,
-				"firstWindowSent": 3316,
-				"firstColor": 4009,
-				"final": 4563
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 4,
-				"windowDone": 4
-			},
-			"workerBundleKb": 550,
-			"note": "second large sample: plainPaint 2862 matches sample 1 (2851) - the parse/tree cost is stable; this run's boot landed late (3190, after the paint) so the job opened at 3315 and only got 4 windows sent by pool:final (4 sent, 4 done). Contended-boot variant of the same shape: first color 4009 vs 3390."
-		},
-		{
-			"id": "plainfix-medium-1",
-			"fixture": "medium",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 38,
-				"contents": 166,
-				"plainPaint": 219,
-				"bootStart": 181,
-				"bootDone": 593,
-				"jobOpen": 593,
-				"firstWindowSent": 594,
-				"firstColor": 804,
-				"final": 1403
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 9,
-				"windowDone": 8
-			},
-			"workerBundleKb": 550,
-			"note": "first color 804 vs warm-batch rows 684-841 and parallel 713-1283: inside the recorded spread. bootDone landed late (593) under the headless harness; plainPaint 219 stays ahead of it, first colour unchanged in shape. windowSent 9 = first job 8 + prefetch 1; one prefetch window still in flight at pool:final."
-		},
-		{
-			"id": "plainfix-medium-2",
-			"fixture": "medium",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 45,
-				"contents": 180,
-				"plainPaint": 232,
-				"bootStart": 195,
-				"bootDone": 322,
-				"jobOpen": 330,
-				"firstWindowSent": 330,
-				"firstColor": 695,
-				"final": 1269
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 9,
-				"windowDone": 9
-			},
-			"workerBundleKb": 550,
-			"note": "second medium sample: first color 695 vs warm rows 684-841 - unchanged. windowSent 9 = first job 8 + prefetch 1."
-		},
-		{
-			"id": "plainfix-patho-1",
-			"fixture": "patho",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 37,
-				"contents": 98,
-				"plainPaint": 111,
-				"bootStart": 102,
-				"bootDone": 164,
-				"jobOpen": 165,
-				"firstWindowSent": 165,
-				"firstColor": 381,
-				"final": 738
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 5,
-				"windowDone": 5
-			},
-			"workerBundleKb": 550,
-			"note": "2400-line fully-rewritten file: first color 381, whole file tokenized 738 (5 windows: 4 first job + 1 prefetch). The every-line-rewritten shape parses and tokenizes in the same envelope as an ordinary file."
-		},
-		{
-			"id": "plainfix-patho-2",
-			"fixture": "patho",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 37,
-				"contents": 104,
-				"plainPaint": 125,
-				"bootStart": 104,
-				"bootDone": 163,
-				"jobOpen": 257,
-				"firstWindowSent": 257,
-				"firstColor": 716,
-				"final": 716
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 1,
-				"windowDone": 1
-			},
-			"workerBundleKb": 550,
-			"note": "second patho sample, different job shape: the whole 2400-line file fit one window (no partial publish, so firstColor = the highlighted completion publish at 716; sample 1 split 5 windows and coloured at 381). Report patho first colour as 381-716 across the two samples."
-		},
-		{
-			"id": "plainfix-small-1",
-			"fixture": "small",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 32,
-				"contents": 105,
-				"plainPaint": 128,
-				"bootStart": 117,
-				"bootDone": 166,
-				"jobOpen": 181,
-				"firstWindowSent": 181,
-				"firstColor": 384,
-				"final": 834
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 5,
-				"windowDone": 5
-			},
-			"workerBundleKb": 550,
-			"note": "windowSent includes the next file's prefetch job (4+1)."
-		},
-		{
-			"id": "plainfix-small-2",
-			"fixture": "small",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 38,
-				"contents": 110,
-				"plainPaint": 132,
-				"bootStart": 121,
-				"bootDone": 163,
-				"jobOpen": 168,
-				"firstWindowSent": 168,
-				"firstColor": 378,
-				"final": 820
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 5,
-				"windowDone": 5
-			},
-			"workerBundleKb": 550,
-			"note": "second small sample; windowSent includes the next file's prefetch (4+1)."
-		},
-		{
-			"id": "plainfix-switch-1",
-			"fixture": "medium-switch",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"mount": 66,
-				"firstColor": 713,
-				"queueAtClick": 0,
-				"planWindows": 3,
-				"windowsSent": 3,
-				"windowsBeforeColor": 2,
-				"tokenizeBeforeColor": 1111
-			},
-			"pool": {
-				"workers": 3,
-				"bootDoneMs": 0
-			},
-			"workerBundleKb": 550,
-			"note": "click module-core-21.ts on a settled medium desk (idle pool, click at marks tail). Mount 66 ms; first color 713 with 2 of 3 windows done (tokenize 1111 ms summed across the 3-worker pool). Reference (switch milestone, 5 workers): mount 329, first color 470-478 with ~150-300 ms tokenize. The 3-slot pool is the headless harness's hardware-derived width, so absolute tokenize wall time runs longer than the 5-slot reference."
-		},
-		{
-			"id": "plainfix-switch-2",
-			"fixture": "medium-switch",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"mount": 64,
-				"firstColor": 698,
-				"queueAtClick": 0,
-				"planWindows": 3,
-				"windowsSent": 3,
-				"windowsBeforeColor": 1,
-				"tokenizeBeforeColor": 546
-			},
-			"pool": {
-				"workers": 3,
-				"bootDoneMs": 0
-			},
-			"workerBundleKb": 550,
-			"note": "second switch sample, click module-core-36.ts (idle pool, same desk as plainfix-switch-1). Mount 64, first color 698 with 1 of 3 windows done. The pair reads mount 64-66 ms, first color 698-713 ms on the 3-slot headless pool - same shape as the switch-milestone reference (mount 329, first color 470-478 on 5 slots), absolute tokenize time scales with the narrower pool."
-		},
-		{
-			"id": "plainfix-tiny-1",
-			"fixture": "tiny",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 31,
-				"contents": 99,
-				"plainPaint": 117,
-				"bootStart": 109,
-				"bootDone": 172,
-				"jobOpen": 174,
-				"firstWindowSent": 175,
-				"firstColor": 315,
-				"final": 437
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 5,
-				"windowDone": 5
-			},
-			"workerBundleKb": 550,
-			"note": "firstColor = first pool:publish for the opened file's job (the pool:publish:painted headline stage no longer exists); plainPaint = render:painted (plain rows on screen). windowSent/windowDone include the next file's prefetch job (4+1 windows). pool:publish:final (highlighted completion) 437 ms."
-		},
-		{
-			"id": "plainfix-tiny-2",
-			"fixture": "tiny",
-			"milestone": "plainfix",
-			"date": "2026-09-19",
-			"stagesMs": {
-				"module": 31,
-				"contents": 100,
-				"plainPaint": 113,
-				"bootStart": 107,
-				"bootDone": 138,
-				"jobOpen": 156,
-				"firstWindowSent": 157,
-				"firstColor": 303,
-				"final": 428
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 3,
-				"windowSent": 5,
-				"windowDone": 5
-			},
-			"workerBundleKb": 550,
-			"note": "second tiny sample; windowSent includes the next file's prefetch (4+1)."
-		},
-		{
-			"id": "scrollfix-bigfile-1",
-			"fixture": "bigfile",
-			"milestone": "scrollfix",
-			"date": "2026-09-20",
-			"stagesMs": {
-				"module": 25,
-				"contents": 37,
-				"plainPaint": 2025.1,
-				"bootStart": 110.5,
-				"bootDone": 133.2,
-				"jobOpen": 1992,
-				"firstWindowSent": 2068.9,
-				"firstColor": 2080.9,
-				"final": 3037.7,
-				"ttcStart": 1814
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 127,
-				"windowDone": 127
-			},
-			"workerBundleKb": 540,
-			"note": "Route: pi-frontend-check (headless), cold desk session scroll-bench-1, 16k-line giant-list.ts loaded through the oversized card (guard dismissed at 1814 ms). Scroll-render batch 1: mount quantum 50 -> 25 lines, row-height estimate calibrated once per instance from the median mounted row (the wrap-mode estimate was 1 text box short), eager calibration one frame after mount, overscroll viewport/3 -> viewport/2. Cold open unchanged within noise (guard-to-first-colour 267 ms vs 278-295 ms on plainfix) and the scroll sweep on the 8k-line giant-surface.ts (200k px, 520 frames) went from 150 rows mounted / +2040 px drift per sweep / 2 gap frames to 50-75 rows / 0 drift / 1 gap frame (41 px, single frame)."
-		},
-		{
-			"id": "scrollfix-bigfile-2",
-			"fixture": "bigfile",
-			"milestone": "scrollfix",
-			"date": "2026-09-20",
-			"stagesMs": {
-				"module": 26.6,
-				"contents": 38,
-				"plainPaint": 2377.4,
-				"bootStart": 111,
-				"bootDone": 145.3,
-				"jobOpen": 2344.4,
-				"firstWindowSent": 2417.8,
-				"firstColor": 2435.2,
-				"final": 3393.8,
-				"ttcStart": 2181
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 127,
-				"windowDone": 127
-			},
-			"workerBundleKb": 540,
-			"note": "Second scrollfix-bigfile sample (route pi-frontend-check, cold desk session scroll-bench-2, 16k-line giant-list.ts through the oversized card, guard dismissed at 2181 ms). Guard-to-first-colour 254 ms vs 267 ms on sample 1 and 278-295 ms on plainfix: the eager mount-frame calibration and the halved mount quantum cost nothing at open."
-		},
-		{
-			"id": "streamgate-bigfile-1",
-			"fixture": "bigfile",
-			"milestone": "streamgate",
-			"date": "2026-09-20",
-			"stagesMs": {
-				"module": 31,
-				"contents": 880,
-				"plainPaint": 1053,
-				"bootStart": 118,
-				"bootDone": 156,
-				"jobOpen": 1012,
-				"firstWindowSent": 1090,
-				"firstColor": 1109.6,
-				"ttcStart": 823.6
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 10,
-				"windowDone": 10
-			},
-			"workerBundleKb": 537,
-			"note": "Route: pi-frontend-check (headless), cold desk session streamgate-1, 16k-line giant-list.ts loaded through the oversized card (guard dismissed at 824 ms). Guard-to-first-colour 286 ms, in line with scrollfix (254-267). The viewport stream gate: 10 windows dispatched on open (viewport band + 2-window lookahead) vs 127 eager on scrollfix; the desk is idle at 10/10 with 117 windows still queued, and pool:final no longer lands on open - the plan now completes only when the reviewer scrolls through the file (dashboard shows a dash). Hypothesis: eager whole-file tokenization paid ~6 s of worker CPU for rows the reviewer never reached on a dense rewrite; verdict: gate holds, colour reaches the visible band on time, scroll extends the stream (verified on the gallery 8k dense file: 11 windows on open, 5 more following a 2000-slot scroll, idle after)."
-		},
-		{
-			"id": "streamgate-bigfile-2",
-			"fixture": "bigfile",
-			"milestone": "streamgate",
-			"date": "2026-09-20",
-			"stagesMs": {
-				"module": 26,
-				"contents": 3856,
-				"plainPaint": 4011,
-				"bootStart": 96,
-				"bootDone": 125,
-				"jobOpen": 3979,
-				"firstWindowSent": 4047,
-				"firstColor": 4068.6,
-				"ttcStart": 3798.6
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 10,
-				"windowDone": 10
-			},
-			"workerBundleKb": 537,
-			"note": "Second streamgate-bigfile sample (same route, cold desk session streamgate-2, guard dismissed at 3799 ms). Guard-to-first-colour 270 ms vs 286 ms on sample 1: the gate costs nothing at open and leaves the same 10/10 windows on the wire."
-		},
-		{
-			"id": "parseoff-bigfile-1",
-			"fixture": "bigfile",
-			"milestone": "parseoff",
-			"date": "2026-09-20",
-			"stagesMs": {
-				"module": 30,
-				"contents": 759,
-				"plainPaint": 964,
-				"bootStart": 104,
-				"bootDone": 123,
-				"jobOpen": 931,
-				"firstWindowSent": 997,
-				"firstColor": 1028.3,
-				"ttcStart": 727.1
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 10,
-				"windowDone": 10
-			},
-			"workerBundleKb": 537,
-			"note": "Route: pi-frontend-check (headless), cold desk session parseoff-1, 16k-line giant-list.ts through the oversized card (guard dismissed at 727 ms). The click-path parse now offloads to the dedicated parse worker (the one parse-offload.ts already ran for the next-file prefetch): pool:parse:offloaded 65 ms offloaded:true, and the re-scheduled render pass hits the seeded memo (render:parse 11 ms on the main thread, was the whole jsdiff run). Guard-to-first-colour 301 ms vs 270-286 on streamgate: the offload costs ~15-25 ms of wall on a 65 ms parse (worker round-trip + deferred pass) in exchange for a main thread that never freezes - on the 8k dense file the 803 ms inline parse (gallery, measured) becomes 11 ms with the worker covering the 800 ms behind the provisional rows. Stream gate unchanged: 10 windows, desk idle at 10/10."
-		},
-		{
-			"id": "parseoff-bigfile-2",
-			"fixture": "bigfile",
-			"milestone": "parseoff",
-			"date": "2026-09-20",
-			"stagesMs": {
-				"module": 27,
-				"contents": 621,
-				"plainPaint": 805,
-				"bootStart": 88,
-				"bootDone": 106,
-				"jobOpen": 774,
-				"firstWindowSent": 847,
-				"firstColor": 879.5,
-				"ttcStart": 586.4
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 10,
-				"windowDone": 10
-			},
-			"workerBundleKb": 537,
-			"note": "Second parseoff-bigfile sample (same route, cold desk session parseoff-2, guard dismissed at 586 ms). pool:parse:offloaded 60 ms offloaded:true, render:parse 10 ms (memo hit), guard-to-first-colour 293 ms vs 301 on sample 1: the offload round-trip cost is stable at ~15-25 ms of wall on this sparse fixture."
-		},
-		{
-			"id": "nogrey-bigfile-1",
-			"fixture": "bigfile",
-			"milestone": "nogrey",
-			"date": "2026-09-20",
-			"stagesMs": {
-				"module": 29,
-				"contents": 760,
-				"plainPaint": 948,
-				"bootStart": 109,
-				"bootDone": 141,
-				"jobOpen": 888,
-				"firstWindowSent": 982,
-				"firstColor": 1007.5,
-				"ttcStart": 722.5
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 10,
-				"windowDone": 10
-			},
-			"workerBundleKb": 537,
-			"note": "Route: pi-frontend-check (headless), cold desk session nogrey-1, 16k-line giant-list.ts through the oversized card (guard dismissed at 723 ms). The grey flash is gone: the parse worker result primes the pool for THIS file with the overlay head rows as viewport, the warm job tokenizes the visible band while the mount paints under the overlay (job-publish.ts stashes instance-less publishes, so a late mount adopts the colored grid), and the reveal watch holds the layer until the first publish - measured publish 285 ms, overlay lift 310 ms (publish + 25), straight onto colored rows. Guard-to-first-colour 285 ms vs 301/293 on parseoff (the priming overlaps the wait instead of adding to it). 10/10 windows, desk idle."
-		},
-		{
-			"id": "nogrey-bigfile-2",
-			"fixture": "bigfile",
-			"milestone": "nogrey",
-			"date": "2026-09-20",
-			"stagesMs": {
-				"module": 28,
-				"contents": 864,
-				"plainPaint": 1072,
-				"bootStart": 96,
-				"bootDone": 114,
-				"jobOpen": 1018,
-				"firstWindowSent": 1103,
-				"firstColor": 1127.8,
-				"ttcStart": 840.8
-			},
-			"pool": {
-				"boots": 1,
-				"workers": 5,
-				"windowSent": 10,
-				"windowDone": 10
-			},
-			"workerBundleKb": 537,
-			"note": "Second nogrey-bigfile sample (same route, cold desk session nogrey-2, guard dismissed at 841 ms). First publish 287 ms, overlay lift 292 ms (publish + 5): the hold is a frame, not a wait, and the reviewer never sees an uncolored row."
-		}
-	]
-};
-	/*BENCH_DATA_END*/
+			/*BENCH_DATA_END*/
 
 			;(function () {
 				'use strict'
@@ -4823,7 +3739,7 @@
 				const foot = document.getElementById('footGen')
 				if (foot)
 					foot.textContent =
-						'Generated from the benchmark history (benchmarks/history.json) by benchmarks/bench-dashboard.mjs. Self-contained: no network, no fonts, no build step — open it from disk.'
+						'Generated from the benchmark history (test/benchmarks/history.json) by test/benchmarks/bench-dashboard.mjs. Self-contained: no network, no fonts, no build step — open it from disk.'
 
 				function onGlobalKeydown(e) {
 					if (e.key === 'Escape') clearSelection()

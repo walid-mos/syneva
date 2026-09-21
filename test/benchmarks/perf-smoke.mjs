@@ -20,7 +20,7 @@ import path from 'node:path'
 import {
 	checkBundleBudget,
 	INITIAL_UI_BYTES_LIMIT,
-} from '../scripts/bundle-budget.mjs'
+} from '../../scripts/bundle-budget.mjs'
 
 const ID = 'perf-smoke'
 const CLI = path.join(process.cwd(), 'dist', 'cli.js')

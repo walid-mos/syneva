@@ -78,7 +78,7 @@ setMarkdownTheme(S.settings.theme)
 // the first render pass hides it. Deliberately NOT scheduled before the settings/state fetch:
 // measured twice, that pulls the boot and the 5 worker boots into the parse, the paint then slips
 // enough to cost more than the boot it saves (medium: painted 510 ms vs 203, first colour 825 vs 684),
-// so the earlier placement is recorded as a rejected run in benchmarks/history.json. The pool is
+// so the earlier placement is recorded as a rejected run in test/benchmarks/history.json. The pool is
 // reached through a dynamic import because its graph (manager -> @pierre + the highlighter chunks)
 // must stay out of the initial bundle; scripts/bundle-budget.mjs enforces that boundary.
 const warmPoolBoot = async (): Promise<void> => {
