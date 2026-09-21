@@ -135,7 +135,7 @@ async function buildFileSource(
 	const working = (await git.workspace.readFile(query.path)) ?? ''
 	if (!tracked)
 		return {
-			files: [fileEntry(key, '', working)],
+			files: [fileEntry(key, working, 'added')],
 			changes: [],
 			rawDiff: '',
 			parsedDiff: [],
@@ -146,7 +146,7 @@ async function buildFileSource(
 	)
 	if (!rawDiff.trim())
 		return {
-			files: [fileEntry(key, working, working)],
+			files: [fileEntry(key, working, 'modified')],
 			changes: [],
 			rawDiff: '',
 			parsedDiff: [],

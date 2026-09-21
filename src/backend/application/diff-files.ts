@@ -239,16 +239,12 @@ export async function assembleDiff(
 // no contents - the tab fetches them on open (readFileContents).
 export function fileEntry(
 	filePath: string,
-	oldContents: string,
 	newContents: string,
+	changeKind: 'added' | 'modified',
 ): ReviewFile {
-	const changeKind = changeKindOf(
-		oldContents ? filePath : undefined,
-		newContents ? filePath : undefined,
-	)
 	// Only a fresh add carries a +count here (no hunk to sum); a tracked-unchanged full file is 0/0.
 	const added = changeKind === 'added' ? lineCount(newContents) : 0
-	const removed = changeKind === 'deleted' ? lineCount(oldContents) : 0
+	const removed = 0
 	return {
 		oldPath: filePath,
 		newPath: filePath,

@@ -38,7 +38,7 @@ export async function appendUntrackedFiles(
 	dropPairedDeletions(files, changes, pairing.deletedPaths)
 	for (const entry of entries) {
 		if (pairing.untrackedPaths.has(entry.rel)) continue
-		files.push(fileEntry(entry.rel, '', entry.working))
+		files.push(fileEntry(entry.rel, entry.working, 'added'))
 	}
 	files.push(...pairing.moves)
 }
