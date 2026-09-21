@@ -854,6 +854,11 @@
 			"id": "nogrey",
 			"label": "No grey reveal",
 			"note": "Hypothesis: even with the parse off-thread and the stream gated, the reviewer still watched grey rows twice - the provisional overlay, then the mounted diff repainting plain-to-colored ~250 ms later. Change: the parse worker result primes the pool for the SAME file with the overlay head rows as viewport (the next-file prefetch warms other files), instance-less publishes stash their merged grid so the mount itself can paint colored, and the cold-open reveal holds the overlay until the pool publishes instead of lifting on bare rows. Fallbacks: a scroll lifts the overlay at once, plain diffs and a failed boot release on rows, the ~10 s reveal cap still bounds everything. Measured (bigfile bench x2 + gallery dense file): first publish 285/287 ms, overlay lift publish+5-25 ms, zero uncolored frames on the revealed diff; window count and TTC unchanged vs parseoff."
+		},
+		{
+			"id": "architecture",
+			"label": "Architecture boundaries",
+			"note": "Hypothesis: moving the browser composition into FSD and the server into hexagonal layers preserves the established render path. The comparable Stacked 1280x900 pair measured first colour at 858-13549 ms and final colour at 1425-25203 ms; the slower sample landed under measured external host contention and is retained rather than hidden, so this pair cannot establish a clean performance comparison. The 960x720 run and the contended 1280x900 Split run are retained as diagnostics but excluded from the comparable pair. Pool boot stayed singular and every primary window completed."
 		}
 	],
 	"rejected": [
@@ -2057,6 +2062,106 @@
 			},
 			"workerBundleKb": 537,
 			"note": "Second nogrey-bigfile sample (same route, cold desk session nogrey-2, guard dismissed at 841 ms). First publish 287 ms, overlay lift 292 ms (publish + 5): the hold is a frame, not a wait, and the reviewer never sees an uncolored row."
+		},
+		{
+			"id": "architecture-medium-960-diagnostic",
+			"fixture": "medium",
+			"milestone": "architecture",
+			"date": "2026-09-21",
+			"stagesMs": {
+				"module": 97,
+				"contents": 356,
+				"plainPaint": 443,
+				"bootStart": 443,
+				"bootDone": 550,
+				"jobOpen": 569,
+				"firstWindowSent": 863,
+				"firstColor": 1023,
+				"final": 1579
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 6,
+				"windowDone": 6
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check cold open at 960x720. Diagnostic run that exposed the missing TokenPool.initialize lifecycle adapter; numbers are post-fix and healthy, but the viewport differs from the comparable 1280x900 pair. Counts include the three-window next-file prefetch; the visible file sent and completed 3/3."
+		},
+		{
+			"id": "architecture-medium-1",
+			"fixture": "medium",
+			"milestone": "architecture",
+			"date": "2026-09-21",
+			"stagesMs": {
+				"module": 34,
+				"contents": 212,
+				"plainPaint": 282,
+				"bootStart": 281,
+				"bootDone": 368,
+				"jobOpen": 386,
+				"firstWindowSent": 696,
+				"firstColor": 858,
+				"final": 1425
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 6,
+				"windowDone": 6
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check cold open at 1280x900 on a fresh medium desk. First colour is the first publish with one visible-file window landed, not the earlier plain-grid publish. Counts include the three-window next-file prefetch; the visible file sent and completed 3/3."
+		},
+		{
+			"id": "architecture-medium-2-contended",
+			"fixture": "medium",
+			"milestone": "architecture",
+			"date": "2026-09-21",
+			"stagesMs": {
+				"module": 715,
+				"contents": 2696,
+				"plainPaint": 4304,
+				"bootStart": 3310,
+				"bootDone": 5805,
+				"jobOpen": 5921,
+				"firstWindowSent": 9745,
+				"firstColor": 14162,
+				"final": 26465
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 6,
+				"windowDone": 6
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check cold open at 1280x900 on a fresh medium desk under severe host contention (desk readiness itself took 5.1 s; 384-row worker windows reported 15.8-16.0 s tokenize). This diagnostic also inherited the temporary Split setting, so it is retained per timeline rules but excluded from the comparable preservation pair. Counts include prefetch; the visible file still completed 3/3 with one boot."
+		},
+		{
+			"id": "architecture-medium-3-contended",
+			"fixture": "medium",
+			"milestone": "architecture",
+			"date": "2026-09-21",
+			"stagesMs": {
+				"module": 501,
+				"contents": 4121,
+				"plainPaint": 5399,
+				"bootStart": 4965,
+				"bootDone": 6539,
+				"jobOpen": 6688,
+				"firstWindowSent": 9906,
+				"firstColor": 13549,
+				"final": 25203
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 6,
+				"windowDone": 6
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check cold open at 1280x900, Stacked layout, on a fresh medium desk while an unrelated Java process held more than one CPU core. The run is configuration-comparable but contention-dominated, so it is retained and excluded from the preservation verdict. The visible file completed 3/3 windows and the next-file prefetch completed 3/3 under one pool boot."
 		}
 	]
 };
