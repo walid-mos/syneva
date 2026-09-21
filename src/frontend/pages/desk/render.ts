@@ -1,0 +1,305 @@
+import { currentFileOrNull } from '@entities/review/changes'
+import {
+	cur,
+	loadCurrentContents,
+	peekContents,
+} from '@entities/review/file/contents'
+import { isMarkdownPath } from '@entities/review/file/file-summary'
+import { fileMovedPure, movedFrom } from '@entities/review/file/renames'
+import { hasGuide } from '@entities/review/guide/guide'
+import { restoreComposerFocus } from '@features/manage-comment/composer'
+import { isExpandCapped, newLines } from '@shared/diff-renderer/expand-cap'
+import { $ } from '@shared/lib/dom'
+import { esc } from '@shared/lib/esc'
+import { perfMark } from '@shared/lib/perf'
+import { registerRenderFunnel } from '@shared/lib/render-scheduler'
+import { updateProgress } from '@widgets/chrome/progress'
+import { applyActiveRow, applyLayoutClasses } from '@widgets/chrome/sidebar-dom'
+import { cursorReset } from '@widgets/diff-view/cursor'
+import { diffKey } from '@widgets/diff-view/diff-key'
+import { renderMarkdownFile } from '@widgets/diff-view/mdfile'
+import { renderMovedPure } from '@widgets/diff-view/moved-note'
+import {
+	isOversizedPlaceholder,
+	renderOversizedCard,
+} from '@widgets/diff-view/oversized'
+import { clearOverviewRuler } from '@widgets/diff-view/overview-ruler'
+
+import { deskCtx } from './context'
+import { renderOverview } from './overview'
+
+import type { GuideInputs } from '@entities/review/guide/guide'
+import type { ReviewState } from '@entities/review/model'
+import type * as DiffIsland from '@widgets/diff-view/diff-instance'
+import type { DiffView } from '@widgets/diff-view/diff-key'
+
+// The guide derivations' explicit inputs, read from the store at each evaluation.
+const GI = (): GuideInputs => ({
+	state: deskCtx().S.state,
+	fileIndex: deskCtx().S.fileIndex,
+	hideReviewed: deskCtx().S.settings.hideReviewed,
+	progressBy: deskCtx().S.settings.progressBy,
+	foldExpanded: deskCtx().S.foldExpanded,
+})
+
+// One render funnel: every progress-moving mutation in every layer funnels through render();
+// lower layers reach it through the scheduler seam (@shared/lib/render-scheduler) - this module
+// (imported by app/main) is what installs the real funnel.
+registerRenderFunnel({ render, deferRender })
+
+type ReviewFile = ReviewState['files'][number]
+let renderSequence = 0
+
+// The current render's view flags, read from the store (see DiffView). The expand-unchanged
+// preference is respected only under the whole-file paint cap: past EXPAND_LINES_MAX the diff
+// renders hunks-only and the header notes the cap (file-header.ts), so a 10k-line file can't
+// storm the tab with tens of thousands of DOM cells - every render pass rebuilds synchronously.
+function currentView(): DiffView {
+	const wantsExpand = deskCtx().S.settings.unchangedLines === 'expand'
+	return {
+		isPreviewing: !!deskCtx().S.preview,
+		isExpandedUnchanged: wantsExpand && !isExpandCapped(cur.newContents),
+	}
+}
+
+// The render pass: the single function every progress-moving mutation funnels through, plus the
+// gate that decides what #diff shows for the current file. The diff itself is rendered by the
+// @pierre island (render/diff-instance.ts); the header builders live in render/file-header.ts.
+
+// A diff that would block longer than ~this many lines of tokenization shows the indicator.
+const RENDER_INDICATOR_MIN_LINES = 400
+
+// Run render() but first paint a "Rendering…" indicator when the current file is big enough to
+// block on tokenization - used by file switches and Reset (both can re-tokenize). The double rAF
+// is required: the indicator must paint *before* the synchronous Shiki work begins.
+// `isForcedIfBig` shows it for any big file (Reset re-tokenizes even when the diff key is cached);
+// otherwise a fast cached re-open skips the badge to avoid an appear-then-vanish flash.
+export function deferRender(isForcedIfBig = false): void {
+	const file = currentFileOrNull(
+		deskCtx().S.state?.files,
+		deskCtx().S.preview,
+		deskCtx().S.fileIndex,
+	)
+	const view = currentView()
+	// Contents arrive via a per-file fetch (see contents.ts). When they aren't warm yet the upcoming
+	// render() gates on that fetch, so show the indicator; when they are, decide on size as before.
+	// peekContents never fetches, so this stays synchronous.
+	const warm = file ? peekContents(file, deskCtx().S.preview) : null
+	const isBig =
+		!!warm &&
+		Math.max(newLines(warm.oldContents), newLines(warm.newContents)) >
+			RENDER_INDICATOR_MIN_LINES
+	// A cached diff key means the coming render re-mounts an existing instance: no tokenizing.
+	const reusesCache =
+		!!file &&
+		!isForcedIfBig &&
+		deskCtx().D.diffCache.has(diffKey(file, view))
+	deskCtx().S.rendering = !!file && (!warm || (isBig && !reusesCache))
+	requestAnimationFrame(() =>
+		requestAnimationFrame(() => {
+			void (async () => {
+				try {
+					await render()
+				} finally {
+					deskCtx().S.rendering = false
+				}
+			})()
+		}),
+	)
+}
+
+// Drop the active handle and line map before a replacement view owns #diff. Window callbacks
+// ignore inactive instances; the next diff mount disposes the detached entry.
+function detachDiffInstance(): void {
+	clearOverviewRuler()
+	deskCtx().D.instance = null
+	deskCtx().D.lineMap = null
+}
+
+// Guided review: the Overview page takes over the center until a file is selected.
+function renderGuideOverview(): boolean {
+	if (!(deskCtx().S.overviewOpen && hasGuide(GI()))) return false
+	cursorReset()
+	detachDiffInstance()
+	renderOverview()
+	return true
+}
+
+// An oversized file (server-stamped) paints a verdict-capable summary card instead of its diff -
+// before the contents fetch, so opening it never blocks on a multi-MB tokenization pass.
+// "Load diff anyway" (oversized.ts) clears the placeholder and falls back to the normal render.
+function renderOversizedSummary(): void {
+	cursorReset()
+	detachDiffInstance()
+	applyLayoutClasses()
+	renderOversizedCard()
+}
+
+// Shown when a file's contents can't be fetched (git object gone after a rebase, transport
+// failure). Names the file and points at a desk reload; the rest of the desk stays live, so the
+// reviewer can navigate to other files while this one is unresolvable.
+function renderContentsError(path: string): void {
+	cursorReset()
+	detachDiffInstance()
+	applyLayoutClasses()
+	$('diff').innerHTML =
+		`<div class="file-note"><div class="file-note-strip moved">
+    <svg class="ic"><use href="#gly-flag"></use></svg>
+    <span>couldn't load <span class="file-note-name">${esc(path)}</span></span>
+    <span class="file-note-meta">reload the desk to retry</span>
+  </div></div>`
+}
+
+// Which replacement view (if any) takes over #diff for this file, after the contents fetch - none
+// of them read the contents, but the fetch still warms the per-file cache for a later switch.
+type ReplacementView = 'markdown' | 'moved'
+
+function replacementView(
+	file: ReviewFile,
+	isPreviewing: boolean,
+): ReplacementView | null {
+	// Markdown file in rendered mode: formatted preview with block-anchored comments instead of the
+	// @pierre/diffs view.
+	if (
+		!isPreviewing &&
+		deskCtx().S.state?.mode === 'file' &&
+		isMarkdownPath(file.path) &&
+		deskCtx().S.fileView === 'rendered'
+	)
+		return 'markdown'
+	// A pure rename (identical content, distinct paths) has no diff to show - the muted
+	// "renamed old -> new, no changes" row replaces it.
+	if (
+		!isPreviewing &&
+		fileMovedPure(deskCtx().S.state?.files ?? [], file.path)
+	)
+		return 'moved'
+	return null
+}
+
+function renderReplacementView(
+	file: ReviewFile,
+	isPreviewing: boolean,
+): boolean {
+	const view = replacementView(file, isPreviewing)
+	if (!view) return false
+	cursorReset()
+	detachDiffInstance()
+	applyLayoutClasses()
+	if (view === 'markdown') renderMarkdownFile()
+	else
+		renderMovedPure(
+			file,
+			movedFrom(deskCtx().S.state?.files ?? [], file.path),
+		)
+	return true
+}
+
+async function renderCenter(sequence: number): Promise<void> {
+	if (renderGuideOverview()) return
+	const file = currentFileOrNull(
+		deskCtx().S.state?.files,
+		deskCtx().S.preview,
+		deskCtx().S.fileIndex,
+	)
+	// Nothing to show: the pre-init window (main.ts hasn't adopted the first fetch yet), or a reload
+	// whose rebuilt review came back empty. Empty the pane rather than render a fabricated file.
+	if (!file) {
+		cursorReset()
+		detachDiffInstance()
+		applyLayoutClasses()
+		$('diff').replaceChildren()
+		return
+	}
+	const isPreviewing = !!deskCtx().S.preview
+	if (!isPreviewing && isOversizedPlaceholder(file)) {
+		renderOversizedSummary()
+		return
+	}
+	// Pull this file's contents from the per-file endpoint before rendering anything that reads
+	// them (the markdown/moved/diff views all follow). A "stale" result means the reviewer
+	// switched files mid-fetch - abort silently, a newer render() is already handling the current
+	// file. An "error" means the contents can't be fetched (git object gone after a rebase); show an
+	// error card naming the file so navigation to other files keeps working.
+	const contentsStatus = await loadCurrentContents(
+		file,
+		deskCtx().S.preview,
+		() =>
+			currentFileOrNull(
+				deskCtx().S.state?.files,
+				deskCtx().S.preview,
+				deskCtx().S.fileIndex,
+			) === file,
+	)
+	if (contentsStatus === 'stale' || sequence !== renderSequence) return
+	if (contentsStatus === 'error') {
+		renderContentsError(file.path)
+		return
+	}
+	if (renderReplacementView(file, isPreviewing)) return
+	await renderDiffIsland(file, sequence)
+}
+
+async function renderDiffIsland(
+	file: ReviewFile,
+	sequence: number,
+): Promise<void> {
+	let island: typeof DiffIsland
+	try {
+		island = await import('@widgets/diff-view/diff-instance')
+	} catch {
+		if (
+			sequence !== renderSequence ||
+			file !==
+				currentFileOrNull(
+					deskCtx().S.state?.files,
+					deskCtx().S.preview,
+					deskCtx().S.fileIndex,
+				)
+		)
+			return
+		detachDiffInstance()
+		const message = document.createElement('div')
+		message.className = 'file-note'
+		message.textContent =
+			'The diff renderer could not load. Refresh this tab to retry.'
+		$('diff').replaceChildren(message)
+		return
+	}
+	// Loading the island yields to navigation, reset, and newer render requests.
+	if (
+		sequence !== renderSequence ||
+		file !==
+			currentFileOrNull(
+				deskCtx().S.state?.files,
+				deskCtx().S.preview,
+				deskCtx().S.fileIndex,
+			)
+	)
+		return
+	applyLayoutClasses()
+	island.renderDiffInstance(file, currentView())
+}
+
+// Every progress-moving mutation (decision, approval, reset, reload) funnels through render,
+// so it is the progress strip's single repaint point. It must run AFTER the render work has
+// PAINTED, not merely after renderCenter returns: the transition clock starts at style-commit,
+// and a file switch's first frame is spent tokenizing + laying out the new diff DOM - a bar
+// started before (or during) that frame lands already-finished, i.e. no visible motion. The
+// double rAF puts the width change on the first idle frame after that paint.
+export async function render(): Promise<void> {
+	const sequence = ++renderSequence
+	perfMark('render:start')
+	try {
+		await renderCenter(sequence)
+	} finally {
+		// The diff DOM (and any inline composer inside it) was just rebuilt from scratch - re-focus
+		// the open composer and restore its caret from the store, so typing survives a render
+		// triggered mid-compose (e.g. accepting a change while replying).
+		restoreComposerFocus()
+		// Re-apply the sidebar highlight an rAF later - after Alpine's microtask flush, so rows
+		// that were just re-keyed by a reactive change carry it again (see applyActiveRow).
+		requestAnimationFrame(applyActiveRow)
+		requestAnimationFrame(() => requestAnimationFrame(updateProgress))
+	}
+}

@@ -7,10 +7,14 @@
 		"types": ["node"],
 		"noEmit": true,
 		"declaration": false
+		// The frontend-only layer aliases (FSD) are declared once in tsconfig.json's
+		// "paths" (also consumed by tsx for the colocated tests): app -> pages ->
+		// widgets -> features -> entities -> shared, plus the neutral contracts sink.
+		// Enforced here by moduleResolution=bundler and by oxlint's layer rules.
 	},
-	// The whole browser world, tests included: UI tests import UI modules through
+	// The whole browser world, tests included: UI tests import frontend modules through
 	// bundler-style specifiers, so they cannot be checked in the NodeNext worlds.
-	"include": ["src/ui/**/*.ts"],
+	"include": ["src/frontend/**/*.ts"],
 	// Drop the inherited emit excludes: they would hide every file from this world.
 	"exclude": []
 }

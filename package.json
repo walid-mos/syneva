@@ -53,7 +53,7 @@
     }
   },
   "bin": {
-    "syneva": "./dist/cli.js"
+    "syneva": "./dist/backend/bootstrap/cli.js"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
@@ -66,9 +66,9 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "node scripts/build-ui.mjs --watch & tsx src/cli.ts",
-    "build": "tsc && tsc -p tsconfig.ui.json && node scripts/build-ui.mjs && cp src/ui/index.html dist/index.html",
-    "start": "node dist/cli.js",
+    "dev": "node scripts/build-ui.mjs --watch & tsx src/backend/bootstrap/cli.ts",
+    "build": "node scripts/clean-dist.mjs && tsc && tsc -p tsconfig.ui.json && node scripts/build-ui.mjs && cp src/frontend/app/index.html dist/index.html",
+    "start": "node dist/backend/bootstrap/cli.js",
     "check": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.ui.json",
     "lint": "oxlint --deny-warnings",
     "lint:types": "oxlint --type-aware --deny-warnings",
@@ -79,8 +79,7 @@
     "perf-smoke": "node test/benchmarks/perf-smoke.mjs",
     "bench": "node test/benchmarks/bench-fixtures.mjs && node test/benchmarks/browser-bench.mjs",
     "prepack": "pnpm build",
-    "release": "pnpm lint && pnpm lint:types && pnpm format:check && pnpm check && pnpm test && pnpm build && changelogen --release --push",
-    "postinstall": "pnpm build"
+    "release": "pnpm lint && pnpm lint:types && pnpm format:check && pnpm check && pnpm test && pnpm build && changelogen --release --push"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",

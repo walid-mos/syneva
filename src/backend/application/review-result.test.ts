@@ -1,0 +1,225 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { isDeepStrictEqual } from 'node:util'
+
+import { comment, decision, file, state } from '../domain/fixtures.js'
+
+import { buildReviewResult } from './review-result.js'
+
+void test('buildReviewResult reads decisions, so a staged-out accepted hunk still appears in accepted[]', () => {
+	const s = state({
+		mode: 'repo',
+		changes: [], // the accepted hunk is gone from the working diff (staged)
+		decisions: [
+			decision({
+				key: 'a.ts:k1',
+				path: 'a.ts',
+				status: 'accepted',
+				lineNumber: 4,
+				side: 'additions',
+				title: '1 removed · 5 added',
+			}),
+		],
+	})
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.equal(r.accepted.length, 1)
+	assert.equal(r.accepted[0].path, 'a.ts')
+	assert.equal(r.accepted[0].lineNumber, 4)
+})
+
+void test('buildReviewResult excludes questions from requestedChanges, keeps an action on the same line', () => {
+	const s = state({
+		comments: [
+			comment({
+				id: 'q',
+				path: 'a.ts',
+				lineNumber: 4,
+				body: 'why is this here?',
+				intent: 'question',
+			}),
+			comment({
+				id: 'a',
+				path: 'a.ts',
+				lineNumber: 4,
+				body: 'rename this',
+				intent: 'action',
+			}),
+		],
+	})
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.equal(r.requestedChanges.length, 1)
+	assert.equal(r.requestedChanges[0].body, 'rename this')
+})
+
+void test('buildReviewResult.openQuestions lists unanswered questions and drops answered ones', () => {
+	const s = state({
+		session: 'sess',
+		mode: 'repo',
+		comments: [
+			comment({
+				id: 'open',
+				path: 'a.ts',
+				lineNumber: 4,
+				body: 'why here?',
+				intent: 'question',
+				role: 'user',
+				createdAt: '2026-01-01T00:00:00Z',
+			}),
+			// Answered: a later agent reply lands in the same thread (same path/side/line).
+			comment({
+				id: 'answered',
+				path: 'a.ts',
+				lineNumber: 7,
+				body: 'and this?',
+				intent: 'question',
+				role: 'user',
+				createdAt: '2026-01-01T00:00:00Z',
+			}),
+			comment({
+				id: 'reply',
+				path: 'a.ts',
+				lineNumber: 7,
+				body: 'because X',
+				intent: 'note',
+				role: 'agent',
+				createdAt: '2026-01-01T00:01:00Z',
+			}),
+		],
+	})
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.equal(r.openQuestions.length, 1)
+	assert.equal(r.openQuestions[0].body, 'why here?')
+	assert.equal(r.openQuestions[0].lineNumber, 4)
+	// Same shape as an await question - mode/session threaded through.
+	assert.equal(r.openQuestions[0].mode, 'repo')
+	assert.equal(r.openQuestions[0].session, 'sess')
+})
+
+void test('buildReviewResult carries mode/target/base', () => {
+	const s = state({ mode: 'pr', target: 'feature-x', base: 'abc123' })
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.equal(r.mode, 'pr')
+	assert.equal(r.target, 'feature-x')
+	assert.equal(r.base, 'abc123')
+})
+
+void test('buildReviewResult.approvedFiles includes a clean signed-off file', () => {
+	const s = state({
+		files: [file('a.ts', 'H')],
+		reviewedFiles: ['a.ts'],
+		reviewedFileHashes: { 'a.ts': 'H' },
+	})
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.ok(isDeepStrictEqual(r.approvedFiles, ['a.ts']))
+})
+
+void test('buildReviewResult.approvedFiles excludes a signed-off file with a rejected hunk', () => {
+	const s = state({
+		files: [file('a.ts', 'H')],
+		reviewedFiles: ['a.ts'],
+		reviewedFileHashes: { 'a.ts': 'H' },
+		decisions: [
+			decision({ key: 'a.ts:k1', path: 'a.ts', status: 'rejected' }),
+		],
+	})
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.deepEqual(r.approvedFiles, [])
+})
+
+void test('buildReviewResult.approvedFiles excludes a signed-off file with an open action comment, keeps one with only a question', () => {
+	const s = state({
+		files: [file('a.ts', 'H'), file('b.ts', 'H')],
+		reviewedFiles: ['a.ts', 'b.ts'],
+		reviewedFileHashes: { 'a.ts': 'H', 'b.ts': 'H' },
+		comments: [
+			comment({
+				id: 'c1',
+				path: 'a.ts',
+				status: 'open',
+				role: 'user',
+				intent: 'action',
+				body: 'fix',
+			}),
+			comment({
+				id: 'c2',
+				path: 'b.ts',
+				status: 'open',
+				role: 'user',
+				intent: 'question',
+				body: 'why?',
+			}),
+		],
+	})
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.ok(isDeepStrictEqual(r.approvedFiles, ['b.ts'])) // a.ts has an open change request; b.ts only a question
+})
+
+void test('a whole-file request rides out as lineNumber 0 + anchor file, and approves-not blocks as usual', () => {
+	const s = state({
+		files: [file('a.ts', 'H'), file('b.ts', 'H')],
+		reviewedFiles: ['a.ts', 'b.ts'],
+		reviewedFileHashes: { 'a.ts': 'H', 'b.ts': 'H' },
+		comments: [
+			comment({
+				id: 'file',
+				path: 'a.ts',
+				lineNumber: 0,
+				body: 'add a module-level doc comment',
+				intent: 'action',
+				role: 'user',
+			}),
+		],
+	})
+	const r = buildReviewResult(s, { resultJson: 'r.json', sessionDir: 'd' })
+	assert.equal(r.requestedChanges.length, 1)
+	assert.equal(r.requestedChanges[0].lineNumber, 0)
+	assert.equal(r.requestedChanges[0].anchor, 'file')
+	// The open file request keeps its file out of approvedFiles (same rule as a line request),
+	// while the untouched b.ts stays approved.
+	assert.ok(isDeepStrictEqual(r.approvedFiles, ['b.ts']))
+})
+
+void test('an unanswered whole-file question carries anchor file and is answered by a --line 0 reply', () => {
+	const before = state({
+		session: 'sess',
+		comments: [
+			comment({
+				id: 'file-q',
+				path: 'a.ts',
+				lineNumber: 0,
+				body: 'should this module be split?',
+				intent: 'question',
+				role: 'user',
+				createdAt: '2026-01-01T00:00:00Z',
+			}),
+		],
+	})
+	const asked = buildReviewResult(before, {
+		resultJson: 'r.json',
+		sessionDir: 'd',
+	})
+	assert.equal(asked.openQuestions.length, 1)
+	assert.equal(asked.openQuestions[0].lineNumber, 0)
+	assert.equal(asked.openQuestions[0].anchor, 'file')
+
+	// A file-header reply (line 0) answers it - no more open question on the next Send.
+	const after = state({
+		session: 'sess',
+		comments: [
+			...before.comments,
+			comment({
+				id: 'reply',
+				path: 'a.ts',
+				lineNumber: 0,
+				body: 'not yet',
+				role: 'agent',
+				createdAt: '2026-01-01T00:01:00Z',
+			}),
+		],
+	})
+	assert.deepEqual(
+		buildReviewResult(after, { resultJson: 'r.json', sessionDir: 'd' })
+			.openQuestions,
+		[],
+	)
+})
