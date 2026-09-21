@@ -33,7 +33,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
 // Boot helper: fresh syneva desk per repo/session (ports are `--port 0` randomized).
 // HOME is redirected so the desk's persisted review files never touch the user's state.
 async function spawnDesk(repo, session, env) {
-	const CLI = path.join(process.cwd(), 'dist', 'cli.js')
+	const CLI = path.join(
+		process.cwd(),
+		'dist',
+		'backend',
+		'bootstrap',
+		'cli.js',
+	)
 	const { spawn } = await import('node:child_process')
 	const desk = spawn(
 		'node',
