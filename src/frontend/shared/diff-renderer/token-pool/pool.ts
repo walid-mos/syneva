@@ -248,6 +248,12 @@ export class TokenPool {
 		return this.bootPromise
 	}
 
+	// @pierre starts every supplied manager through this public lifecycle method. Syneva also warms
+	// the same boot on idle, so both entry points must share the one idempotent promise.
+	initialize(): Promise<void> {
+		return this.warmBoot()
+	}
+
 	private async runBoot(): Promise<void> {
 		perfMark('pool:boot:start')
 		try {
