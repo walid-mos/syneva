@@ -24,19 +24,25 @@ import {
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 // The bridge consumes the built dist artifact: the published package ships only
 // dist/ and extension/, so a source-tree import could never resolve once installed.
-// The VALUE import is DYNAMIC inside the factory and runs only after ensureCli(): a static
-// value import would resolve during module loading - before any factory code runs - so a
-// missing dist/ (the exact condition ensureCli() recovers from) would kill the extension
-// before it could build. Only the type import is static (it never loads at runtime).
-import type { registerDeskBridge as RegisterDeskBridge } from '../dist/backend/adapters/inbound/pi/pi-bridge.js'
+// Its import must stay dynamic and follow ensureCli(): even a type-only source reference
+// would make a clean checkout depend on generated output during type-checking.
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const CLI = join(PACKAGE_ROOT, 'dist', 'backend', 'bootstrap', 'cli.js')
+const BRIDGE = join(
+	PACKAGE_ROOT,
+	'dist',
+	'backend',
+	'adapters',
+	'inbound',
+	'pi',
+	'pi-bridge.js',
+)
 const BIN_DIR = join(homedir(), '.pi', 'agent', 'bin')
 const SHIM = join(BIN_DIR, 'syneva')
 // Both the create mode and the explicit chmod need the shim to stay executable.
@@ -81,6 +87,21 @@ interface Report {
 	cli: string
 }
 
+interface DeskBridgeModule {
+	registerDeskBridge(pi: ExtensionAPI): void
+}
+
+function isDeskBridgeModule(
+	bridgeModule: unknown,
+): bridgeModule is DeskBridgeModule {
+	return (
+		typeof bridgeModule === 'object' &&
+		bridgeModule !== null &&
+		'registerDeskBridge' in bridgeModule &&
+		typeof bridgeModule.registerDeskBridge === 'function'
+	)
+}
+
 function setup(): Report {
 	ensureCli()
 	const shim = writeShim()
@@ -90,24 +111,26 @@ function setup(): Report {
 	return { version, shim, cli: CLI }
 }
 
-export default async function registerSynevaExtension(
-	pi: ExtensionAPI,
-): Promise<void> {
-	// Pi awaits async factories, so the one-shot build below completes before any
-	// listener registration - the bridge import must therefore stay inside the factory.
-	let registerDeskBridge: typeof RegisterDeskBridge
+async function registerBridge(pi: ExtensionAPI): Promise<void> {
 	try {
-		const bridge =
-			await import('../dist/backend/adapters/inbound/pi/pi-bridge.js')
-		registerDeskBridge = bridge.registerDeskBridge
-		registerDeskBridge(pi)
+		const bridge: unknown = await import(pathToFileURL(BRIDGE).href)
+		if (!isDeskBridgeModule(bridge))
+			throw new Error(
+				`built bridge has no registerDeskBridge export: ${BRIDGE}`,
+			)
+		bridge.registerDeskBridge(pi)
 	} catch (error) {
-		// Same contract as setup(): keep the prompts alive and surface the failure on stderr.
 		process.stderr.write(
 			`[syneva-pi] bridge load failed: ${error instanceof Error ? error.message : String(error)} - ` +
 				`the /review and /plan prompts still work; they fall back to "pnpm add -g syneva".\n`,
 		)
 	}
+}
+
+export default async function registerSynevaExtension(
+	pi: ExtensionAPI,
+): Promise<void> {
+	// Pi awaits async factories, so setup can build the CLI before the bridge loads.
 	let report: Report | undefined
 	try {
 		report = setup()
@@ -117,6 +140,7 @@ export default async function registerSynevaExtension(
 				`the /review and /plan prompts still work; they fall back to "pnpm add -g syneva".\n`,
 		)
 	}
+	if (report) await registerBridge(pi)
 	pi.registerCommand('syneva', {
 		description: 'Syneva review desk status - CLI, shim, package paths',
 		handler: async (_args, ctx) => {
