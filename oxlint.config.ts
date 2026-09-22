@@ -600,7 +600,7 @@ export default defineConfig({
 			// on frontend files (they pass whenever the types resolve - see HEAD and the
 			// tsc gates). The type gate for the frontend is tsconfig.ui.json via pnpm
 			// check; type-aware linting stays fully active for the backend.
-			files: ['src/frontend/**/*.ts'],
+			files: ['src/frontend/**/*.ts', 'src/frontend/**/*.tsx'],
 			rules: {
 				'typescript/no-redundant-type-constituents': 'off',
 				'typescript/prefer-nullish-coalescing': 'off',
@@ -615,11 +615,50 @@ export default defineConfig({
 			// funnel, and widgets/diff-view/diff-instance.ts orchestrates the imperative
 			// diff island. Splitting them would scatter composition, not reduce coupling.
 			files: [
-				'src/frontend/app/main.ts',
+				'src/frontend/app/main.tsx',
 				'src/frontend/pages/desk/render.ts',
 				'src/frontend/widgets/diff-view/diff-instance.ts',
 			],
 			rules: { 'import/max-dependencies': 'off' },
+		},
+		{
+			// The reactive store kernel wraps unknowns by design - the Proxy handlers ARE the
+			// wrap/unwrap seam, and the settings descriptor table narrows string options back
+			// to their Settings field unions at the single write boundary. The assertions are
+			// the seam itself.
+			files: [
+				'src/frontend/shared/lib/reactive.ts',
+				'src/frontend/widgets/chrome/react/settings-descriptors.ts',
+			],
+			rules: {
+				'nextnode/no-type-assertion': 'off',
+				'typescript/no-unsafe-type-assertion': 'off',
+				// The descriptor table's keys are the domain; the generic just carries the
+				// write boundary - the type-aware pass reads it as single-use.
+				'typescript/no-unnecessary-type-parameters': 'off',
+			},
+		},
+		{
+			// The React chrome is a view over the mutable reactive store: the store IS the
+			// state channel (an external observable, subscribed via useSyncExternalStore),
+			// so handler-side writes (S.field = …, settings.x = …) are the designed mutation
+			// path, not a render-phase mutation. The rule cannot see that boundary; disable it
+			// for the chrome views only. Actions with logic still live in the facade modules.
+			// The effects sync EXTERNAL systems the store does not own: the browser tab
+			// title, the body layout classes, the rAF count-up animation - none of them
+			// are render-time derivations.
+			files: [
+				'src/frontend/widgets/chrome/react/**',
+				'src/frontend/app/react/app.tsx',
+			],
+			rules: {
+				'react/immutability': 'off',
+				// A view composition keeps its row/action fragments in one file (each still
+				// within the size and complexity caps); scattering fragments into files-per
+				// -component would separate the pieces that only make sense together.
+				'react/no-multi-comp': 'off',
+				'nextnode/no-use-effect': 'off',
+			},
 		},
 		{
 			// The bench fixtures encode file counts and per-file sizes by design (an 8k-line

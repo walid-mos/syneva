@@ -90,3 +90,7 @@ Syneva is a **fork of [Galley](https://github.com/ymansurozer/galley)** by Yusuf
 ## License
 
 [MIT](./LICENSE) © Walid Mostefaoui — the original Galley code © Yusuf Mansur Özer
+
+## Build
+
+- `pnpm build` - Vite bundles the browser frontend (ui + tokenization worker), tsc compiles the backend.

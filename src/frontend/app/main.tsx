@@ -1,3 +1,5 @@
+import { createRoot } from 'react-dom/client'
+
 import { installCommentBindings } from '@app/facade/comment-thread'
 import { installDialogBindings } from '@app/facade/dialogs'
 import { installGuideBindings } from '@app/facade/guide-bar'
@@ -21,13 +23,13 @@ import { setMarkdownTheme } from '@shared/markdown'
 import { configureMarkdownRuntime } from '@shared/markdown/runtime-config'
 import { ensureIcons } from '@shared/ui/icons'
 import { bindChromeCtx } from '@widgets/chrome/context'
-import { setBaseTitle } from '@widgets/chrome/progress'
+import { setBaseTitle } from '@widgets/chrome/react/top-bar'
 import { bindDiffCtx } from '@widgets/diff-view/context'
 import { invalidateCursorRows } from '@widgets/diff-view/cursor'
 import { D } from '@widgets/diff-view/runtime'
-import AlpineJS from 'alpinejs'
 
 import { bindFeaturePorts } from './feature-ctx'
+import { App } from './react/app'
 import { persist, requireState, toast } from './store'
 import { S } from './store'
 
@@ -78,15 +80,11 @@ installFileActionBindings()
 installCommentBindings()
 installDialogBindings()
 
-// Alpine: register the reactive store, then start.
-declare global {
-	interface Window {
-		Alpine?: typeof AlpineJS
-	}
-}
-window.Alpine = AlpineJS
-AlpineJS.store('g', S)
-AlpineJS.start()
+// The React tree: mounted right after the contexts and facade bindings are in place, so
+// the shell (and the engine containers inside DiffArea) exist before the resizer and the
+// first render pass touch them. The store starts with state=null; the chrome tolerates it
+// and fills in when the initial fetch adopts.
+createRoot($('root')).render(<App />)
 
 // Init
 ensureIcons() // file-tree icon sprite (folder/file/badges/stage)
@@ -137,7 +135,7 @@ S.lastBaseDiffHash = S.state.baseDiffHash
 // Tab title: name the desk so multiple desks are distinguishable in the browser.
 const deskName = readDeskName(S.state)
 if (deskName) document.title = `Syneva - ${deskName}`
-// progress.ts prefixes the title with the review % - hand it the base to prefix.
+// The top bar's progress label prefixes the title with the review % - hand it the base.
 setBaseTitle(document.title)
 S.selected = {
 	side: S.state.changes[0]?.side ?? 'additions',

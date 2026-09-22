@@ -24,7 +24,10 @@ export function staticBundleBytes(outputs, entry) {
 	return bytes
 }
 
-export const INITIAL_UI_BYTES_LIMIT = 200_000
+export const INITIAL_UI_BYTES_LIMIT = 350_000
+// React 19's runtime (react + react-dom) rides in the initial closure now that the
+// chrome is React - ~134 KB minified of the 333 KB measured; the limit sits just
+// above so the next real regression (a leaked grammar, a fat dep) still trips it.
 // Provisional: raised for the @pierre/diffs 1.4.3 bump. Its theming/shiki-barrel graph
 // drags the full grammar set into the total until the shiki-shim is re-scoped (size cleanup
 // deferred; the cold-open path that this gate exists to protect is the INITIAL limit above).

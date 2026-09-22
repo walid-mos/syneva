@@ -13,8 +13,6 @@ import { $ } from '@shared/lib/dom'
 import { esc } from '@shared/lib/esc'
 import { perfMark } from '@shared/lib/perf'
 import { registerRenderFunnel } from '@shared/lib/render-scheduler'
-import { updateProgress } from '@widgets/chrome/progress'
-import { applyActiveRow, applyLayoutClasses } from '@widgets/chrome/sidebar-dom'
 import { cursorReset } from '@widgets/diff-view/cursor'
 import { diffKey } from '@widgets/diff-view/diff-key'
 import { renderMarkdownFile } from '@widgets/diff-view/mdfile'
@@ -131,7 +129,6 @@ function renderGuideOverview(): boolean {
 function renderOversizedSummary(): void {
 	cursorReset()
 	detachDiffInstance()
-	applyLayoutClasses()
 	renderOversizedCard()
 }
 
@@ -141,7 +138,6 @@ function renderOversizedSummary(): void {
 function renderContentsError(path: string): void {
 	cursorReset()
 	detachDiffInstance()
-	applyLayoutClasses()
 	$('diff').innerHTML =
 		`<div class="file-note"><div class="file-note-strip moved">
     <svg class="ic"><use href="#gly-flag"></use></svg>
@@ -185,7 +181,6 @@ function renderReplacementView(
 	if (!view) return false
 	cursorReset()
 	detachDiffInstance()
-	applyLayoutClasses()
 	if (view === 'markdown') renderMarkdownFile()
 	else
 		renderMovedPure(
@@ -207,7 +202,6 @@ async function renderCenter(sequence: number): Promise<void> {
 	if (!file) {
 		cursorReset()
 		detachDiffInstance()
-		applyLayoutClasses()
 		$('diff').replaceChildren()
 		return
 	}
@@ -277,7 +271,6 @@ async function renderDiffIsland(
 			)
 	)
 		return
-	applyLayoutClasses()
 	island.renderDiffInstance(file, currentView())
 }
 
@@ -297,9 +290,5 @@ export async function render(): Promise<void> {
 		// the open composer and restore its caret from the store, so typing survives a render
 		// triggered mid-compose (e.g. accepting a change while replying).
 		restoreComposerFocus()
-		// Re-apply the sidebar highlight an rAF later - after Alpine's microtask flush, so rows
-		// that were just re-keyed by a reactive change carry it again (see applyActiveRow).
-		requestAnimationFrame(applyActiveRow)
-		requestAnimationFrame(() => requestAnimationFrame(updateProgress))
 	}
 }

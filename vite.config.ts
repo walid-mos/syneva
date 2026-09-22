@@ -18,7 +18,7 @@ import { checkBundleBudget } from './scripts/bundle-budget.mjs'
 import type { Plugin, UserConfig } from 'vite'
 
 const UI_ENTRY = fileURLToPath(
-	new URL('./src/frontend/app/main.ts', import.meta.url),
+	new URL('./src/frontend/app/main.tsx', import.meta.url),
 )
 const WORKER_ENTRY = fileURLToPath(
 	new URL('./src/frontend/worker/diff-token-worker.ts', import.meta.url),

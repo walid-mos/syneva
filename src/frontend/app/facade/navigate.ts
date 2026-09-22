@@ -8,7 +8,6 @@ import {
 	prevWrapIndex,
 } from '@entities/review/guide/guide'
 import { deferRender, render } from '@pages/desk/render'
-import { applyActiveRow } from '@widgets/chrome/sidebar-dom'
 import { cursorReset } from '@widgets/diff-view/cursor'
 import { D } from '@widgets/diff-view/runtime'
 
@@ -58,9 +57,8 @@ function installFileSelection(): void {
 		S.fileView = defaultFileView(state.files[i], S.settings.markdownView)
 		D.fileDiff = null
 		cursorReset() // re-init the line cursor to the new file's first change
-		// Move the sidebar highlight in place - switching files no longer rebuilds the row lists
-		// (the "active" class left the row models; see applyActiveRow in tree.ts).
-		applyActiveRow()
+		// The sidebar highlight re-derives on the store bump this mutation causes -
+		// the React tree repaints it; nothing to patch in place.
 		deferRender()
 		// Quietly warm the next file in review order (guide order when guided, else sequential - the
 		// exact resolution keyboard nav uses) so the common next-file step never waits on the wire.
