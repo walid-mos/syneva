@@ -7,6 +7,7 @@ import { nowIso } from '../../../application/time.js'
 
 import { reviewDir } from './desk.js'
 import { decodeReviewFile, encodeReviewFile } from './diff-envelope-dto.js'
+import { asString } from './dto.js'
 import {
 	decodeChange,
 	decodeComment,
@@ -215,23 +216,17 @@ function decodePersistedState(
 		files: decodeArray(body.files, decodeReviewFile),
 		comments: decodeArray(body.comments, decodeComment),
 		changes: decodeArray(body.changes, decodeChange),
-		reviewedFiles: decodeArray(body.reviewedFiles, asPersistedPath),
+		reviewedFiles: decodeArray(body.reviewedFiles, asString),
 		reviewedFileHashes: decodeStringRecord(body.reviewedFileHashes),
-		stagedFiles: decodeArray(body.stagedFiles, asPersistedPath),
-		stagedChangeKeys: decodeArray(body.stagedChangeKeys, asPersistedPath),
-		decisionFiles: decodeArray(body.decisionFiles, asPersistedPath),
+		stagedFiles: decodeArray(body.stagedFiles, asString),
+		stagedChangeKeys: decodeArray(body.stagedChangeKeys, asString),
+		decisionFiles: decodeArray(body.decisionFiles, asString),
 		decisions: decodeArray(body.decisions, decodeDecision),
 		// A malformed guide decodes to nothing rather than half a grouping - the desk
 		// then lists files in diff order (the no-guide behavior).
 		guide: body.guide ? (decodeGuide(body.guide) ?? undefined) : undefined,
 		persistFile,
 	}
-}
-
-// A persisted path-list entry: a string, or dropped.
-function asPersistedPath(entry: unknown): string | null {
-	if (typeof entry === 'string') return entry
-	return null
 }
 
 // Decode a persisted hash record ({path → contentHash}); absent or malformed → undefined
