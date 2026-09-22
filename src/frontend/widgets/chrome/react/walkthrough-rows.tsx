@@ -47,7 +47,7 @@ function WalkLineStats({
 	)
 }
 
-function WalkCatNode(row: Extract<WalkRow, { kind: 'cat' }>): ReactElement {
+function WalkCatNode({ row }: { row: Extract<WalkRow, { kind: 'cat' }> }): ReactElement {
 	const { S } = chromeCtx()
 	const foldable = row.renamed || row.reviewed
 	return (
@@ -87,7 +87,7 @@ function MovedFrom({ from }: { from: string }): ReactElement {
 	)
 }
 
-function WalkFileNode(row: Extract<WalkRow, { kind: 'file' }>): ReactElement {
+function WalkFileNode({ row }: { row: Extract<WalkRow, { kind: 'file' }> }): ReactElement {
 	return (
 		<div
 			className={`node ${row.cls}`}

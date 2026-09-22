@@ -70,7 +70,7 @@ function TestCaret({
 	)
 }
 
-function DirRowBody(row: Extract<TreeRow, { kind: 'dir' }>): ReactElement {
+function DirRowBody({ row }: { row: Extract<TreeRow, { kind: 'dir' }> }): ReactElement {
 	return (
 		<>
 			<Icon
@@ -83,9 +83,7 @@ function DirRowBody(row: Extract<TreeRow, { kind: 'dir' }>): ReactElement {
 	)
 }
 
-function FileRowBody(
-	row: Extract<TreeRow, { kind: 'file' | 'test' }>,
-): ReactElement {
+function FileRowBody({ row }: { row: Extract<TreeRow, { kind: 'file' | 'test' }> }): ReactElement {
 	return (
 		<>
 			<span className="chev-spacer" />
@@ -104,9 +102,7 @@ function FileRowBody(
 	)
 }
 
-function FoldGroupBody(
-	row: Extract<TreeRow, { kind: 'foldgrp' }>,
-): ReactElement {
+function FoldGroupBody({ row }: { row: Extract<TreeRow, { kind: 'foldgrp' }> }): ReactElement {
 	return (
 		<>
 			<Icon
