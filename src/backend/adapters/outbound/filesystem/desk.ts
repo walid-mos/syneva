@@ -7,7 +7,9 @@ import { hash, sanitizeSession } from '../../../domain/identity.js'
 import type { DeskLockPort, SettingsPort } from '../../../application/ports.js'
 import type { DeskLock } from '../../../domain/desk-lock.js'
 
-const SYNEVA_DIR = '.syneva'
+// The dot-directory under the user's home that holds every desk-side artifact (reviews, settings,
+// the update-check cache). One constant: a relocation of ~/.syneva updates every consumer at once.
+export const SYNEVA_DIR = '.syneva'
 const SETTINGS_FILE = 'settings.json'
 const DESK_LOCK_FILE = 'desk.lock'
 const JSON_INDENT = 2

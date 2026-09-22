@@ -4,7 +4,7 @@ import path from 'node:path'
 import readline from 'node:readline'
 
 import { warn } from '../console.js'
-import { homeDir } from '../filesystem/desk.js'
+import { homeDir, SYNEVA_DIR } from '../filesystem/desk.js'
 
 import type { ChildProcess } from 'node:child_process'
 
@@ -131,7 +131,7 @@ export function detectInstall(
 
 // ── 24h throttle cache (~/.syneva/update-check.json) ─────────────────────────
 function cachePath(): string {
-	return path.join(homeDir(process.cwd()), '.syneva', 'update-check.json')
+	return path.join(homeDir(process.cwd()), SYNEVA_DIR, 'update-check.json')
 }
 
 type CheckCache = { lastCheckedAt?: string; latest?: string }
