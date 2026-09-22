@@ -47,6 +47,16 @@ export function subscribeStore(listener: () => void): () => void {
 	return () => listeners.delete(listener)
 }
 
+// One subscription that re-fires when ANY of the fields bumps (the React
+// useStoreFields seam folds its field list into a single useSyncExternalStore).
+export function subscribeStoreFields(
+	fields: string[],
+	listener: () => void,
+): () => void {
+	const unsubs = fields.map(field => subscribeStoreField(field, listener))
+	return () => unsubs.forEach(unsub => unsub())
+}
+
 export function subscribeStoreField(
 	field: string,
 	listener: () => void,

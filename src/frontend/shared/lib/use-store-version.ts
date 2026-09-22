@@ -4,7 +4,7 @@ import {
 	getFieldVersion,
 	getStoreVersion,
 	subscribeStore,
-	subscribeStoreField,
+	subscribeStoreFields,
 } from './reactive'
 
 // The React-side read seam for the reactive store. Components subscribe to the
@@ -20,14 +20,12 @@ export function useStoreVersion(): void {
 	useSyncExternalStore(subscribeStore, getStoreVersion)
 }
 
+// One subscription for the whole field list. The snapshot sums the member fields'
+// versions, which only ever increase - so the sum changes exactly when one of the
+// fields does, and the component re-renders on precisely the mutations it reads.
 export function useStoreFields(...fields: string[]): void {
-	for (const field of fields) {
-		// One hook call per field keeps the hook order stable (fields are static
-		// literals at each call site).
-		// eslint-disable-next-line react-hooks/rules-of-hooks -- static list
-		useSyncExternalStore(
-			listener => subscribeStoreField(field, listener),
-			() => getFieldVersion(field),
-		)
-	}
+	useSyncExternalStore(
+		listener => subscribeStoreFields(fields, listener),
+		() => fields.reduce((sum, field) => sum + getFieldVersion(field), 0),
+	)
 }
