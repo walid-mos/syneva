@@ -63,7 +63,7 @@ export async function readDeskLock(
 	}
 }
 
-function isDeskProcessAlive(pid: number): boolean {
+export function isDeskProcessAlive(pid: number): boolean {
 	try {
 		process.kill(pid, 0)
 		return true

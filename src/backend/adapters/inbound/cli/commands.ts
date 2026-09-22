@@ -6,6 +6,7 @@ import { printJson, warn } from '../../outbound/console.js'
 import {
 	deskLockPath,
 	findLiveDesks,
+	isDeskProcessAlive,
 	readDeskLock,
 	reviewDir,
 } from '../../outbound/filesystem/desk.js'
@@ -160,19 +161,10 @@ async function sessionLocks(root: string, args: CliArgs): Promise<DeskLock[]> {
 async function stopDesk(root: string, lock: DeskLock): Promise<StopOutcome> {
 	const response = await postShutdown(lock.url)
 	if (response.ok) return { kind: 'stopped', session: lock.session }
-	if (isProcessAlive(lock.pid))
+	if (isDeskProcessAlive(lock.pid))
 		return { kind: 'unreachable', session: lock.session, pid: lock.pid }
 	unlinkSync(deskLockPath(await reviewDir(root, lock.session)))
 	return { kind: 'swept', session: lock.session }
-}
-
-function isProcessAlive(pid: number): boolean {
-	try {
-		process.kill(pid, 0)
-		return true
-	} catch {
-		return false
-	}
 }
 
 // `syneva await --session <id>` - block until the next desk event, then print it
