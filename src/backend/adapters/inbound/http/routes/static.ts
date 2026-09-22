@@ -35,7 +35,7 @@ async function serveJsBundle(
 		return
 	}
 	const etag = `"${stat.size}-${Math.round(stat.mtimeMs)}"`
-	if (etag && req.headers['if-none-match'] === etag) {
+	if (req.headers['if-none-match'] === etag) {
 		res.writeHead(HTTP_NOT_MODIFIED)
 		res.end()
 		return
@@ -48,7 +48,8 @@ async function serveJsBundle(
 	}
 	res.writeHead(HTTP_OK, {
 		'content-type': 'text/javascript; charset=utf-8',
-		...cacheHeaders(etag),
+		etag,
+		'cache-control': 'no-cache',
 	})
 	res.end(js)
 }
@@ -71,13 +72,6 @@ export async function serveUiChunk(
 
 export async function serveWorkerBundle(request: RouteRequest): Promise<void> {
 	return serveJsBundle(workerBundlePath, request)
-}
-
-function cacheHeaders(
-	etag: string,
-): { etag: string; 'cache-control': string } | undefined {
-	if (!etag) return undefined
-	return { etag, 'cache-control': 'no-cache' }
 }
 
 export async function serveFavicon({ res }: RouteRequest): Promise<void> {
