@@ -282,7 +282,7 @@ async function renderDiffIsland(
 			)
 	)
 		return
-	island.renderDiffInstance(file, currentView())
+	await island.renderDiffInstance(file, currentView())
 }
 
 // Every progress-moving mutation (decision, approval, reset, reload) funnels through render,

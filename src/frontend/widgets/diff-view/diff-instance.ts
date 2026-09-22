@@ -17,6 +17,7 @@ import { diffKey } from './diff-key'
 import { memoizedDiffMetadata } from './diff-metadata'
 import { diffOptions } from './diff-options'
 import { registerDiffEngine } from './engine'
+import { prepareInitialPaint } from './initial-paint'
 import { clearOverviewRuler, scheduleOverviewRuler } from './overview-ruler'
 import { paintColdOpen, resetColdOpen } from './placeholder'
 import { warmNextFileTokens } from './prefetch'
@@ -37,6 +38,9 @@ import type { DiffView } from './diff-key'
 type ReviewFile = ReviewState['files'][number]
 let lastRenderedKey: string | undefined
 let lastRenderedSignature: string | undefined
+// Token preparation is async; a later file switch owns the paint and invalidates
+// an older preparation before it can replace the mounted pane.
+let renderGeneration = 0
 
 function afterRender(view: DiffView): void {
 	// The real rows are mounted (or on their way): a later cold pass for this file - the parse memo
@@ -173,7 +177,11 @@ function reuseMountedEntry(
 	return updateMountedDelta(file, view, key, signature)
 }
 
-export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
+export async function renderDiffInstance(
+	file: ReviewFile,
+	view: DiffView,
+): Promise<void> {
+	const generation = ++renderGeneration
 	syncPoolRenderOptions()
 	const key = diffKey(file, view)
 	const signature = currentSignature(file, view)
@@ -191,12 +199,15 @@ export function renderDiffInstance(file: ReviewFile, view: DiffView): void {
 	const anchor = isMounted ? captureScrollAnchor() : undefined
 	const metadata = parseMetadata(file, view)
 	const shouldRestoreAnchor = !!anchor && previous?.inst.fileDiff !== metadata
+	const options = diffOptions(view)
+	await prepareInitialPaint(metadata, options)
+	if (generation !== renderGeneration) return
 	D.fileDiff = metadata
 	// Timed apart: a cold open blocks the main thread here (hundreds of ms, measured), which delays
 	// every pool dispatch and publish queued behind it - so the split between getting the grid and
 	// getting it onto the page is what tells the next optimization where to go.
 	const endAcquire = perfSpan('render:acquire')
-	const entry = acquireEntry(key, metadata, diffOptions(view))
+	const entry = acquireEntry(key, metadata, options)
 	endAcquire()
 	D.instance = entry.inst
 	const endPaint = perfSpan('render:paint')
@@ -237,7 +248,7 @@ function createDiffEngine(): DiffEngine {
 			// parameters pin that contract in the type (see engine.ts).
 		},
 		applyModel({ file, view }) {
-			return Promise.resolve(renderDiffInstance(file, view))
+			return renderDiffInstance(file, view)
 		},
 		updateAnnotations({ file, view }) {
 			return updateMountedDelta(

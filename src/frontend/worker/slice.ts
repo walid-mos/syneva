@@ -157,14 +157,24 @@ class HunkWalk {
 		}
 	}
 
-	// Change groups stay atomic (a run straddling the edge tokenizes whole rather than splitting
-	// a word-diff pair across windows), so their rows go out whole; context groups clip exactly.
+	// Unequal paired groups stay atomic so the line pairing cannot straddle two
+	// windows. One-sided groups have no pair; equal N↔N groups split only between
+	// complete pairs. Both are exact and keep viewport work bounded instead of
+	// tokenizing an entire added or rewritten file for its first 50 rows.
 	#keep(
 		segment: ContextContent | ChangeContent,
 		skip: number,
 		lines: number,
 	): void {
 		if (segment.type === 'change') {
+			if (
+				segment.additions === 0 ||
+				segment.deletions === 0 ||
+				segment.additions === segment.deletions
+			) {
+				this.#keepAlignedChange(segment, skip, lines)
+				return
+			}
 			this.#covered.push(segment)
 			pushRun(this.#positions.deletion, this.#deletion, segment.deletions)
 			pushRun(this.#positions.addition, this.#addition, segment.additions)
@@ -178,6 +188,20 @@ class HunkWalk {
 		})
 		pushRun(this.#positions.addition, this.#addition + skip, lines)
 		pushRun(this.#positions.deletion, this.#deletion + skip, lines)
+	}
+
+	#keepAlignedChange(segment: ChangeContent, skip: number, lines: number): void {
+		const additions = Math.min(lines, Math.max(0, segment.additions - skip))
+		const deletions = Math.min(lines, Math.max(0, segment.deletions - skip))
+		this.#covered.push({
+			...segment,
+			additions,
+			deletions,
+			additionLineIndex: this.#addition + Math.min(skip, segment.additions),
+			deletionLineIndex: this.#deletion + Math.min(skip, segment.deletions),
+		})
+		pushRun(this.#positions.addition, this.#addition + skip, additions)
+		pushRun(this.#positions.deletion, this.#deletion + skip, deletions)
 	}
 }
 

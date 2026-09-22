@@ -36,6 +36,7 @@ import type { VirtualDiff } from './virtual-diff'
 export const WORKER_URL = STATIC_PATHS.worker
 
 let poolSingleton: TokenPool | null = null
+const preparedRefreshes = new WeakMap<VirtualDiff, () => void>()
 // Serialized token-relevant settings at last sync; '' means "never synced".
 let lastSyncedOptions = ''
 
@@ -91,6 +92,28 @@ export function prefetchPoolDiff(
 	viewport?: WindowViewport,
 ): void {
 	void ensurePool().primeJob(diff, viewport)
+}
+
+// Before the first island mount, prepare exactly the estimated visible band. The
+// caller awaits only this bounded window; the pool keeps streaming adjacent/full
+// windows after @pierre adopts the partially colored grid.
+export function preparePoolViewport(
+	diff: FileDiffMetadata,
+	viewport: WindowViewport,
+): Promise<boolean> {
+	return ensurePool().prepareViewport(diff, viewport)
+}
+
+export function attachPreparedRenderer(
+	diff: FileDiffMetadata,
+	instance: VirtualDiff,
+): void {
+	let refresh = preparedRefreshes.get(instance)
+	if (!refresh) {
+		refresh = () => instance.rerender()
+		preparedRefreshes.set(instance, refresh)
+	}
+	ensurePool().attachPreparedRefresh(diff, refresh)
 }
 
 // The rendered slice is also the reviewer's viewport - but a cache-hit range (the renderer's

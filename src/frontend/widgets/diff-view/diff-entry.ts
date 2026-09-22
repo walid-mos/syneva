@@ -8,7 +8,7 @@ import {
 	RENDER_CHUNK_LINES,
 	VirtualDiff,
 } from './virtual-diff'
-import { diffWorkerPool } from './worker-pool'
+import { attachPreparedRenderer, diffWorkerPool } from './worker-pool'
 
 import type { AnnotationMeta } from '@entities/review/annotations'
 import type { FileDiff } from '@pierre/diffs'
@@ -173,6 +173,8 @@ export function paintEntry(
 		container.style.minHeight = '1px'
 		wrapper.appendChild(container)
 	}
+	if (entry.inst instanceof VirtualDiff)
+		attachPreparedRenderer(metadata, entry.inst)
 	entry.inst.render({
 		fileDiff: metadata,
 		lineAnnotations,
