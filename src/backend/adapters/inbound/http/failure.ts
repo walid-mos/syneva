@@ -18,3 +18,14 @@ export const BAD_PATH: ApiFailure = {
 	error: 'Path escapes the repo.',
 	fix: 'Use a repo-relative path.',
 }
+
+// The one "cannot read a repo path" 404, shared by every route that resolves a repo-relative path
+// (/api/file, /api/blob): the same shape and fix hint whichever route missed, so they can't drift.
+export function cannotRead(rel: string): ApiFailure {
+	return {
+		status: 404,
+		code: 'NOT_FOUND',
+		error: `Cannot read "${rel}".`,
+		fix: 'Check the path is a readable file in the repo.',
+	}
+}
