@@ -12,3 +12,6 @@ dist/
 
 # Impeccable design tooling (live-mode config + session journal)
 .impeccable/
+
+# Scratch output of test/benchmarks/browser-bench.mjs (run-local measurement)
+browser-bench-results.json
