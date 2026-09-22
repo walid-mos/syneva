@@ -1,5 +1,4 @@
 import { questionPayload } from '../../../../application/review-result.js'
-import { commentSide, parseLineNumber } from '../../../../domain/comments.js'
 import {
 	HTTP_NO_CONTENT,
 	HTTP_OK,
@@ -8,6 +7,8 @@ import {
 	json,
 	fail,
 } from '../http.js'
+
+import { parseCommentRequest } from './comment-body.js'
 
 import type { AwaitEvent } from '../../../../../contracts/agent.js'
 import type { RouteRequest } from '../router.js'
@@ -32,7 +33,7 @@ export async function askQuestion({
 }: RouteRequest): Promise<void> {
 	// Reviewer clicked Ask: push a question to the agent now, out of band from Send.
 	const body: unknown = await readJsonBody(req)
-	const request = parseAskRequest(body)
+	const request = parseCommentRequest(body)
 	if (!request)
 		return fail(res, {
 			status: HTTP_UNPROCESSABLE,
@@ -112,38 +113,6 @@ export async function stopDesk({ ctx, res }: RouteRequest): Promise<void> {
 		setTimeout(() => ctx.shutdown('stop'), CLOSED_EVENT_GRACE_MS)
 	})
 	json(res, HTTP_OK, { ok: true, stopping: true })
-}
-
-function parseAskRequest(payload: unknown): {
-	path: string
-	lineNumber: number
-	side: 'additions' | 'deletions'
-	body: string
-} | null {
-	if (typeof payload !== 'object' || payload === null) return null
-	const filePath =
-		'path' in payload && typeof payload.path === 'string'
-			? payload.path
-			: ''
-	const text =
-		'body' in payload && typeof payload.body === 'string'
-			? payload.body.trim()
-			: ''
-	if (!filePath || !text) return null
-	const line = 'lineNumber' in payload ? payload.lineNumber : undefined
-	const lineNumber = parseLineNumber(line)
-	if (lineNumber === null) return null
-	return {
-		path: filePath,
-		lineNumber,
-		side: commentSide(
-			'side' in payload && payload.side === 'deletions'
-				? 'deletions'
-				: 'additions',
-			lineNumber,
-		),
-		body: text,
-	}
 }
 
 function parseStatusRequest(payload: unknown): string {
