@@ -9,7 +9,7 @@ import { Sidebar } from '@widgets/chrome/react/sidebar'
 import { TopBar } from '@widgets/chrome/react/top-bar'
 import { TransientChrome } from '@widgets/chrome/react/transient-chrome'
 
-import { useStoreVersion } from '../../shared/lib/use-store-version'
+import { useStoreFields } from '../../shared/lib/use-store-version'
 import { S } from '../store'
 
 import type { ReactElement } from 'react'
@@ -18,7 +18,12 @@ import type { ReactElement } from 'react'
 // React. Body-level layout classes (single/file-mode) stay on <body> - the CSS
 // keys on body selectors.
 export function App(): ReactElement {
-	useStoreVersion()
+	useStoreFields(
+		'state',
+		'deskClosed',
+		'isRefreshRequired',
+		'treeDrawerOpen',
+	)
 	// useLayoutEffect: the single/file-mode body classes gate the CSS grid layout, so
 	// they must land before first paint or single-file desks flash the tree column.
 	useLayoutEffect(() => {

@@ -1,4 +1,4 @@
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 import { varStyle } from '@shared/lib/var-style'
 import { Icon } from '@shared/ui/icon'
 
@@ -227,7 +227,19 @@ function TreePane({ active }: { active: string | null }): ReactElement {
 // panes; the tree pane also hosts the Files header with expand/collapse-all.
 export function Sidebar(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields(
+		'state',
+		'fileIndex',
+		'preview',
+		'overviewOpen',
+		'sidebarTab',
+		'treeDrawerOpen',
+		'foldExpanded',
+		'expandedDirs',
+		'collapsedDirs',
+		'loadedOversized',
+		'settings',
+	)
 	const guided = S.hasGuide?.() ?? false
 	const showTree = !guided || S.sidebarTab === 'tree'
 	return (

@@ -1,4 +1,4 @@
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 
 import { chromeCtx } from '../context'
 
@@ -9,7 +9,7 @@ import type { ReactElement } from 'react'
 // diff; the diff's own key handling commits or cancels).
 export function TransientChrome(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields('toastMsg', 'golineBuffer')
 	return (
 		<>
 			<div className={`toast${S.toastMsg ? ' show' : ''}`} role="status">

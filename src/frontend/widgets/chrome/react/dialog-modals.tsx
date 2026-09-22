@@ -1,4 +1,4 @@
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 
 import { chromeCtx } from '../context'
 
@@ -9,7 +9,7 @@ import type { ReactElement } from 'react'
 // buttons and the Enter/Esc hotkeys resolve through the same store methods.
 export function ConfirmModal(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields('confirmMsg')
 	if (!S.confirmMsg) return null
 	return (
 		<div
@@ -38,7 +38,7 @@ export function ConfirmModal(): ReactElement {
 
 export function SendModal(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields('sendOpen', 'sendMsg', 'sendNote')
 	if (!S.sendOpen) return null
 	return (
 		<div

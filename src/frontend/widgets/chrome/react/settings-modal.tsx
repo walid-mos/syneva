@@ -1,4 +1,4 @@
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 
 import { chromeCtx } from '../context'
 
@@ -33,7 +33,7 @@ function ShortcutsPane(): ReactElement {
 // persist + appearance + funnel path as before.
 export function SettingsModal(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields('settingsOpen', 'settingsTab')
 	if (!S.settingsOpen) return <></>
 	return (
 		<div

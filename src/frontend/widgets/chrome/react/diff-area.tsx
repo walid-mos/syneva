@@ -1,4 +1,4 @@
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 
 import { chromeCtx } from '../context'
 
@@ -11,7 +11,15 @@ import type { ReactElement } from 'react'
 // them (the React tree never touches their children).
 export function DiffArea(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields(
+		'state',
+		'fileIndex',
+		'preview',
+		'overviewOpen',
+		'settings',
+		'rendering',
+		'diffScrolled',
+	)
 	const fab = S.diffScrolled ? (S.fabState?.() ?? null) : null
 	return (
 		<div className="diff-area">

@@ -1,4 +1,4 @@
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 import { Icon } from '@shared/ui/icon'
 
 import { chromeCtx } from '../context'
@@ -51,7 +51,12 @@ function NavButton({
 
 export function GuideBar(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields(
+		'state',
+		'settings',
+		'overviewOpen',
+		'fileComposerOpen',
+	)
 	if (!(S.showGuideBar?.() ?? false)) return <></>
 	const stale = S.guideStale?.() ?? false
 	return (

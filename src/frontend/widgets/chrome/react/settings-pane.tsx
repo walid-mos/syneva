@@ -1,4 +1,4 @@
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 
 import {
 	APPEARANCE_SELECTS,
@@ -101,7 +101,7 @@ function SettingSection({
 	number?: NumberSpec
 	text?: TextSpec
 }): ReactElement {
-	useStoreVersion()
+	useStoreFields('settings', 'diffStyle')
 	return (
 		<>
 			<div className="set-section">{title}</div>

@@ -1,4 +1,4 @@
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 
 import { chromeCtx } from '../context'
 
@@ -9,7 +9,7 @@ import type { ReactElement } from 'react'
 // continues so a same-origin restart can propose the refresh above).
 export function DeskCovers(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields('state', 'deskClosed', 'isRefreshRequired')
 	return (
 		<>
 			{S.isRefreshRequired && (

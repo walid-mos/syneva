@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { guideProgress } from '@entities/review/guide/guide'
-import { useStoreVersion } from '@shared/lib/use-store-version'
+import { useStoreFields } from '@shared/lib/use-store-version'
 import { Icon } from '@shared/ui/icon'
 
 import { chromeCtx } from '../context'
@@ -46,9 +46,47 @@ function guideInputs(S: ReturnType<typeof chromeCtx>['S']): GuideInputs {
 
 // The animated "% reviewed" pair (strip + label). One component owns both, exactly
 // like the old imperative writer owned both elements.
+// The count-up animation: the label eases from the previous % to the new one over
+// ~450ms (ease-out) instead of jumping, and the strip pulses when the bar advances.
+// Extracted from the component so the render stays at one level of abstraction.
+function animateCountUp(
+	from: number,
+	to: number,
+	show: (pct: number) => void,
+): () => void {
+	const start = performance.now()
+	let raf = 0
+	const tick = (now: number): void => {
+		const k = Math.min(1, (now - start) / COUNT_UP_MS)
+		const eased = 1 - (1 - k) ** EASE_POWER
+		show(Math.round(from + (to - from) * eased))
+		if (k < 1) raf = requestAnimationFrame(tick)
+	}
+	raf = requestAnimationFrame(tick)
+	return () => cancelAnimationFrame(raf)
+}
+
+function restartPulse(strip: HTMLElement): void {
+	// Restart the .pulse CSS animation even when the class is already on.
+	strip.classList.remove('pulse')
+	void strip.offsetWidth
+	strip.classList.add('pulse')
+}
+
 function ReviewProgress(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreVersion()
+	useStoreFields(
+		'state',
+		'fileIndex',
+		'preview',
+		'overviewOpen',
+		'settings',
+		'awaitingAgent',
+		'queuedReviews',
+		'agentActivity',
+		'fileView',
+		'treeDrawerOpen',
+	)
 	const hasFiles = Boolean(S.state?.files.length)
 	const pct = hasFiles ? guideProgress(guideInputs(S)).pct : 0
 
@@ -67,25 +105,10 @@ function ReviewProgress(): ReactElement {
 			shownRef.current = pct
 			return undefined
 		}
-		if (pct > shown && stripRef.current) {
-			// Restart the .pulse CSS animation even when the class is already on.
-			const strip = stripRef.current
-			strip.classList.remove('pulse')
-			void strip.offsetWidth
-			strip.classList.add('pulse')
-		}
-		const from = shown
-		const start = performance.now()
-		let raf = 0
-		const tick = (now: number): void => {
-			const k = Math.min(1, (now - start) / COUNT_UP_MS)
-			const eased = 1 - (1 - k) ** EASE_POWER
-			setLabelPct(Math.round(from + (pct - from) * eased))
-			if (k < 1) raf = requestAnimationFrame(tick)
-		}
-		raf = requestAnimationFrame(tick)
+		if (pct > shown && stripRef.current) restartPulse(stripRef.current)
+		const cancel = animateCountUp(shown, pct, setLabelPct)
 		shownRef.current = pct
-		return () => cancelAnimationFrame(raf)
+		return cancel
 	}, [pct, hasFiles])
 
 	if (!hasFiles) return <></>
