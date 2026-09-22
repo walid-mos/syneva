@@ -222,7 +222,11 @@
 			}
 
 			html,
-			body {
+			body,
+			/* The React mount point sits between body and .app - without its own height
+			   .app's height:100% resolves against an auto parent and the desk collapses
+			   to content height instead of filling the viewport. */
+			#root {
 				height: 100%;
 			}
 
