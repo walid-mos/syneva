@@ -3,11 +3,7 @@ import path from 'node:path'
 
 import { hash, sanitizeSession } from '../domain/identity.js'
 
-import {
-	buildDiffSource,
-	resolveDefaultBranch,
-	seedParsedDiff,
-} from './diff-source.js'
+import { buildDiffSource, resolveDefaultBranch } from './diff-source.js'
 import { nowIso } from './time.js'
 
 import type { ReviewMode, ReviewState } from '../domain/review.js'
@@ -179,8 +175,5 @@ function makeReviewState(input: {
 		stagedFiles: [],
 		decisions: [],
 	}
-	// Seed the parse memo with the DiffFile[] buildDiffSource already produced, so the reload path's
-	// resolveSkim reuses it (parsedDiffOf(base)) rather than re-parsing rawDiff (issue 06).
-	seedParsedDiff(state, source.parsedDiff)
 	return state
 }

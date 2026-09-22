@@ -5,15 +5,14 @@ import { parseUnifiedDiff } from '../domain/diff/parse.js'
 import { assembleDiff, fileEntry } from './diff-files.js'
 import { appendUntrackedFiles } from './untracked.js'
 
-import type { DiffFile, ReviewState } from '../domain/review.js'
+import type { DiffFile } from '../domain/review.js'
 import type { AssembledDiff } from './diff-files.js'
 import type { GitPort } from './ports.js'
 
-// Everything one build produced for a mode: the review files + change blocks, the raw diff they
-// came from, and its parse (see parsedDiffOf).
+// Everything one build produced for a mode: the review files + change blocks and the raw diff
+// they came from.
 export type DiffSource = AssembledDiff & {
 	rawDiff: string
-	parsedDiff: readonly DiffFile[]
 }
 
 // What to build, per mode: repo → the working/staged diff (path is a root-relative limit);
@@ -29,31 +28,6 @@ type RepoQuery = Extract<DiffSourceQuery, { mode: 'repo' }>
 
 // Branches a clone's default branch falls back to when origin/HEAD isn't set.
 const BRANCH_CANDIDATES = ['main', 'master'] as const
-
-// The parse of a state's rawDiff, computed once and memoized against the state object (GC-tied to
-// it - not a growing module cache). buildReviewState seeds it with the exact DiffFile[] assembleDiff
-// produced during the build, so the reload path's resolveSkim reuses that parse rather than parsing
-// the same (multi-MB) rawDiff a second time. A caller holding a state built elsewhere - or reloaded
-// from disk - falls back to parsing on first access. Same DiffFile[] either way: behavior identical.
-const parsedDiffCache = new WeakMap<ReviewState, readonly DiffFile[]>()
-
-export function parsedDiffOf(state: ReviewState): readonly DiffFile[] {
-	let hit: readonly DiffFile[] | undefined = parsedDiffCache.get(state)
-	if (!hit) {
-		hit = parseUnifiedDiff(state.rawDiff)
-		parsedDiffCache.set(state, hit)
-	}
-	return hit
-}
-
-// Tie an already-computed parse to a state so the reload path reuses it instead of re-parsing
-// rawDiff (issue 06). Called by buildReviewState with the parse its own build produced.
-export function seedParsedDiff(
-	state: ReviewState,
-	parsed: readonly DiffFile[],
-): void {
-	parsedDiffCache.set(state, parsed)
-}
 
 // The branch a PR is taken against: origin's HEAD when the clone knows it, else the first of
 // main/master that exists, else HEAD (a detached or unusual checkout still gets a review).
@@ -113,7 +87,7 @@ async function buildPrSource(
 		isStageable: false, // verdict-only: a commit can't be staged
 		newOids: await git.rawBlobOids(query.root, { base }),
 	})
-	return { ...assembled, rawDiff, parsedDiff }
+	return { ...assembled, rawDiff }
 }
 
 // file: one absolute path. tracked+changed = the diff (stageable), untracked/new = the full file as
@@ -138,7 +112,6 @@ async function buildFileSource(
 			files: [fileEntry(key, working, 'added')],
 			changes: [],
 			rawDiff: '',
-			parsedDiff: [],
 		} // untracked/new → full file as additions
 	const rawDiff = await git.run(
 		['diff', '--no-ext-diff', '-M', '--', rel],
@@ -149,7 +122,6 @@ async function buildFileSource(
 			files: [fileEntry(key, working, 'modified')],
 			changes: [],
 			rawDiff: '',
-			parsedDiff: [],
 		} // tracked, unchanged → full file
 	// New side is the working tree - hashed locally (no committed OID). The UI re-diffs old/new
 	// (fetched on open against the INDEX baseline via readFileContents), not these hunks.
@@ -159,7 +131,7 @@ async function buildFileSource(
 		isStageable: true,
 		isWorkingSide: true,
 	})
-	return { ...assembled, rawDiff, parsedDiff }
+	return { ...assembled, rawDiff }
 }
 
 // repo: the working-tree diff (or the staged one under --cached), plus the untracked files git's
@@ -185,7 +157,7 @@ async function buildRepoSource(
 			git,
 		)
 	if (!files.length) return null
-	return { files, changes, rawDiff, parsedDiff }
+	return { files, changes, rawDiff }
 }
 
 // Each side must match what the diff was taken against, because the UI re-diffs the old/new
