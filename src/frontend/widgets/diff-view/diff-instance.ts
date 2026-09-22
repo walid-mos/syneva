@@ -104,8 +104,12 @@ function currentSignature(file: ReviewFile, view: DiffView): string {
 // decision set), comments, or composer state. The mounted wrapper stays; the
 // library's layout-reset seam (updateMetadata) re-adopts a re-replayed metadata
 // object without a wrapper teardown, retaining the renderer's manually expanded
-// context, and setLineAnnotations + rerender repaint the annotation slots. Scroll
-// survives: the wrapper element is never swapped, so no anchor dance is needed.
+// context, and setLineAnnotations + rerender repaint the annotation slots.
+// Scroll: the wrapper element is never swapped, but a decision ABOVE the viewport
+// still renumbers the document (an accepted band merges into context), so the same
+// capture/restore seam the full pass uses runs around the re-adoption - the anchor
+// is read against the OLD mounted rows and OLD line map, then restored through the
+// NEW map after the rerender (reveal() no-ops when the line left the layout).
 // Returns false whenever the gate doesn't hold - the caller runs the full pass.
 function updateMountedDelta(
 	file: ReviewFile,
@@ -121,14 +125,23 @@ function updateMountedDelta(
 		previous.wrapper !== host.firstElementChild
 	)
 		return false
+	const anchor = captureScrollAnchor()
+	// Timed apart from the adopt/paint below: the delta path's whole premise is that
+	// the metadata rebuild (parse memo hit + replay of the decisions) stays cheap next
+	// to the full pass - this mark is what proves or refutes that on big files.
+	const endDeltaMetadata = perfSpan('render:delta:metadata')
 	const metadata = parseMetadata(file, view)
+	endDeltaMetadata()
 	const { inst } = previous
 	inst.setLineAnnotations(annotations())
 	// updateMetadata is the VirtualDiff adapter's seam (base FileDiff has none), so
 	// the metadata re-adoption is guarded like acquireEntry's cache reuse is.
+	const endDeltaPaint = perfSpan('render:delta:paint')
 	if (inst instanceof VirtualDiff && inst.fileDiff !== metadata)
 		inst.updateMetadata(metadata)
 	else inst.rerender()
+	endDeltaPaint()
+	if (anchor) restoreScrollAnchor(anchor)
 	D.fileDiff = metadata
 	lastRenderedKey = key
 	lastRenderedSignature = signature
