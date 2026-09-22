@@ -62,7 +62,7 @@ export async function serveUiChunk(
 	request: Pick<RouteRequest, 'req' | 'res' | 'url'>,
 ): Promise<void> {
 	const name = request.url.pathname.slice('/chunks/'.length)
-	if (!/^[\w-]+-[A-Z0-9]{8}\.js$/.test(name)) {
+	if (!/^[\w-]+-[A-Za-z0-9]{8}\.js$/.test(name)) {
 		request.res.writeHead(HTTP_NOT_FOUND)
 		request.res.end()
 		return
