@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 
 import { DeskCovers } from '@widgets/chrome/react/desk-covers'
 import { ConfirmModal, SendModal } from '@widgets/chrome/react/dialog-modals'
@@ -19,7 +19,9 @@ import type { ReactElement } from 'react'
 // keys on body selectors.
 export function App(): ReactElement {
 	useStoreVersion()
-	useEffect(() => {
+	// useLayoutEffect: the single/file-mode body classes gate the CSS grid layout, so
+	// they must land before first paint or single-file desks flash the tree column.
+	useLayoutEffect(() => {
 		document.body.classList.toggle(
 			'single',
 			(S.state?.files.length ?? 0) <= 1,

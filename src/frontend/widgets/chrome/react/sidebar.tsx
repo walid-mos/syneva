@@ -144,6 +144,8 @@ function TreeRowNode({
 	const { S } = chromeCtx()
 	return (
 		<div
+			role="button"
+			tabIndex={0}
 			className={treeNodeClass(row, isActive)}
 			data-key={row.key}
 			style={rowVars(row)}

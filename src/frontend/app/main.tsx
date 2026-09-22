@@ -45,7 +45,7 @@ const GI = (): GuideInputs => ({
 	foldExpanded: S.foldExpanded,
 })
 
-// The tab's bootstrap: store bindings, Alpine start, the initial fetch, and the few document-level
+// The tab's bootstrap: store bindings, the React root, the initial fetch, and the few document-level
 // listeners. Everything with real behaviour lives in the modules this wires together.
 
 // The pr title is the ref, truncated so a long branch name can't dominate the tab strip.
@@ -61,17 +61,17 @@ const WARM_FALLBACK_DELAY_MS = 120
 installPaneResizers()
 // Bind the features' use-case context before any binding that can invoke a feature action.
 bindFeaturePorts()
-// Bind the page/widget contexts before Alpine starts and before any render or action can
+// Bind the page/widget contexts before the React root mounts and before any render or action can
 // run: every desk render pass, diff-island mutation and chrome read goes through these
 // seams, and each throws until app composition has bound it (see the per-context modules).
 // S is bound as the reactive proxy itself (mutations stay observable); D stays the plain
-// holder (@pierre's element-identity checks break on an Alpine Proxy).
+// holder (@pierre's element-identity checks break on a reactive proxy).
 bindDeskCtx({ S, D, requireState, deferRender })
 bindDiffCtx({ S, D, requireState, deferRender, persist, toast })
 bindChromeCtx(S)
 // Keyboard shortcuts: a central scope-aware dispatcher (keys.ts) is the single source of truth.
 installKeys()
-// The store methods the reactive chrome calls ($store.g.*). Installed before Alpine starts, so the
+// The store methods the chrome call. Installed before the React tree mounts, so the
 // first template evaluation already sees them.
 installProjectTreeBindings()
 installNavigationBindings()

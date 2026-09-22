@@ -106,9 +106,11 @@ function TopToggles(): ReactElement {
 	return (
 		<div className="toggles">
 			{S.hasReviewed?.() && (
-				<div className="toggle" data-tip="Hide accepted changes (⇧H)">
+				<div className="toggle">
 					<button
 						className={S.settings.hideReviewed ? 'active' : ''}
+						aria-pressed={Boolean(S.settings.hideReviewed)}
+						data-tip="Hide accepted changes (⇧H)"
 						onClick={() => S.toggleHideReviewed?.()}
 					>
 						Hide approved<kbd>⇧H</kbd>
@@ -116,15 +118,19 @@ function TopToggles(): ReactElement {
 				</div>
 			)}
 			{S.isMarkdownFile?.() && (
-				<div className="toggle" data-tip="Rendered / source (m)">
+				<div className="toggle">
 					<button
 						className={S.fileView === 'rendered' ? 'active' : ''}
+						aria-pressed={S.fileView === 'rendered'}
+						data-tip="Rendered / source (m)"
 						onClick={() => S.setFileView?.('rendered')}
 					>
 						Rendered
 					</button>
 					<button
 						className={S.fileView === 'source' ? 'active' : ''}
+						aria-pressed={S.fileView === 'source'}
+						data-tip="Rendered / source (m)"
 						onClick={() => S.setFileView?.('source')}
 					>
 						Source
@@ -160,6 +166,7 @@ function DeskButtons(): ReactElement {
 			<button
 				className="btn icon top-settings"
 				data-tip="Settings (⇧,)"
+				aria-label="Open settings"
 				onClick={() => S.openSettings?.()}
 			>
 				<Icon id="gly-settings" />

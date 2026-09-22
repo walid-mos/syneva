@@ -88,7 +88,10 @@
          borders form one continuous line across the column seam. Keep both in sync. */
 				--subbar-h: 40px;
 
-				/* Gap between the +added / −removed (and state badge) churn indicators, kept in sync
+				/* Default code size, used before applyAppearance writes --code-size. */
+			--code-size-default: 12.5px;
+
+			/* Gap between the +added / −removed (and state badge) churn indicators, kept in sync
          across every surface that renders them: sidebar walkthrough, Overview group headers
          + file rows, and the diff header. */
 				--churn-gap: 5px;
@@ -241,6 +244,15 @@
 				cursor: pointer;
 			}
 
+			/* One visible focus treatment for every interactive control: keyboard users get
+			   the same cyan accent the selection rail uses (DESIGN.md interaction rules).
+			   :where() keeps the specificity at zero so component styles never have to fight it. */
+			:where(button, [role='button'], select, input, textarea, .node):focus-visible {
+				outline: 2px solid var(--cyan);
+				outline-offset: 2px;
+				border-radius: var(--radius-xs);
+			}
+
 			.app {
 				height: 100%;
 				display: grid;
@@ -249,11 +261,29 @@
 				grid-template-rows: 48px 1fr;
 			}
 
+			/* The cover layers and the workspace own explicit rows, so the grid does not depend
+			   on how many chrome nodes happen to render. */
+			.refresh-notice {
+				grid-row: 2;
+			}
+
+			.desk-closed-cover {
+				grid-row: 2 / -1;
+			}
+
 			.app.refresh-required {
 				grid-template-rows: minmax(48px, max-content) auto minmax(
 						0,
 						1fr
 					);
+			}
+
+			.app.refresh-required main.main {
+				grid-row: 3;
+			}
+
+			.app:not(.refresh-required):not(.desk-closed) main.main {
+				grid-row: 2;
 			}
 
 			.refresh-notice {
@@ -279,7 +309,7 @@
 				overflow: auto;
 			}
 
-			/* .app's second row becomes the cover; the workspace (main) is hidden by x-show. */
+			/* .app's second row becomes the cover; the workspace (main) is unmounted. */
 			.app.desk-closed {
 				grid-template-rows: 48px minmax(0, 1fr);
 			}
@@ -288,7 +318,7 @@
 				max-width: 52ch;
 				padding: 20px 24px;
 				border: 1px solid var(--line);
-				border-radius: 10px;
+				border-radius: var(--radius-lg);
 				background: var(--panel);
 				line-height: 1.6;
 			}
@@ -300,12 +330,11 @@
 			.desk-closed-card code {
 				padding: 1px 6px;
 				border: 1px solid var(--line);
-				border-radius: 4px;
+				border-radius: var(--radius-sm);
 				background: var(--bg);
 			}
 
-			.top,
-			.bottom {
+			.top {
 				display: grid;
 				align-items: center;
 				padding: 0 12px;
@@ -338,7 +367,7 @@
 				height: 100%;
 				width: 0;
 				background: var(--green);
-				border-radius: 0 2px 2px 0;
+				border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
 				transition: width 0.45s cubic-bezier(0.22, 0.9, 0.34, 1);
 			}
 
@@ -363,12 +392,6 @@
 				font-size: var(--text-xs);
 				font-variant-numeric: tabular-nums;
 				white-space: nowrap;
-			}
-
-			.bottom {
-				grid-template-columns: 1fr auto;
-				gap: 12px;
-				border-top: 1px solid var(--line);
 			}
 
 			.brand {
@@ -518,8 +541,7 @@
 				position: relative;
 			}
 
-			.tree,
-			.right {
+			.tree {
 				min-width: 0;
 				overflow: auto;
 				background: var(--panel);
@@ -582,10 +604,6 @@
 				display: none !important;
 			}
 
-			.right {
-				border-left: 1px solid var(--line);
-			}
-
 			.resizer {
 				background: var(--line);
 				cursor: col-resize;
@@ -613,14 +631,6 @@
 				display: flex;
 				flex-direction: column;
 				overflow: hidden;
-			}
-
-			.bar {
-				display: none;
-			}
-
-			[x-cloak] {
-				display: none !important;
 			}
 
 			.guidebar {
@@ -708,9 +718,9 @@
 				border-radius: var(--radius-pill);
 				background: var(--cyan);
 				color: var(--surface);
-				font-size: 9px;
+				font-size: var(--text-2xs);
 				font-weight: 700;
-				line-height: 13px;
+				line-height: 14px;
 				text-align: center;
 			}
 
@@ -810,9 +820,6 @@
 				white-space: nowrap;
 			}
 
-			.ghdr .ghdr-cat.crit {
-				color: var(--amber);
-			}
 
 			.ghdr .ghdr-file {
 				flex: 0 0 auto;
@@ -933,7 +940,7 @@
 
 			#diff > * {
 				font-family: var(--sans);
-				font-size: var(--code-size, 12.5px);
+				font-size: var(--code-size, var(--code-size-default));
 				line-height: 1.62;
 			}
 
@@ -949,7 +956,7 @@
 				padding: 4px 0;
 				background: var(--bg);
 				font-family: var(--diffs-font-family, var(--mono));
-				font-size: var(--code-size, 12.5px);
+				font-size: var(--code-size, var(--code-size-default));
 				line-height: 1.62;
 				color: var(--muted);
 				white-space: pre;
@@ -1317,11 +1324,6 @@
 				color: var(--red);
 			}
 
-			#walk .crit {
-				color: var(--amber);
-				width: 12px;
-				height: 12px;
-			}
 
 			/* Per-file review state leads the row: empty circle = to do, green check-circle =
        approved, amber alert-circle = changes requested. */
@@ -1554,16 +1556,11 @@
 				height: 13px;
 			}
 
-			.ovsz-card .fc-section,
 			.oversized-card .fc-section {
 				margin: 10px 0 2px;
 			}
 
 			/* Markdown rendered view: a free-standing panel above the first block. */
-			#diff > .md-file .fc-section.fc-md {
-				margin: 0 0 14px;
-				padding: 0 0 6px;
-			}
 
 			.fc-section .annotation.flash {
 				animation: blocker-flash 1.2s ease-out;
@@ -1737,9 +1734,6 @@
 				color: var(--cyan);
 			}
 
-			.oversized-card .ovsz-cat.crit {
-				color: var(--amber);
-			}
 			.oversized-card .ovsz-stats {
 				display: flex;
 				align-items: baseline;
@@ -1950,15 +1944,6 @@
 				margin-top: 12px;
 			}
 
-			.annotation .thread-intent {
-				border: 1px solid rgba(224, 175, 104, 0.35);
-				background: rgba(224, 175, 104, 0.06);
-				color: var(--amber);
-				border-radius: var(--radius-sm);
-				padding: 2px 6px;
-				font-size: var(--text-xs);
-				line-height: 15px;
-			}
 
 			.annotation .thread-actions button {
 				border: 1px solid var(--line);
@@ -2519,7 +2504,6 @@
 				vertical-align: -1px;
 			}
 
-			.md li.task-list-item,
 			.md li:has(> input[type='checkbox']) {
 				list-style: none;
 			}
@@ -2586,15 +2570,7 @@
 				color: var(--on-accent);
 			}
 
-			.diff-header-action.secondary {
-				background: var(--panel3);
-				color: var(--ink-bright);
-			}
 
-			.diff-header-action.secondary:hover {
-				background: var(--line-strong);
-				color: var(--ink-bright);
-			}
 
 			.diff-header-action.undo {
 				background: transparent;
@@ -2730,57 +2706,6 @@
 				animation: blocker-flash 1.2s ease-out;
 			}
 
-			.file-header-actions {
-				display: inline-flex;
-				align-items: center;
-				gap: 6px;
-				margin-left: 10px;
-			}
-
-			.file-header-actions button,
-			.file-header-actions label {
-				border: 1px solid var(--line);
-				border-radius: var(--radius-sm);
-				background: var(--panel);
-				color: var(--muted);
-				padding: 3px 7px;
-				font-size: var(--text-sm);
-				line-height: 16px;
-			}
-
-			.file-header-actions button:hover,
-			.file-header-actions label:hover {
-				color: var(--ink);
-				border-color: var(--line-strong);
-			}
-
-			.file-header-actions .stage {
-				background: rgba(115, 218, 145, 0.08);
-				color: var(--green);
-				border-color: rgba(115, 218, 145, 0.38);
-			}
-
-			.file-header-actions .stage:hover {
-				background: rgba(115, 218, 145, 0.14);
-				border-color: rgba(115, 218, 145, 0.65);
-				color: var(--green-fg);
-			}
-
-			.file-header-actions .unstage {
-				background: transparent;
-				color: var(--amber);
-				border-color: rgba(224, 175, 104, 0.45);
-			}
-
-			.file-header-actions input {
-				width: auto;
-				margin: 0 5px 0 0;
-				vertical-align: -1px;
-			}
-
-			.file-action-dock {
-				display: none;
-			}
 
 			.modal-backdrop {
 				position: absolute;
@@ -3091,10 +3016,6 @@
 				gap: 8px;
 			}
 
-			.guide-overview .go-meta {
-				color: var(--ghost);
-				font-size: var(--text-sm);
-			}
 
 			.toast {
 				position: absolute;

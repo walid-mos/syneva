@@ -27,10 +27,12 @@ function NavButton({
 	direction,
 	disabled,
 	onClick,
+	ariaLabel,
 }: {
 	direction: 'prev' | 'next'
 	disabled: boolean
 	onClick: () => void
+	ariaLabel: string
 }): ReactElement {
 	const tips = { prev: 'Previous file (⇧←)', next: 'Next file (⇧→)' }
 	const icons = { prev: 'gly-arrow-left', next: 'gly-arrow-right' }
@@ -40,6 +42,7 @@ function NavButton({
 			onClick={onClick}
 			disabled={disabled}
 			data-tip={tips[direction]}
+			aria-label={ariaLabel}
 		>
 			<Icon id={icons[direction]} />
 		</button>
@@ -58,6 +61,7 @@ export function GuideBar(): ReactElement {
 					className="gb-home"
 					onClick={() => S.openOverview?.()}
 					data-tip="Overview (o)"
+					aria-label="Open overview"
 				>
 					<Icon id="gly-home" />
 				</button>

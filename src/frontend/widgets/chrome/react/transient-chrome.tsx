@@ -12,10 +12,10 @@ export function TransientChrome(): ReactElement {
 	useStoreVersion()
 	return (
 		<>
-			<div className={`toast${S.toastMsg ? ' show' : ''}`}>
+			<div className={`toast${S.toastMsg ? ' show' : ''}`} role="status">
 				{S.toastMsg}
 			</div>
-			<div className={`goline${S.golineBuffer ? ' show' : ''}`}>
+			<div className={`goline${S.golineBuffer ? ' show' : ''}`} role="status">
 				Go to line&nbsp;<b>{S.golineBuffer}</b>
 				<span className="goline-hint">
 					<kbd>↵</kbd> Jump · <kbd>esc</kbd> Cancel
