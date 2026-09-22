@@ -4,7 +4,7 @@ import path from 'node:path'
 import { decodeDeskLock } from '../../../domain/desk-lock.js'
 import { hash, sanitizeSession } from '../../../domain/identity.js'
 
-import type { DeskLockPort, SettingsPort } from '../../../application/ports.js'
+import type { SettingsPort } from '../../../application/ports.js'
 import type { DeskLock } from '../../../domain/desk-lock.js'
 
 // The dot-directory under the user's home that holds every desk-side artifact (reviews, settings,
@@ -143,17 +143,3 @@ export async function writeGlobalSettings(settings: unknown): Promise<void> {
 		'utf8',
 	)
 }
-
-// The filesystem adapter's implementation of the application's desk-lock capability.
-// Frozen like nodeGit/nodeReviewStore: consumers see a readonly port.
-export const nodeDeskLocks: DeskLockPort = Object.freeze({
-	read: readDeskLock,
-	findLive: findLiveDesks,
-	// Parameters annotated explicitly: Object.freeze drops the port's contextual typing,
-	// so the arrow would otherwise infer implicit anys.
-	remove: async (root: string, session: string) => {
-		await fs
-			.unlink(deskLockPath(await reviewDir(root, session)))
-			.catch(() => undefined)
-	},
-})
