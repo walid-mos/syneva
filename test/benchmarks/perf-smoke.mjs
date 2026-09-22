@@ -23,7 +23,7 @@ import {
 } from '../../scripts/bundle-budget.mjs'
 
 const ID = 'perf-smoke'
-const CLI = path.join(process.cwd(), 'dist', 'cli.js')
+const CLI = path.join(process.cwd(), 'dist', 'backend', 'bootstrap', 'cli.js')
 const UI_MANIFEST = path.join(process.cwd(), 'dist', 'ui-manifest.json')
 const FILE_COUNT = 1000
 const DESK_URL_TIMEOUT_MS = 30_000
@@ -133,13 +133,13 @@ async function waitForPoll(base, attemptsLeft) {
 
 try {
 	// Point HOME at a throwaway dir so the persisted review file lands somewhere we control and
-	// clean up, hermetic like src/server.test.ts.
+	// clean up, hermetic like src/backend/bootstrap/server.test.ts.
 	homeDir = mkdtempSync(path.join(tmpdir(), 'syneva-perf-home-'))
 	process.env.HOME = homeDir
 
 	// Throwaway ~1,000-file repo: committed base, then every file edited in the working tree,
 	// plus one oversized generated file (>5000 changed lines), as covered by
-	// the buildDiffSource fixtures in src/diffsource.test.ts.
+	// the buildDiffSource fixtures in src/backend/application/diffsource.test.ts.
 	tmp = mkdtempSync(path.join(tmpdir(), 'syneva-perf-repo-'))
 	const git = (...a) => execFileSync('git', a, { cwd: tmp, stdio: 'ignore' })
 	git('init', '-q')

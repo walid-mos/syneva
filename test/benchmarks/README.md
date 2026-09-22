@@ -124,7 +124,7 @@ reviewer's own wait: clicking the prefetched next file coloured in 360-375 ms wi
 (its band was already merged), against 519 ms for the same build's cold control - a click on a file the
 pass before it had not warmed.
 
-`window.synevaPerf` (see `src/ui/perf.ts`) keeps the timeline: `snapshot()` gives the per-stage
+`window.synevaPerf` (see `src/frontend/shared/lib/perf.ts`) keeps the timeline: `snapshot()` gives the per-stage
 first-occurrence summary, and `marks` carries one entry per event, including per-window worker
 timings (`pool:window:done` → `rows`, `slice`, `tokenize`).
 

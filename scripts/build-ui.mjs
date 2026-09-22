@@ -5,12 +5,12 @@ import * as esbuild from 'esbuild'
 
 import { checkBundleBudget } from './bundle-budget.mjs'
 
-// The tokenization worker script is built from OUR entry (src/ui/worker/diff-token-worker.ts)
-// into its own asset: the token pool (src/ui/render/worker-pool.ts) instantiates module workers
+// The tokenization worker script is built from OUR entry (src/frontend/worker/diff-token-worker.ts)
+// into its own asset: the token pool (src/frontend/widgets/diff-view/worker-pool.ts) instantiates module workers
 // at /worker.js, and the desk serves it like ui.js. Building it separately keeps the
 // tokenization engine off the main bundle AND off the main thread.
 const workerEntry = fileURLToPath(
-	new URL('../src/ui/worker/diff-token-worker.ts', import.meta.url),
+	new URL('../src/frontend/worker/diff-token-worker.ts', import.meta.url),
 )
 
 // The shell's static closure and all deferred chunks are budgeted independently. A tiny
@@ -23,13 +23,31 @@ const WORKER_SIZE_LIMIT = 900_000
 const BYTES_PER_KB = 1000
 
 const shimPath = fileURLToPath(
-	new URL('../src/ui/shiki-shim.ts', import.meta.url),
+	new URL(
+		'../src/frontend/shared/highlighting/shiki-shim.ts',
+		import.meta.url,
+	),
 )
 const emptyModule = 'export default {}; export {};'
 // Named-export stub for worker.js's static oniguruma import - never called with 'shiki-js'.
 const onigurumaStubModule =
 	'export function createOnigurumaEngine() { throw new Error("oniguruma wasm engine was stubbed out of syneva\'s worker bundle (preferredHighlighter must be shiki-js)") }'
 const fromPierre = importer => importer.includes('@pierre/diffs')
+// The stub keys on the shared HIGHLIGHTING SLICE directory, not a source filename: any module
+// under src/frontend/shared/highlighting (the curated grammar loaders) is stubbed out of the
+// worker build, whatever its file ends up being called.
+const fromCuratedLangs = importer => importer.includes('/shared/highlighting/')
+
+// Frontend layer aliases (same map as tsconfig.json's paths; @contracts sinks to src/contracts).
+const frontendAliases = {
+	'@app': './src/frontend/app',
+	'@pages': './src/frontend/pages',
+	'@widgets': './src/frontend/widgets',
+	'@features': './src/frontend/features',
+	'@entities': './src/frontend/entities',
+	'@shared': './src/frontend/shared',
+	'@contracts': './src/contracts',
+}
 
 // The token worker never resolves grammars: the pool manager resolves them (see shiki-langs.ts's
 // lazy loaders) and ships the RESOLVED data, which the worker only hands to loadLanguageSync. So
@@ -37,12 +55,12 @@ const fromPierre = importer => importer.includes('@pierre/diffs')
 // along as a 2.5 MB worker.js that each of the pool's four workers fetched and compiled on every
 // cold load. Touching the stub is a loud error: the worker started resolving languages itself.
 const languageStubModule =
-	'export default new Proxy({}, { get() { throw new Error("a curated grammar module was resolved inside the token worker: grammars must arrive as RESOLVED data from the pool manager (see src/ui/shiki-langs.ts)") } })'
+	'export default new Proxy({}, { get() { throw new Error("a curated grammar module was resolved inside the token worker: grammars must arrive as RESOLVED data from the pool manager (see src/frontend/shared/highlighting/shiki-langs.ts)") } })'
 const makeWorkerLanguageStubPlugin = () => ({
 	name: 'shiki-worker-language-stub',
 	setup(build) {
 		build.onResolve({ filter: /^shiki\/dist\/langs\// }, args =>
-			args.importer.includes('shiki-langs') || fromPierre(args.importer)
+			fromCuratedLangs(args.importer) || fromPierre(args.importer)
 				? { path: 'shiki-lang-stub', namespace: 'shiki-lang-stub' }
 				: undefined,
 		)
@@ -95,7 +113,7 @@ const makeShikiShimPlugin = ({ stubOniguruma = false } = {}) => ({
 })
 
 const options = {
-	entryPoints: ['src/ui/main.ts'],
+	entryPoints: ['src/frontend/app/main.ts'],
 	bundle: true,
 	format: 'esm',
 	target: 'es2022',
@@ -104,6 +122,7 @@ const options = {
 	chunkNames: 'chunks/[name]-[hash]',
 	splitting: true,
 	metafile: true,
+	alias: frontendAliases,
 	loader: { '.wasm': 'binary' },
 	minify: true,
 	logLevel: 'info',
@@ -120,6 +139,7 @@ const workerOptions = {
 	outfile: 'dist/worker.js',
 	minify: true,
 	logLevel: 'info',
+	alias: frontendAliases,
 	plugins: [
 		makeShikiShimPlugin({ stubOniguruma: true }),
 		makeWorkerLanguageStubPlugin(),
@@ -153,7 +173,7 @@ if (process.argv.includes('--watch')) {
 	await workerCtx.watch()
 	await ctx.watch()
 	process.stderr.write(
-		'esbuild: watching src/ui → dist/ui.js + worker → dist/worker.js\n',
+		'esbuild: watching src/frontend → dist/ui.js + worker → dist/worker.js\n',
 	)
 } else {
 	await esbuild.build(workerOptions)

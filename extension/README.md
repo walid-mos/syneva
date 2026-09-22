@@ -9,7 +9,7 @@ server — see "MCP trajectory".
 
 | Path | What it is | Loaded by pi as |
 |---|---|---|
-| `syneva.ts` | The extension entry: keeps the `syneva` CLI shim in `~/.pi/agent/bin`, registers the `/syneva` status command and the `syneva_agent` desk bridge. The only file here that imports `src/` (`src/agent/pi-bridge.ts`). | extension |
+| `syneva.ts` | The extension entry: keeps the `syneva` CLI shim in `~/.pi/agent/bin`, registers the `/syneva` status command and the `syneva_agent` desk bridge. The only file here that imports compiled `src/` output (`dist/backend/adapters/inbound/pi/pi-bridge.js`). | extension |
 | `prompts/plan.md`, `prompts/review.md` | `/plan` and `/review` prompt templates: start a desk, attach, act on events. | prompt templates |
 | `skills/syneva/SKILL.md` | The bootstrap skill: what Syneva is, when to reach for it, and the single rule that matters — run `syneva spec` for the authoritative contract. | skill |
 | `subagents/syneva-answer.md` | The read-only subagent that answers one review question for pasting into a thread. | subagent |
@@ -18,7 +18,7 @@ server — see "MCP trajectory".
 
 - **Adapter only.** This module contains no business logic. Everything it does
   goes through the CLI/HTTP contract whose single source of truth is
-  `src/spec.ts` (`syneva spec`). Change the contract there; the pieces here
+  `src/contracts/spec.ts` (`syneva spec`). Change the contract there; the pieces here
   follow.
 - **`syneva spec` is the only contract text.** Prompts and the skill must point
   at it, never restate it — duplicated contract details drift.

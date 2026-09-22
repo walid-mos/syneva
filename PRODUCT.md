@@ -50,7 +50,7 @@ A protocol and an interface, nothing more. Three commitments a neighboring revie
 **Technological and operational constraints.**
 - Node 22+ and `git` for the published CLI (Node 24 for repo tooling); the file/PR modes shell out to git.
 - `pr` mode needs `gh` installed and authenticated when the ref is a PR number or URL.
-- Two compilation worlds that never import each other at runtime: a Node backend (ESM/NodeNext, `dist/cli.js` is the published bin) and a browser UI (Alpine.js, bundled by esbuild), sharing types from `src/types.ts` alone.
+- Two compilation worlds that never import each other at runtime: a Node backend (ESM/NodeNext, `dist/backend/bootstrap/cli.js` is the published bin) and a browser UI (Alpine.js, bundled by esbuild), sharing types from `src/contracts/` alone.
 - Patch/version convention is upstream-forked: Conventional Commits, `changelogen` release, CI on Node 24.
 - MIT licensed.
 
@@ -63,11 +63,10 @@ A protocol and an interface, nothing more. Three commitments a neighboring revie
 - The name is **Syneva** and its identity is its own: Syneva is a fork of [Galley](https://github.com/ymansurozer/galley) by Yusuf Mansur Özer, credited as the origin in the README and LICENSE, not as a live upstream to keep tracking. Divergence is free.
 - The term **integrated review environment (IRE)** is the product's own category phrasing, used in the description and README.
 - **Voice**: first-person, direct, opinionated, low-hype. The README states what the tool believes and admits its limits ("I built it in a week and I'm still figuring out the shape"). Future copy should read that way — no marketing register, no invented authority.
-- No binding colour, type, or imagery commitments were established. `assets/screenshot.png` is the only brand asset.
+- No binding colour, type, or imagery commitments were established.
 
 ## Evidence on Hand
 
-- `assets/screenshot.png` — a real screenshot of the desk mid-review (pending changes with accept/reject, a question waiting on the agent, a change request), embedded in the README.
 - The working tool itself: a runnable CLI + browser desk, a documented machine contract printed by `syneva spec`, and a test suite covering that contract.
 - Upstream provenance: the fork's origin is real and creditable.
 

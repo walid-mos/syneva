@@ -11,8 +11,19 @@
 		"outDir": "dist",
 		"rootDir": "src",
 		"declaration": true,
-		"types": ["node"]
+		"types": ["node"],
+		// Frontend layer aliases, shared with tsconfig.ui.json so test runs (tsx) resolve the
+		// same specifiers. The backend itself stays on relative .js imports.
+		"paths": {
+			"@app/*": ["./src/frontend/app/*"],
+			"@pages/*": ["./src/frontend/pages/*"],
+			"@widgets/*": ["./src/frontend/widgets/*"],
+			"@features/*": ["./src/frontend/features/*"],
+			"@entities/*": ["./src/frontend/entities/*"],
+			"@shared/*": ["./src/frontend/shared/*"],
+			"@contracts/*": ["./src/contracts/*"]
+		}
 	},
 	"include": ["src/**/*.ts"],
-	"exclude": ["src/**/*.test.ts", "src/ui/**"]
+	"exclude": ["src/**/*.test.ts", "src/frontend/**"]
 }

@@ -6,8 +6,6 @@
 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-<img src="assets/screenshot.png" alt="Syneva — a review desk: pending changes with accept/reject, a question waiting on the agent, and a change request" width="80%" />
-
 </div>
 
 <br>
