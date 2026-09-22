@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
 import { warn } from '../../outbound/console.js'
+import { platformOpenCommand } from '../../platform-open.js'
 
 import type { Server } from 'node:http'
 
@@ -36,13 +37,6 @@ export async function listenOn(
 // Open the desk in the reviewer's browser. Best-effort on purpose: a machine with no opener (a
 // container, a headless box) must still get a working desk - the URL is printed either way.
 export async function openBrowser(url: string): Promise<void> {
-	const { command, args } = browserOpener(url)
+	const { command, args } = platformOpenCommand(url)
 	await execFileAsync(command, args).catch(() => undefined)
-}
-
-function browserOpener(url: string): { command: string; args: string[] } {
-	if (process.platform === 'darwin') return { command: 'open', args: [url] }
-	if (process.platform === 'win32')
-		return { command: 'cmd', args: ['/c', 'start', '', url] }
-	return { command: 'xdg-open', args: [url] }
 }
