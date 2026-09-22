@@ -19,7 +19,7 @@ import {
 import { INVALID_SAVE, parseReviewerSave } from '../reviewer-save.js'
 
 import type { BrowserResetResponse } from '../../../../../contracts/browser.js'
-import type { CommentRequest } from '../../../../application/add-comment.js'
+import type { CommentInput } from '../../../../domain/comments.js'
 import type { RouteRequest } from '../router.js'
 
 // Transport shape validation for the /api/comment body. A comment needs a file and a body;
@@ -27,8 +27,8 @@ import type { RouteRequest } from '../router.js'
 // lineNumber 0 is the whole-file anchor (see backend/domain/comments.ts) - a file comment has no
 // diff side, so the side it may carry is normalized away. Returns null when the request lacks
 // what it cannot default - the route answers 422 INVALID_COMMENT. Lives with the inbound route;
-// the use case's CommentRequest input record stays in application.
-function parseCommentRequest(payload: unknown): CommentRequest | null {
+// the use case's CommentInput input record stays in the domain.
+function parseCommentRequest(payload: unknown): CommentInput | null {
 	if (typeof payload !== 'object' || payload === null) return null
 	const filePath =
 		'path' in payload && typeof payload.path === 'string'

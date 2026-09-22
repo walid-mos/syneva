@@ -1,3 +1,5 @@
+import { anchorTextFor } from './contents.js'
+
 import type { FileContents } from './contents.js'
 import type { ReviewComment } from './review.js'
 
@@ -59,6 +61,32 @@ export function commentSide(
 	lineNumber: number,
 ): 'additions' | 'deletions' {
 	return isFileLevelLine(lineNumber) ? 'additions' : side
+}
+
+// The one constructor for a freshly posted comment: the live route and the offline CLI reply both
+// land here, so the defaults (status/intent), the side normalization and the anchor stamps can only
+// be born one way. id and `now` are values per the ports.ts convention (the application owns id/time
+// generation); `contents` is the optional on-demand read callers do for line comments.
+export function newComment(
+	input: CommentInput,
+	contents: FileContents | undefined,
+	id: string,
+	now: string,
+): ReviewComment {
+	return {
+		id,
+		path: input.path,
+		side: commentSide(input.side, input.lineNumber),
+		lineNumber: input.lineNumber,
+		body: input.body,
+		createdAt: now,
+		updatedAt: now,
+		status: 'open',
+		intent: 'note',
+		role: input.role,
+		anchor: commentAnchor(input.lineNumber),
+		anchorText: anchorTextFor(contents, input.side, input.lineNumber),
+	}
 }
 
 // Append a comment to the persisted review (IO sequencing lives in
