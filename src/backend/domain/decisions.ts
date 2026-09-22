@@ -30,28 +30,27 @@ export function computeApprovedFiles(state: ReviewState): string[] {
 	const currentHashes = new Map(
 		state.files.map(file => [file.path, file.contentHash]),
 	)
-	const decisions = effectiveDecisions(state)
+	// One pass per collection builds the objection sets, so the per-file check below is O(1)
+	// instead of re-scanning all decisions/comments per reviewed file on every Send.
+	const rejected = new Set<string>()
+	for (const decision of effectiveDecisions(state))
+		if (decision.status === 'rejected') rejected.add(decision.path)
+	const openChanges = new Set<string>()
+	for (const comment of state.comments)
+		if (
+			comment.status === 'open' &&
+			comment.role !== 'agent' &&
+			comment.intent !== 'question'
+		)
+			openChanges.add(comment.path)
 	const isSignedOff = (filePath: string): boolean => {
 		const signedHash = signOffHashes[filePath]
 		return !!signedHash && signedHash === currentHashes.get(filePath)
 	}
-	const hasReject = (filePath: string): boolean =>
-		decisions.some(
-			decision =>
-				decision.path === filePath && decision.status === 'rejected',
-		)
-	const hasOpenChange = (filePath: string): boolean =>
-		state.comments.some(
-			comment =>
-				comment.path === filePath &&
-				comment.status === 'open' &&
-				comment.role !== 'agent' &&
-				comment.intent !== 'question',
-		)
 	return state.reviewedFiles.filter(
 		filePath =>
 			isSignedOff(filePath) &&
-			!hasReject(filePath) &&
-			!hasOpenChange(filePath),
+			!rejected.has(filePath) &&
+			!openChanges.has(filePath),
 	)
 }
