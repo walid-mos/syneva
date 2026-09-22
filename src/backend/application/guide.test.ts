@@ -3,11 +3,12 @@ import { test } from 'node:test'
 import { isDeepStrictEqual } from 'node:util'
 
 import { nodeGit } from '../adapters/outbound/git/repo.js'
+import { state } from '../domain/fixtures.js'
 import { validateGuide } from '../domain/guide.js'
 
 import { mergeReviewState } from './reconcile.js'
 
-import type { Guide, ReviewState } from '../domain/review.js'
+import type { Guide } from '../domain/review.js'
 
 // A guide in the current shape: files carrying an optional category/order, nothing else.
 const guideInput = (): unknown => ({
@@ -155,28 +156,6 @@ void test('validateGuide honors a non-empty baseDiffHash and drops any other val
 			`case ${i}`,
 		)
 })
-
-// minimal state factory (mirrors state.test.ts)
-function state(over: Partial<ReviewState>): ReviewState {
-	return {
-		id: 'id',
-		session: 's',
-		root: '/r',
-		repoHash: 'h',
-		mode: 'repo',
-		staged: false,
-		head: null,
-		baseDiffHash: 'base',
-		createdAt: 't',
-		rawDiff: '',
-		files: [],
-		comments: [],
-		changes: [],
-		reviewedFiles: [],
-		stagedFiles: [],
-		...over,
-	}
-}
 
 void test('mergeReviewState carries an attached guide across a reload', async () => {
 	const guide: Guide = {
