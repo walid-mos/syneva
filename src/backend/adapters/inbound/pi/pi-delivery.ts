@@ -1,3 +1,5 @@
+import { errorMessage } from '../../../application/errors.js'
+
 import {
 	buildCorrectivePrompt,
 	buildCorrespondentPrompt,
@@ -79,7 +81,7 @@ export async function handleQuestionEvent(input: {
 			await io.postDeskComment(desk, question, replies.at(index) ?? '')
 	} catch (error) {
 		if (signal.aborted) return
-		const detail = error instanceof Error ? error.message : String(error)
+		const detail = errorMessage(error)
 		wakeDeskOwner(
 			pi,
 			desk,

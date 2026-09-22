@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { errorMessage } from '../../../application/errors.js'
 import { validateGuide } from '../../../domain/guide.js'
 import { sanitizeSession } from '../../../domain/identity.js'
 import { warn } from '../../outbound/console.js'
@@ -108,7 +109,7 @@ export function loadGuideArg(
 		parsed = JSON.parse(readFileSync(guideFlag, 'utf8'))
 	} catch (error) {
 		warn(
-			`Could not read guide file "${guideFlag}" as JSON: ${error instanceof Error ? error.message : String(error)}\n${SCHEMA}`,
+			`Could not read guide file "${guideFlag}" as JSON: ${errorMessage(error)}\n${SCHEMA}`,
 		)
 		return null
 	}

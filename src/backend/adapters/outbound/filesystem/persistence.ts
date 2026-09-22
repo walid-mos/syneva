@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-import { AdapterError } from '../../../application/errors.js'
+import { AdapterError, errorMessage } from '../../../application/errors.js'
 import { nowIso } from '../../../application/time.js'
 
 import { reviewDir } from './desk.js'
@@ -52,10 +52,6 @@ export async function writeFileAtomic(
 	} catch (error) {
 		throw new AdapterError(errorMessage(error), { cause: error })
 	}
-}
-
-function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : String(error)
 }
 
 // Write the review to its file and hand back the stamp it carries. The caller adopts the stamp onto

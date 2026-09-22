@@ -1,3 +1,4 @@
+import { errorMessage } from '../../../application/errors.js'
 import { warn } from '../../outbound/console.js'
 import { gh, git } from '../../outbound/git/exec.js'
 
@@ -48,7 +49,7 @@ async function resolvePrNumber(
 			base: base ?? (await resolveRemoteBase(prInfo.baseRefName, root)),
 		}
 	} catch (error) {
-		warn(error instanceof Error ? error.message : String(error))
+		warn(errorMessage(error))
 		process.exitCode = 1
 		return null
 	}
@@ -63,9 +64,7 @@ async function fetchPrInfo(ref: string, root: string): Promise<PrInfo> {
 		)
 	} catch (error) {
 		throw new Error(
-			`Could not resolve PR "${ref}" via the GitHub CLI. Install gh and run \`gh auth login\`, or pass a branch name instead.\n${
-				error instanceof Error ? error.message : String(error)
-			}`,
+			`Could not resolve PR "${ref}" via the GitHub CLI. Install gh and run \`gh auth login\`, or pass a branch name instead.\n${errorMessage(error)}`,
 			{ cause: error },
 		)
 	}
@@ -112,9 +111,7 @@ async function checkoutBranch(
 		await git(['checkout', target], root)
 		return { target, base }
 	} catch (error) {
-		warn(
-			`Could not check out "${target}": ${error instanceof Error ? error.message : String(error)}`,
-		)
+		warn(`Could not check out "${target}": ${errorMessage(error)}`)
 		process.exitCode = 1
 		return null
 	}

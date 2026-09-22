@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
-import { AdapterError } from '../../../application/errors.js'
+import { AdapterError, errorMessage } from '../../../application/errors.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -60,6 +60,3 @@ export async function runGitRaw(args: string[], cwd: string): Promise<string> {
 }
 
 // exec-file rejections carry the useful detail on stderr inside the error text.
-function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : String(error)
-}
