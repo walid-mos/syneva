@@ -1,8 +1,9 @@
+import type { ResetScope } from '@contracts/review'
 import type { TreeRow } from '@entities/review/file/tree-rows'
 import type { WalkRow } from '@entities/review/guide/walkthrough'
-import type { ReviewNote } from '@entities/review/notes'
 import type { PreviewFile, ReviewState } from '@entities/review/model'
 import type { GuideFile } from '@entities/review/model'
+import type { ReviewNote } from '@entities/review/notes'
 import type { Settings } from '@entities/settings/model'
 import type { DiffStyle } from '@shared/diff-renderer/types'
 
@@ -98,7 +99,9 @@ export interface ChromeStoreView {
 	saveComment?(): void
 	ask?(): void
 	requestChange?(): void
-	reset?(): Promise<void>
+	reset?(scope: ResetScope): Promise<void>
+	resetMenuOpen: boolean
+	setResetMenu?(open: boolean): void
 	send?(overallNote?: string): Promise<void>
 	closeDesk?(): Promise<void>
 	toggleFileComposer?(): void

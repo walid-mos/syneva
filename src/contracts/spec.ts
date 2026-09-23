@@ -212,7 +212,10 @@ without a non-empty \`path\` aborts the launch naming the offending field.
 ## Browser state & refresh
 - GET /api/state returns BrowserReviewState plus transient desk status and serverInstanceId, not
   the persisted ReviewState. POST /api/reset returns the same browser projection in its state field
-  plus serverInstanceId outside it. The tab checks the instance on both state-adoption paths.
+  plus serverInstanceId outside it, and takes { scope: "review" | "approved" | "all" }: 'review'
+  clears every decision and sign-off but keeps the notes (comments), 'approved' resets only the
+  signed-off files, 'all' - also the default for a bodyless POST - clears the notes too. The tab
+  checks the instance on both state-adoption paths.
   rawDiff, per-file hunks, and backend-only metadata never ride these responses. Files carry
   hasHunks and added/removed counts; contents still load separately via /api/file-contents.
 - GET /api/poll?instance=<serverInstanceId> normally carries hash, guide, comments and liveness.

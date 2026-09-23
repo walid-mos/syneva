@@ -4,6 +4,7 @@ import { saver, S } from '@app/store'
 import { resetReview, shutdownDesk } from '@entities/review/api'
 import { walkthroughRows } from '@entities/review/guide/guide'
 
+import type { ResetScope } from '@contracts/review'
 import type { GuideInputs } from '@entities/review/guide/guide'
 
 // The guide derivations' explicit inputs, read from the store at each evaluation.
@@ -135,15 +136,30 @@ function installSendBindings(): void {
 }
 
 function installResetBinding(): void {
-	S.reset = async () => {
-		const body = await resetReview()
+	// The split button's scopes (see contracts/review.ts): 'review' keeps the notes, 'approved'
+	// resets only the signed-off files, 'all' clears them too. The response replaces the state
+	// wholesale, so the adopted projection must come from THIS desk (instance check as always).
+	S.resetMenuOpen = false
+	S.setResetMenu = open => {
+		S.resetMenuOpen = open
+	}
+	S.reset = async scope => {
+		const body = await resetReview(scope)
 		if (!isCurrentDesk(body.serverInstanceId)) return
 		S.state = body.state
+		S.resetMenuOpen = false
 		D.fileDiff = null
 		void render()
-		toast('Reset review')
+		toast(RESET_TOASTS[scope])
 	}
 	installSendAction()
+}
+
+// Per-scope receipt line - a lookup, not a ternary tree.
+const RESET_TOASTS: Record<ResetScope, string> = {
+	review: 'Reset review - notes kept',
+	approved: 'Approved files reset',
+	all: 'Reset all - review and notes',
 }
 
 // How many ms a Close click may wait for the coalescing saver to drain, and how long until

@@ -35,24 +35,36 @@ const GI = (): GuideInputs => ({
 // drawer, settings), and the Esc cascade that closes the topmost one. Split from the diff's own
 // map (hotkeys-diff.ts) only for size; keys.ts concatenates the segments and owns the dispatch
 // order.
+// The modal-layer overlays above the notes panel (confirm dialog, send modal, settings,
+// the Reset dropdown): Esc closes the topmost one, one press each. True when one closed.
+function closeTopOverlay(): boolean {
+	if (S.confirmMsg) {
+		S.confirmMsg = ''
+		return true
+	}
+	if (S.sendOpen) {
+		S.sendOpen = false
+		S.sendNote = ''
+		return true
+	}
+	if (S.settingsOpen) {
+		S.settingsOpen = false
+		return true
+	}
+	// The Reset split button's dropdown: the shallowest overlay - nothing behind it closes.
+	if (S.resetMenuOpen) {
+		S.setResetMenu?.(false)
+		return true
+	}
+	return false
+}
+
 function escape(): void {
 	if (golineActive()) {
 		golineCancel()
 		return
 	}
-	if (S.confirmMsg) {
-		S.confirmMsg = ''
-		return
-	}
-	if (S.sendOpen) {
-		S.sendOpen = false
-		S.sendNote = ''
-		return
-	}
-	if (S.settingsOpen) {
-		S.settingsOpen = false
-		return
-	}
+	if (closeTopOverlay()) return
 	// The notes panel's filter: Esc clears the query first, so closing the panel (which
 	// would discard the search with it) stays a deliberate second press.
 	if (S.notesOpen && S.notesQuery) {
@@ -211,14 +223,14 @@ export const HOTKEYS_APP: Hotkey[] = [
 	},
 	{
 		combo: '⇧R',
-		desc: 'Reset review',
+		desc: 'Reset review (keeps the notes)',
 		group: 'App',
 		test: shift('R'),
 		when: navigable,
 		run: () =>
 			askConfirm(
-				'Reset the whole review? This clears every decision and comment.',
-				() => void S.reset?.(),
+				'Reset the review? Every decision and sign-off clears; the notes stay.',
+				() => void S.reset?.('review'),
 			),
 	},
 	{

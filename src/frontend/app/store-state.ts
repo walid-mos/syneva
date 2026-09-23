@@ -1,3 +1,4 @@
+import type { ResetScope } from '@contracts/review'
 import type { TreeRow } from '@entities/review/file/tree-rows'
 import type { WalkRow } from '@entities/review/guide/walkthrough'
 import type {
@@ -153,7 +154,11 @@ export interface Store {
 	saveComment?: () => void
 	ask?: () => void
 	requestChange?: () => void
-	reset?: () => Promise<void>
+	reset?: (scope: ResetScope) => Promise<void>
+	// The Reset split button's dropdown (approved-only / all). Store-owned so the React chrome
+	// and the Esc cascade agree on it; per-session, never persisted.
+	resetMenuOpen?: boolean
+	setResetMenu?: (open: boolean) => void
 	send?: (overallNote?: string) => Promise<void>
 	// The browser Close: confirm, flush the coalescing saver, stop the desk via /api/shutdown,
 	// then show the closed cover (window.close() after it usually can't script-close an

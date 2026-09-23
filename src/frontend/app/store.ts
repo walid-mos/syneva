@@ -68,6 +68,7 @@ export const S: Store = reactive<Store>({
 	notesCursor: 0,
 	notesSearchTick: 0,
 	notesAdvanceAfter: null,
+	resetMenuOpen: false,
 })
 
 // The loaded review, for the operations that mutate or render it - all of which run after main.ts

@@ -14,6 +14,7 @@ import {
 	decodeReviewState,
 } from './decode'
 
+import type { ResetScope } from '@contracts/review'
 import type {
 	DeskPollSnapshot,
 	DeskRefreshEvent,
@@ -120,8 +121,11 @@ export const openEditor = async (body: {
 // answer carries the rebuilt review state the tab adopts immediately.
 export type ResetResult = { state: ReviewState; serverInstanceId?: string }
 
-export const resetReview = async (): Promise<ResetResult> => {
-	const raw = await api(API_PATHS.reset, { method: 'POST' })
+export const resetReview = async (scope: ResetScope): Promise<ResetResult> => {
+	const raw = await api(API_PATHS.reset, {
+		method: 'POST',
+		body: JSON.stringify({ scope }),
+	})
 	const o = assertObject(raw, API_PATHS.reset)
 	// The reset endpoint answers `{ ok, state, serverInstanceId }` - the rebuilt review
 	// lives under `state`, not at the top level.

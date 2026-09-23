@@ -8,6 +8,7 @@ import { Icon } from '@shared/ui/icon'
 import { chromeCtx } from '../context'
 
 import { BrandBlock } from './brand-logo'
+import { ResetButton } from './reset-button'
 
 import type { GuideInputs } from '@entities/review/guide/guide'
 import type { ReactElement } from 'react'
@@ -217,13 +218,7 @@ function DeskButtons(): ReactElement {
 			>
 				<Icon id="gly-settings" />
 			</button>
-			<button
-				className="btn danger"
-				data-tip="Reset review (⇧R)"
-				onClick={() => void S.reset?.()}
-			>
-				Reset Review
-			</button>
+			<ResetButton />
 			<button
 				className="btn primary"
 				disabled={S.awaitingAgent}

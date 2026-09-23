@@ -97,6 +97,12 @@ export type GuideFile = {
 	category: string
 }
 
+// How much of the review POST /api/reset drops. 'review' clears every decision and sign-off
+// but keeps the notes (comments/questions); 'approved' clears only the signed-off files;
+// 'all' is the whole review, notes included. A bodyless POST resets 'all' - the documented
+// pre-scope behavior.
+export type ResetScope = 'review' | 'approved' | 'all'
+
 // The grouping the coding agent attaches with --guide: which files to review, in which order,
 // under which headings. Absent on a review state → the desk lists files in diff order and every
 // guide surface stays off. A guide is a grouping only - order and labels; it holds no prose.
