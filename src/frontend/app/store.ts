@@ -1,7 +1,7 @@
 import { saveReview } from '@entities/review/api'
 import { createSaver, reviewerSlice } from '@entities/review/save'
 import { loadSettings } from '@entities/settings/settings'
-import AlpineJS from 'alpinejs'
+import { reactive } from '@shared/lib/reactive'
 
 import type { ReviewState } from '@entities/review/model'
 import type { Store } from './store-state'
@@ -10,11 +10,11 @@ import type { Store } from './store-state'
 const TOAST_MS = 2800
 
 // Single reactive source of truth: the imperative diff island mutates it directly,
-// and the Alpine-driven chrome (tree, toolbar, composer, modals, toast) renders from it.
-// `state` is null until the initial fetch in main.ts adopts it; the selectors that the template
-// can reach before then (treeRows, hasGuide, ...) tolerate null, and every operation that needs a
-// loaded review goes through requireState() below.
-export const S: Store = AlpineJS.reactive<Store>({
+// and the React-driven chrome (tree, toolbar, composer, modals, toast) renders from it.
+// `state` is null until the initial fetch in main.ts adopts it; the selectors that the
+// components can reach before then (treeRows, hasGuide, ...) tolerate null, and every
+// operation that needs a loaded review goes through requireState() below.
+export const S: Store = reactive<Store>({
 	state: null,
 	projectFiles: [],
 	expandedDirs: new Set<string>(),

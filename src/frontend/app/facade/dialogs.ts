@@ -14,10 +14,11 @@ const GI = (): GuideInputs => ({
 	progressBy: S.settings.progressBy,
 	foldExpanded: S.foldExpanded,
 })
+import { flowIndex } from '@entities/review/changes'
+import { reviewLineCount } from '@entities/review/file/file-summary'
 import { sendReviewToAgent } from '@features/send-review/send'
 import { $ } from '@shared/lib/dom'
 import { render } from '@shared/lib/render-scheduler'
-import { reviewStats } from '@widgets/chrome/progress'
 import {
 	askConfirm,
 	bindConfirm,
@@ -34,6 +35,33 @@ import { toast } from '../store'
 // Pluralize a count with its noun: plural(1, "file") -> "1 file", plural(3, "file") -> "3 files".
 function plural(count: number, noun: string): string {
 	return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
+// Whole-review numbers for the completion prompt - a small receipt of the work done.
+// Files out of the flow - pure renames (issue 01) - stay out of the file and line totals
+// so the numbers match the progress bar and the gate.
+function reviewStats(): {
+	files: number
+	lines: number
+	comments: number
+	rejections: number
+} {
+	const { outOfFlow } = flowIndex(S.state, {
+		distill: S.settings.hideReviewed,
+	})
+	const scope = (S.state?.files ?? []).filter(f => !outOfFlow.has(f.path))
+	let lines = 0
+	for (const f of scope) lines += reviewLineCount(f)
+	return {
+		files: scope.length,
+		lines,
+		comments: (S.state?.comments ?? []).filter(
+			c => c.role === 'user' && c.status === 'open',
+		).length,
+		rejections: (S.state?.changes ?? []).filter(
+			c => c.status === 'rejected',
+		).length,
+	}
 }
 
 // The one-line receipt of a review's scope: files, changed lines, and the comments/rejections that

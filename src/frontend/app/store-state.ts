@@ -9,8 +9,8 @@ import type { Settings } from '@entities/settings/model'
 import type { DiffStyle, Selection } from '@shared/diff-renderer/types'
 
 // The single reactive store's shape: data fields are the source of truth; the methods
-// are attached by the app facade modules for the Alpine chrome to call as $store.g.*
-// (hence optional on the data literal).
+// are attached by the app facade modules for the chrome (React components + keyboard
+// dispatcher) to call through the store view (hence optional on the data literal).
 export interface Store {
 	// The live review, or null before main.ts adopts the initial fetch. Selectors the template can
 	// reach that early tolerate null; operations that need a review go through requireState().

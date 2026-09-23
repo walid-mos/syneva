@@ -1,0 +1,20 @@
+{
+  "tiny": {
+    "error": "Error: the browser bench needs playwright: `npm i playwright@~1.63` in a scratch dir, then `npx playwright install chromium`"
+  },
+  "small": {
+    "error": "Error: the browser bench needs playwright: `npm i playwright@~1.63` in a scratch dir, then `npx playwright install chromium`"
+  },
+  "medium": {
+    "error": "Error: the browser bench needs playwright: `npm i playwright@~1.63` in a scratch dir, then `npx playwright install chromium`"
+  },
+  "bigfile": {
+    "error": "Error: the browser bench needs playwright: `npm i playwright@~1.63` in a scratch dir, then `npx playwright install chromium`"
+  },
+  "patho": {
+    "error": "Error: the browser bench needs playwright: `npm i playwright@~1.63` in a scratch dir, then `npx playwright install chromium`"
+  },
+  "large": {
+    "error": "Error: the browser bench needs playwright: `npm i playwright@~1.63` in a scratch dir, then `npx playwright install chromium`"
+  }
+}

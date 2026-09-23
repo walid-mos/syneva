@@ -1,3 +1,5 @@
+import { createRoot } from 'react-dom/client'
+
 import { installCommentBindings } from '@app/facade/comment-thread'
 import { installDialogBindings } from '@app/facade/dialogs'
 import { installGuideBindings } from '@app/facade/guide-bar'
@@ -21,13 +23,13 @@ import { setMarkdownTheme } from '@shared/markdown'
 import { configureMarkdownRuntime } from '@shared/markdown/runtime-config'
 import { ensureIcons } from '@shared/ui/icons'
 import { bindChromeCtx } from '@widgets/chrome/context'
-import { setBaseTitle } from '@widgets/chrome/progress'
+import { setBaseTitle } from '@widgets/chrome/react/top-bar'
 import { bindDiffCtx } from '@widgets/diff-view/context'
 import { invalidateCursorRows } from '@widgets/diff-view/cursor'
 import { D } from '@widgets/diff-view/runtime'
-import AlpineJS from 'alpinejs'
 
 import { bindFeaturePorts } from './feature-ctx'
+import { App } from './react/app'
 import { persist, requireState, toast } from './store'
 import { S } from './store'
 
@@ -43,7 +45,7 @@ const GI = (): GuideInputs => ({
 	foldExpanded: S.foldExpanded,
 })
 
-// The tab's bootstrap: store bindings, Alpine start, the initial fetch, and the few document-level
+// The tab's bootstrap: store bindings, the React root, the initial fetch, and the few document-level
 // listeners. Everything with real behaviour lives in the modules this wires together.
 
 // The pr title is the ref, truncated so a long branch name can't dominate the tab strip.
@@ -59,17 +61,17 @@ const WARM_FALLBACK_DELAY_MS = 120
 installPaneResizers()
 // Bind the features' use-case context before any binding that can invoke a feature action.
 bindFeaturePorts()
-// Bind the page/widget contexts before Alpine starts and before any render or action can
+// Bind the page/widget contexts before the React root mounts and before any render or action can
 // run: every desk render pass, diff-island mutation and chrome read goes through these
 // seams, and each throws until app composition has bound it (see the per-context modules).
 // S is bound as the reactive proxy itself (mutations stay observable); D stays the plain
-// holder (@pierre's element-identity checks break on an Alpine Proxy).
+// holder (@pierre's element-identity checks break on a reactive proxy).
 bindDeskCtx({ S, D, requireState, deferRender })
 bindDiffCtx({ S, D, requireState, deferRender, persist, toast })
 bindChromeCtx(S)
 // Keyboard shortcuts: a central scope-aware dispatcher (keys.ts) is the single source of truth.
 installKeys()
-// The store methods the reactive chrome calls ($store.g.*). Installed before Alpine starts, so the
+// The store methods the chrome call. Installed before the React tree mounts, so the
 // first template evaluation already sees them.
 installProjectTreeBindings()
 installNavigationBindings()
@@ -78,15 +80,11 @@ installFileActionBindings()
 installCommentBindings()
 installDialogBindings()
 
-// Alpine: register the reactive store, then start.
-declare global {
-	interface Window {
-		Alpine?: typeof AlpineJS
-	}
-}
-window.Alpine = AlpineJS
-AlpineJS.store('g', S)
-AlpineJS.start()
+// The React tree: mounted right after the contexts and facade bindings are in place, so
+// the shell (and the engine containers inside DiffArea) exist before the resizer and the
+// first render pass touch them. The store starts with state=null; the chrome tolerates it
+// and fills in when the initial fetch adopts.
+createRoot($('root')).render(<App />)
 
 // Init
 ensureIcons() // file-tree icon sprite (folder/file/badges/stage)
@@ -137,7 +135,7 @@ S.lastBaseDiffHash = S.state.baseDiffHash
 // Tab title: name the desk so multiple desks are distinguishable in the browser.
 const deskName = readDeskName(S.state)
 if (deskName) document.title = `Syneva - ${deskName}`
-// progress.ts prefixes the title with the review % - hand it the base to prefix.
+// The top bar's progress label prefixes the title with the review % - hand it the base.
 setBaseTitle(document.title)
 S.selected = {
 	side: S.state.changes[0]?.side ?? 'additions',

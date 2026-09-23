@@ -27,6 +27,8 @@ I'm not saying this is *the* review surface. I built it in a week and I'm still 
 
    Outside pi, the plain CLI still works: `npm install -g syneva` (needs **Node 22+** and **git**).
 
+3. **Build from a checkout:** `pnpm build` - tsc compiles the backend, Vite bundles the browser frontend (ui + tokenization worker).
+
 2. **Start a review:**
 
    ```bash
@@ -90,3 +92,4 @@ Syneva is a **fork of [Galley](https://github.com/ymansurozer/galley)** by Yusuf
 ## License
 
 [MIT](./LICENSE) © Walid Mostefaoui — the original Galley code © Yusuf Mansur Özer
+

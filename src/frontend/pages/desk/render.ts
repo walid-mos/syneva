@@ -13,8 +13,6 @@ import { $ } from '@shared/lib/dom'
 import { esc } from '@shared/lib/esc'
 import { perfMark } from '@shared/lib/perf'
 import { registerRenderFunnel } from '@shared/lib/render-scheduler'
-import { updateProgress } from '@widgets/chrome/progress'
-import { applyActiveRow, applyLayoutClasses } from '@widgets/chrome/sidebar-dom'
 import { cursorReset } from '@widgets/diff-view/cursor'
 import { diffKey } from '@widgets/diff-view/diff-key'
 import { renderMarkdownFile } from '@widgets/diff-view/mdfile'
@@ -49,6 +47,9 @@ registerRenderFunnel({ render, deferRender })
 
 type ReviewFile = ReviewState['files'][number]
 let renderSequence = 0
+// A deferRender is pending (scheduled through the double-rAF): further calls in the
+// same window are folded into the scheduled render.
+let isDeferredRenderPending = false
 
 // The current render's view flags, read from the store (see DiffView). The expand-unchanged
 // preference is respected only under the whole-file paint cap: past EXPAND_LINES_MAX the diff
@@ -94,9 +95,17 @@ export function deferRender(isForcedIfBig = false): void {
 		!!file &&
 		!isForcedIfBig &&
 		deskCtx().D.diffCache.has(diffKey(file, view))
-	deskCtx().S.rendering = !!file && (!warm || (isBig && !reusesCache))
+	deskCtx().S.rendering =
+		deskCtx().S.rendering || (!!file && (!warm || (isBig && !reusesCache)))
+	// Idempotent per frame: every caller in one tick folds into ONE scheduled render,
+	// so N mutations never schedule N full rebuilds, and the indicator clears only when
+	// that render finishes. Each call still makes its own indicator decision first (the
+	// forced path sets S.rendering synchronously above).
+	if (isDeferredRenderPending) return
+	isDeferredRenderPending = true
 	requestAnimationFrame(() =>
 		requestAnimationFrame(() => {
+			isDeferredRenderPending = false
 			void (async () => {
 				try {
 					await render()
@@ -131,7 +140,6 @@ function renderGuideOverview(): boolean {
 function renderOversizedSummary(): void {
 	cursorReset()
 	detachDiffInstance()
-	applyLayoutClasses()
 	renderOversizedCard()
 }
 
@@ -141,7 +149,6 @@ function renderOversizedSummary(): void {
 function renderContentsError(path: string): void {
 	cursorReset()
 	detachDiffInstance()
-	applyLayoutClasses()
 	$('diff').innerHTML =
 		`<div class="file-note"><div class="file-note-strip moved">
     <svg class="ic"><use href="#gly-flag"></use></svg>
@@ -185,7 +192,6 @@ function renderReplacementView(
 	if (!view) return false
 	cursorReset()
 	detachDiffInstance()
-	applyLayoutClasses()
 	if (view === 'markdown') renderMarkdownFile()
 	else
 		renderMovedPure(
@@ -207,7 +213,6 @@ async function renderCenter(sequence: number): Promise<void> {
 	if (!file) {
 		cursorReset()
 		detachDiffInstance()
-		applyLayoutClasses()
 		$('diff').replaceChildren()
 		return
 	}
@@ -277,8 +282,7 @@ async function renderDiffIsland(
 			)
 	)
 		return
-	applyLayoutClasses()
-	island.renderDiffInstance(file, currentView())
+	await island.renderDiffInstance(file, currentView())
 }
 
 // Every progress-moving mutation (decision, approval, reset, reload) funnels through render,
@@ -297,9 +301,5 @@ export async function render(): Promise<void> {
 		// the open composer and restore its caret from the store, so typing survives a render
 		// triggered mid-compose (e.g. accepting a change while replying).
 		restoreComposerFocus()
-		// Re-apply the sidebar highlight an rAF later - after Alpine's microtask flush, so rows
-		// that were just re-keyed by a reactive change carry it again (see applyActiveRow).
-		requestAnimationFrame(applyActiveRow)
-		requestAnimationFrame(() => requestAnimationFrame(updateProgress))
 	}
 }

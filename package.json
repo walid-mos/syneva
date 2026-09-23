@@ -66,8 +66,8 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "node scripts/build-ui.mjs --watch & tsx src/backend/bootstrap/cli.ts",
-    "build": "node scripts/clean-dist.mjs && tsc && tsc -p tsconfig.ui.json && node scripts/build-ui.mjs && cp src/frontend/app/index.html dist/index.html",
+    "dev": "vite build --watch & tsx src/backend/bootstrap/cli.ts",
+    "build": "node scripts/clean-dist.mjs && tsc && tsc -p tsconfig.ui.json && vite build && cp src/frontend/app/index.html dist/index.html",
     "start": "node dist/backend/bootstrap/cli.js",
     "check": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.ui.json",
     "lint": "oxlint --deny-warnings",
@@ -84,28 +84,31 @@
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",
     "@nextnode-solutions/standards": "1.25.0",
-    "@types/alpinejs": "^3.13.11",
-    "@types/alpinejs__persist": "^3.13.4",
     "@types/markdown-it": "^14.1.2",
     "@types/markdown-it-footnote": "^3.0.4",
     "@types/node": "latest",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
     "changelogen": "^0.6.2",
-    "esbuild": "^0.28.0",
     "oxfmt": "0.67.0",
     "oxlint": "1.82.0",
     "oxlint-tsgolint": "7.0.2001",
     "tsx": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vite": "^7.3.6"
   },
   "dependencies": {
     "@pierre/diffs": "1.4.3",
     "@shikijs/markdown-it": "^4.2.0",
-    "alpinejs": "^3.15.12",
     "dompurify": "^3.4.8",
     "markdown-it": "^14.2.0",
     "markdown-it-footnote": "^4.0.0",
     "markdown-it-task-lists": "^2.1.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "shiki": "^4.2.0",
-    "typebox": "^1.3.30"
+    "typebox": "^1.3.30",
+    "zustand": "^5.0.15"
   }
 }

@@ -1,6 +1,6 @@
 import { fetchPoll, fetchState } from '@entities/review/api'
 import { fetchTree } from '@entities/review/file/api'
-import { render } from '@pages/desk/render'
+import { deferRender, render } from '@pages/desk/render'
 import { updateAwaitingDom } from '@widgets/diff-view/awaiting'
 import { D } from '@widgets/diff-view/runtime'
 
@@ -221,5 +221,8 @@ export async function pollState(): Promise<void> {
 	const guideChanged = adoptGuide(lite)
 	const commentsChanged = adoptIncomingComments(lite.comments)
 	if (guideChanged) toast('Guide updated')
-	if (guideChanged || commentsChanged) void render()
+	// Guide/comment deltas repaint through the coalesced path: these arrive on a
+	// background tick while the reviewer may be mid-scroll or mid-compose, so they
+	// must not stack a synchronous full rebuild on top of their interaction.
+	if (guideChanged || commentsChanged) deferRender()
 }

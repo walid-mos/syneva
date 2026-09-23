@@ -121,6 +121,12 @@ type QueuedParse = {
 	accept: (diff: FileDiffMetadata | undefined) => void
 }
 type PendingBase = { id: string; job: PoolJob }
+type ViewportPreparation = {
+	tasks: Set<WindowTask>
+	totalLines: number
+	result: boolean | null
+	accepts: Set<(isReady: boolean) => void>
+}
 
 type PoolJob = {
 	cacheKey: string
@@ -132,6 +138,7 @@ type PoolJob = {
 	windows: WindowTask[]
 	remaining: number
 	instances: Set<PublishRenderer>
+	preparedRefreshes: Set<() => void>
 	languages: ResolvedLanguage[] | undefined
 	publishFrame: number | undefined
 	// A job nobody is attached to (the next-file prefetch): it moves only on slots the visible
@@ -139,6 +146,9 @@ type PoolJob = {
 	isWarm: boolean
 	// The stream gate: the freshest statement of what the reviewer is looking at.
 	viewport: WindowViewport | undefined
+	// Before the first mount, one viewport band split across the worker fleet may
+	// gate the first paint so @pierre adopts colored rows instead of flipping later.
+	preparation: ViewportPreparation | undefined
 }
 
 type Slot = {
@@ -334,15 +344,32 @@ export class TokenPool {
 		return { theme, useTokenTransformer, tokenizeMaxLineLength }
 	}
 
-	// @pierre's cache-adoption path: a settled grid is adopted as highlighted on the renderer's
-	// own render pass, with no publish round trip at all.
+	// @pierre's cache-adoption path: a settled grid - or an opening-viewport-prepared live grid -
+	// is adopted as highlighted on the renderer's own render pass, with no publish round trip.
 	getDiffResultCache(
 		diff: FileDiffMetadata,
 	):
 		| { result: ThemedDiffResult; options: WorkerRenderingOptions }
 		| undefined {
 		if (!diff.cacheKey) return undefined
-		return this.finals.get(diff.cacheKey)
+		const final = this.finals.get(diff.cacheKey)
+		if (final) return final
+		const job = this.jobs.get(diff.cacheKey)
+		if (job?.preparation?.result && job.merged)
+			return { result: job.merged.result(), options: job.options }
+		return undefined
+	}
+
+	// A renderer adopting a prepared cache never calls highlightDiffAST. Its cache
+	// shares the MergeGrid's mutable rows, so streaming only needs a repaint callback
+	// after each merge; no private @pierre renderer surface is involved.
+	attachPreparedRefresh(diff: FileDiffMetadata, refresh: () => void): void {
+		if (!diff.cacheKey) return
+		const job = this.jobs.get(diff.cacheKey)
+		if (!job?.preparation?.result) return
+		job.preparedRefreshes.add(refresh)
+		job.isWarm = false
+		this.drain()
 	}
 
 	// syneva never constructs file-renderer instances (diff renderers only), so the file half of
@@ -499,7 +526,8 @@ export class TokenPool {
 		try {
 			// Token state is options-scoped and dies with the version: the jobs are dropped and the
 			// mounts re-render from the NEW options' plain fetch.
-			this.jobs.clear()
+			const activeJobs = Array.from(this.jobs.values())
+			for (const job of activeJobs) this.settleJobFailed(job)
 			this.finals.clear()
 			this.skeletons.clear()
 			for (const instance of this.themeSubscribers)
@@ -594,7 +622,75 @@ export class TokenPool {
 		if (!diff.cacheKey || isPlainDiff(diff)) return
 		await this.warmBoot()
 		if (this.bootFailed || this.jobs.has(diff.cacheKey)) return
-		this.openJob(diff, undefined, true, viewport)
+		this.openJob(diff, undefined, true, { viewport })
+	}
+
+	// Gate only the first mount on the reviewer's estimated opening viewport. The
+	// merged grid remains full coverage (plain outside this window), so @pierre can
+	// adopt it once and the unchanged stream keeps coloring future windows.
+	async prepareViewport(
+		diff: FileDiffMetadata,
+		viewport: WindowViewport,
+	): Promise<boolean> {
+		const { cacheKey } = diff
+		if (!cacheKey || isPlainDiff(diff)) return false
+		await this.warmBoot()
+		if (this.bootFailed) return false
+		if (this.finals.has(cacheKey)) return true
+		const existing = this.jobs.get(cacheKey)
+		const job =
+			existing ?? this.openJob(diff, undefined, false, { viewport })
+		if (!job) return false
+		job.isWarm = false
+		job.viewport = viewport
+		if (!job.preparation) this.installPreparation(job, viewport)
+		this.drain()
+		return this.waitForPreparation(job.preparation)
+	}
+
+	private installPreparation(job: PoolJob, viewport: WindowViewport): void {
+		const count = Math.min(BAND_CHUNKS, viewport.totalLines)
+		const specs = planWindowOrder(job.diff, viewport, BAND_CHUNKS).slice(
+			0,
+			count,
+		)
+		if (!specs.length) return
+		const tasks: WindowTask[] = specs.map(spec => ({
+			spec,
+			status: 'queued',
+		}))
+		job.windows.unshift(...tasks)
+		job.remaining += tasks.length
+		job.preparation = {
+			tasks: new Set(tasks),
+			totalLines: viewport.totalLines,
+			result: null,
+			accepts: new Set(),
+		}
+	}
+
+	private waitForPreparation(
+		preparation: ViewportPreparation | undefined,
+	): Promise<boolean> {
+		if (!preparation) return Promise.resolve(false)
+		if (preparation.result !== null)
+			return Promise.resolve(preparation.result)
+		return new Promise(resolve => preparation.accepts.add(resolve))
+	}
+
+	private openingPreparation(
+		windows: WindowTask[],
+		viewport: WindowViewport | undefined,
+		bandChunks: number,
+	): ViewportPreparation | undefined {
+		if (!viewport) return undefined
+		const count = Math.min(bandChunks, viewport.totalLines)
+		return {
+			tasks: new Set(windows.slice(0, count)),
+			totalLines: viewport.totalLines,
+			result: null,
+			accepts: new Set(),
+		}
 	}
 
 	// Open (or fail) synchronously; the base is queued for the drain. Undefined means there is
@@ -603,11 +699,12 @@ export class TokenPool {
 		diff: FileDiffMetadata,
 		instance: PublishRenderer | undefined,
 		isWarm: boolean,
-		viewport?: WindowViewport,
+		opening?: { viewport?: WindowViewport; bandChunks?: number },
 	): PoolJob | undefined {
 		const { cacheKey } = diff
 		if (!cacheKey) return undefined
-		const plan = planWindowOrder(diff, viewport, BAND_CHUNKS)
+		const { viewport, bandChunks = BAND_CHUNKS } = opening ?? {}
+		const plan = planWindowOrder(diff, viewport, bandChunks)
 		if (!plan.length) return undefined
 		const windows: WindowTask[] = plan.map(spec => ({
 			spec,
@@ -628,10 +725,16 @@ export class TokenPool {
 			windows,
 			remaining: plan.length,
 			instances: instance ? new Set([instance]) : new Set(),
+			preparedRefreshes: new Set(),
 			languages: this.languageValues.get(cacheKey),
 			publishFrame: undefined,
 			isWarm,
 			viewport,
+			preparation: this.openingPreparation(
+				windows,
+				viewport,
+				bandChunks,
+			),
 		}
 		this.jobs.set(cacheKey, job)
 		this.prewarmLanguages(diff)
@@ -662,6 +765,7 @@ export class TokenPool {
 	}
 
 	private settleJobFailed(job: PoolJob): void {
+		this.completePreparation(job, false)
 		this.jobs.delete(job.cacheKey)
 	}
 
@@ -683,15 +787,47 @@ export class TokenPool {
 
 	// One merged window settled (success, failure, reaper, or worker crash): the shared tail that
 	// keeps the countdown and the publish cadence honest.
-	private finishTask(job: PoolJob, task: WindowTask): void {
+	private finishTask(
+		job: PoolJob,
+		task: WindowTask,
+		isSuccessful = false,
+	): void {
 		task.status = 'done'
 		job.remaining--
+		this.settlePreparationTask(job, task, isSuccessful && !!job.merged)
 		if (job.remaining === 0) {
 			this.settleJobFinal(job)
 			return
 		}
 		this.schedulePublish(job)
 		this.drain()
+	}
+
+	private settlePreparationTask(
+		job: PoolJob,
+		task: WindowTask,
+		isReady: boolean,
+	): void {
+		const { preparation } = job
+		if (!preparation?.tasks.delete(task)) return
+		if (!isReady) {
+			this.completePreparation(job, false)
+			return
+		}
+		if (preparation.tasks.size === 0) this.completePreparation(job, true)
+	}
+
+	private completePreparation(job: PoolJob, isReady: boolean): void {
+		const { preparation } = job
+		if (preparation?.result !== null) return
+		preparation.result = isReady
+		for (const accept of preparation.accepts) accept(isReady)
+		preparation.accepts.clear()
+		perfMark('pool:viewport:ready', {
+			key: job.cacheKey,
+			lines: preparation.totalLines,
+			ready: isReady,
+		})
 	}
 
 	// ══════════════ dispatch ══════════════
@@ -747,7 +883,12 @@ export class TokenPool {
 		const attached: string[] = []
 		let newestWarm: string | undefined
 		for (const [cacheKey, job] of this.jobs) {
-			if (job.instances.size > 0) attached.push(cacheKey)
+			if (
+				job.instances.size > 0 ||
+				job.preparedRefreshes.size > 0 ||
+				job.preparation?.result === null
+			)
+				attached.push(cacheKey)
 			else if (
 				job.isWarm &&
 				job.windows.filter(window => window.status === 'done').length <
@@ -1034,7 +1175,7 @@ export class TokenPool {
 			line: inflight.spec.startingLine,
 			...response.timings,
 		})
-		this.finishTask(job, task)
+		this.finishTask(job, task, true)
 	}
 
 	private onTaskFailure(
@@ -1167,6 +1308,7 @@ export class TokenPool {
 			)
 			instance.onRenderUpdate?.()
 		}
+		for (const refresh of job.preparedRefreshes) refresh()
 		endSpan({
 			key: job.cacheKey,
 			landed: job.windows.filter(window => window.status === 'done')
