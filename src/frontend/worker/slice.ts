@@ -194,15 +194,21 @@ class HunkWalk {
 		pushRun(this.#positions.deletion, this.#deletion + skip, lines)
 	}
 
-	#keepAlignedChange(segment: ChangeContent, skip: number, lines: number): void {
+	#keepAlignedChange(
+		segment: ChangeContent,
+		skip: number,
+		lines: number,
+	): void {
 		const additions = Math.min(lines, Math.max(0, segment.additions - skip))
 		const deletions = Math.min(lines, Math.max(0, segment.deletions - skip))
 		this.#covered.push({
 			...segment,
 			additions,
 			deletions,
-			additionLineIndex: this.#addition + Math.min(skip, segment.additions),
-			deletionLineIndex: this.#deletion + Math.min(skip, segment.deletions),
+			additionLineIndex:
+				this.#addition + Math.min(skip, segment.additions),
+			deletionLineIndex:
+				this.#deletion + Math.min(skip, segment.deletions),
 		})
 		pushRun(this.#positions.addition, this.#addition + skip, additions)
 		pushRun(this.#positions.deletion, this.#deletion + skip, deletions)

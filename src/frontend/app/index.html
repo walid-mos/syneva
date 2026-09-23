@@ -89,9 +89,9 @@
 				--subbar-h: 40px;
 
 				/* Default code size, used before applyAppearance writes --code-size. */
-			--code-size-default: 12.5px;
+				--code-size-default: 12.5px;
 
-			/* Gap between the +added / −removed (and state badge) churn indicators, kept in sync
+				/* Gap between the +added / −removed (and state badge) churn indicators, kept in sync
          across every surface that renders them: sidebar walkthrough, Overview group headers
          + file rows, and the diff header. */
 				--churn-gap: 5px;
@@ -251,7 +251,14 @@
 			/* One visible focus treatment for every interactive control: keyboard users get
 			   the same cyan accent the selection rail uses (DESIGN.md interaction rules).
 			   :where() keeps the specificity at zero so component styles never have to fight it. */
-			:where(button, [role='button'], select, input, textarea, .node):focus-visible {
+			:where(
+				button,
+				[role='button'],
+				select,
+				input,
+				textarea,
+				.node
+			):focus-visible {
 				outline: 2px solid var(--cyan);
 				outline-offset: 2px;
 				border-radius: var(--radius-xs);
@@ -824,7 +831,6 @@
 				white-space: nowrap;
 			}
 
-
 			.ghdr .ghdr-file {
 				flex: 0 0 auto;
 				color: var(--ink);
@@ -1329,7 +1335,6 @@
 			#walk .status-pack .del {
 				color: var(--red);
 			}
-
 
 			/* Per-file review state leads the row: empty circle = to do, green check-circle =
        approved, amber alert-circle = changes requested. */
@@ -1949,7 +1954,6 @@
 				padding-top: 8px;
 				margin-top: 12px;
 			}
-
 
 			.annotation .thread-actions button {
 				border: 1px solid var(--line);
@@ -2576,8 +2580,6 @@
 				color: var(--on-accent);
 			}
 
-
-
 			.diff-header-action.undo {
 				background: transparent;
 				color: var(--amber);
@@ -2711,7 +2713,6 @@
 			.unanchored-strip .annotation.flash {
 				animation: blocker-flash 1.2s ease-out;
 			}
-
 
 			.modal-backdrop {
 				position: absolute;
@@ -3021,7 +3022,6 @@
 				align-items: center;
 				gap: 8px;
 			}
-
 
 			.toast {
 				position: absolute;

@@ -103,7 +103,11 @@ function readValue(member: unknown, thisArg: object, field: string): unknown {
 }
 
 // A mutating method call that bumps the version after the mutation settles.
-function bumpingCall(method: UnknownFn, thisArg: object, field: string): UnknownFn {
+function bumpingCall(
+	method: UnknownFn,
+	thisArg: object,
+	field: string,
+): UnknownFn {
 	return (...args: unknown[]) => {
 		const outcome = Reflect.apply(method, thisArg, args.map(unwrap))
 		bumpVersion(field)
@@ -144,7 +148,9 @@ const objectHandler: ProxyHandler<object> = {
 		// At the store root the KEY being read is the field; below it, the parent's
 		// root field carries the attribution down the whole branch.
 		const field =
-			rootFields.get(target) === ROOT ? String(key) : (rootFields.get(target) ?? ROOT)
+			rootFields.get(target) === ROOT
+				? String(key)
+				: (rootFields.get(target) ?? ROOT)
 		return readValue(Reflect.get(target, key, receiver), target, field)
 	},
 	set(target, key, written) {
@@ -153,7 +159,11 @@ const objectHandler: ProxyHandler<object> = {
 		const changed = !Object.is(previous, next)
 		const accepted = Reflect.set(target, key, next)
 		if (changed && accepted) {
-			bumpVersion(rootFields.get(target) === ROOT ? String(key) : (rootFields.get(target) as string))
+			bumpVersion(
+				rootFields.get(target) === ROOT
+					? String(key)
+					: (rootFields.get(target) as string),
+			)
 		}
 		return accepted
 	},
@@ -161,7 +171,11 @@ const objectHandler: ProxyHandler<object> = {
 		const existed = Reflect.has(target, key)
 		const accepted = Reflect.deleteProperty(target, key)
 		if (existed && accepted) {
-			bumpVersion(rootFields.get(target) === ROOT ? String(key) : (rootFields.get(target) as string))
+			bumpVersion(
+				rootFields.get(target) === ROOT
+					? String(key)
+					: (rootFields.get(target) as string),
+			)
 		}
 		return accepted
 	},
@@ -171,7 +185,8 @@ const arrayHandler: ProxyHandler<unknown[]> = {
 	...objectHandler,
 	get(target, key, receiver) {
 		const member = Reflect.get(target, key, receiver)
-		if (typeof member !== 'function') return wrapValue(member, rootFields.get(target) ?? ROOT)
+		if (typeof member !== 'function')
+			return wrapValue(member, rootFields.get(target) ?? ROOT)
 		if (!mutatingCollectionMethods.has(String(key))) {
 			return (member as UnknownFn).bind(target)
 		}
@@ -187,7 +202,8 @@ const collectionHandler: ProxyHandler<Set<unknown> | Map<unknown, unknown>> = {
 	...objectHandler,
 	get(target, key, receiver) {
 		const member = Reflect.get(target, key, receiver)
-		if (typeof member !== 'function') return wrapValue(member, rootFields.get(target) ?? ROOT)
+		if (typeof member !== 'function')
+			return wrapValue(member, rootFields.get(target) ?? ROOT)
 		if (!mutatingCollectionMethods.has(String(key))) {
 			return (member as UnknownFn).bind(target)
 		}
@@ -209,5 +225,9 @@ export function reactive<T extends object>(target: T): T {
 }
 
 export function isStoreProxy(candidate: unknown): boolean {
-	return typeof candidate === 'object' && candidate !== null && proxies.has(candidate)
+	return (
+		typeof candidate === 'object' &&
+		candidate !== null &&
+		proxies.has(candidate)
+	)
 }

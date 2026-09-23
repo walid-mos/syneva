@@ -18,12 +18,7 @@ import type { ReactElement } from 'react'
 // React. Body-level layout classes (single/file-mode) stay on <body> - the CSS
 // keys on body selectors.
 export function App(): ReactElement {
-	useStoreFields(
-		'state',
-		'deskClosed',
-		'isRefreshRequired',
-		'treeDrawerOpen',
-	)
+	useStoreFields('state', 'deskClosed', 'isRefreshRequired', 'treeDrawerOpen')
 	// useLayoutEffect: the single/file-mode body classes gate the CSS grid layout, so
 	// they must land before first paint or single-file desks flash the tree column.
 	useLayoutEffect(() => {

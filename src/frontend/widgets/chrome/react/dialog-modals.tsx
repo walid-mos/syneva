@@ -18,7 +18,12 @@ export function ConfirmModal(): ReactElement {
 				if (event.target === event.currentTarget) S.confirmNo?.()
 			}}
 		>
-			<div className="modal confirm" role="dialog" aria-modal="true" aria-label="Confirm action">
+			<div
+				className="modal confirm"
+				role="dialog"
+				aria-modal="true"
+				aria-label="Confirm action"
+			>
 				<p>{S.confirmMsg}</p>
 				<div className="modal-actions">
 					<button className="btn" onClick={() => S.confirmNo?.()}>
@@ -47,7 +52,12 @@ export function SendModal(): ReactElement {
 				if (event.target === event.currentTarget) S.sendCancel?.()
 			}}
 		>
-			<div className="modal send" role="dialog" aria-modal="true" aria-label="Send review to agent">
+			<div
+				className="modal send"
+				role="dialog"
+				aria-modal="true"
+				aria-label="Send review to agent"
+			>
 				<p>{S.sendMsg}</p>
 				<textarea
 					id="sendNote"
