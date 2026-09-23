@@ -179,6 +179,7 @@ function reuseMountedEntry(
 export async function renderDiffInstance(
 	file: ReviewFile,
 	view: DiffView,
+	isCurrent: () => boolean,
 ): Promise<void> {
 	const generation = ++renderGeneration
 	syncPoolRenderOptions()
@@ -200,7 +201,7 @@ export async function renderDiffInstance(
 	const shouldRestoreAnchor = !!anchor && previous?.inst.fileDiff !== metadata
 	const options = diffOptions(view)
 	await prepareInitialPaint(metadata, options)
-	if (generation !== renderGeneration) return
+	if (generation !== renderGeneration || !isCurrent()) return
 	D.fileDiff = metadata
 	// Timed apart: a cold open blocks the main thread here (hundreds of ms, measured), which delays
 	// every pool dispatch and publish queued behind it - so the split between getting the grid and
@@ -246,8 +247,8 @@ function createDiffEngine(): DiffEngine {
 			// Single-host desk: the leaf modules resolve #diff/#ovr through dom.$ - the
 			// parameters pin that contract in the type (see engine.ts).
 		},
-		applyModel({ file, view }) {
-			return renderDiffInstance(file, view)
+		applyModel({ file, view, isCurrent }) {
+			return renderDiffInstance(file, view, isCurrent)
 		},
 		updateAnnotations({ file, view }) {
 			return updateMountedDelta(
