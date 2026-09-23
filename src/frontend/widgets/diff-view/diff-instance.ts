@@ -23,15 +23,14 @@ import { paintColdOpen, resetColdOpen } from './placeholder'
 import { warmNextFileTokens } from './prefetch'
 import { renderSignature } from './render-signature'
 import { D } from './runtime'
-import { VirtualDiff } from './virtual-diff'
 import { captureScrollAnchor, restoreScrollAnchor } from './scroll-anchor'
+import { VirtualDiff } from './virtual-diff'
 import { prewarmPoolLanguages, syncPoolRenderOptions } from './worker-pool'
-
-import type { DiffEngine } from './engine'
 
 import type { ReviewState } from '@entities/review/model'
 import type { FileDiffMetadata } from '@pierre/diffs'
 import type { DiffView } from './diff-key'
+import type { DiffEngine } from './engine'
 
 // One placeholder (render/placeholder.ts) per diff key, owned by that module: the pass that paints it
 // returns immediately so the rows reach the screen, re-schedules itself, and that re-run parses.
@@ -180,6 +179,7 @@ function reuseMountedEntry(
 export async function renderDiffInstance(
 	file: ReviewFile,
 	view: DiffView,
+	isCurrent: () => boolean,
 ): Promise<void> {
 	const generation = ++renderGeneration
 	syncPoolRenderOptions()
@@ -201,7 +201,7 @@ export async function renderDiffInstance(
 	const shouldRestoreAnchor = !!anchor && previous?.inst.fileDiff !== metadata
 	const options = diffOptions(view)
 	await prepareInitialPaint(metadata, options)
-	if (generation !== renderGeneration) return
+	if (generation !== renderGeneration || !isCurrent()) return
 	D.fileDiff = metadata
 	// Timed apart: a cold open blocks the main thread here (hundreds of ms, measured), which delays
 	// every pool dispatch and publish queued behind it - so the split between getting the grid and
@@ -247,8 +247,8 @@ function createDiffEngine(): DiffEngine {
 			// Single-host desk: the leaf modules resolve #diff/#ovr through dom.$ - the
 			// parameters pin that contract in the type (see engine.ts).
 		},
-		applyModel({ file, view }) {
-			return renderDiffInstance(file, view)
+		applyModel({ file, view, isCurrent }) {
+			return renderDiffInstance(file, view, isCurrent)
 		},
 		updateAnnotations({ file, view }) {
 			return updateMountedDelta(

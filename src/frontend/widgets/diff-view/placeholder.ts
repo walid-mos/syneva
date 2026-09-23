@@ -40,6 +40,7 @@ const REVEAL_WATCH_FRAMES = 600
 let overlay: HTMLElement | undefined
 let overlayHost: HTMLElement | undefined
 let overlayScrollHost: HTMLElement | undefined
+let outgoingWrapper: Element | null = null
 let watchFrames = 0
 // The diff key whose placeholder is currently standing in for the parse. Without it the re-scheduled
 // pass - which finds the parse still cold, since it is the pass that is about to do it - would paint
@@ -107,14 +108,14 @@ export function resetColdOpen(): void {
 	placeholderKey = undefined
 }
 
-// Unlike diff-entry's swap watch, this one reads the pane's LAST child: the incoming wrapper is
-// appended last (the outgoing rows keep the pane until the swap), so the placeholder only stands
-// aside for rows that belong to the file it was painted for. A pane holding something that is not a
+// The incoming wrapper is prepended ahead of the outgoing rows during a swap. Watch that
+// wrapper, not the still-visible outgoing file, before lifting the provisional overlay.
+// A pane holding something that is not a
 // diff at all (the guide, an oversized card, an error note) means the diff was replaced: no rows are
 // coming, and the layer would cover the replacement.
 function paneState(host: HTMLElement): 'rows' | 'waiting' | 'gone' {
-	const wrapper = host.lastElementChild
-	if (!wrapper) return 'waiting'
+	const wrapper = host.firstElementChild
+	if (!wrapper || wrapper === outgoingWrapper) return 'waiting'
 	if (!(wrapper instanceof HTMLElement)) return 'gone'
 	if (!wrapper.classList.contains('diff-wrap')) return 'gone'
 	if (wrapper.style.visibility === 'hidden') return 'waiting'
@@ -147,6 +148,7 @@ export function clearPlaceholderOverlay(): void {
 	overlay = undefined
 	overlayHost = undefined
 	overlayScrollHost = undefined
+	outgoingWrapper = null
 }
 
 // Paint the provisional rows over the pane. Positioning is fixed and read once from the pane's own
@@ -185,6 +187,7 @@ export function paintPlaceholderOverlay(
 	overlay = layer
 	overlayHost = host
 	overlayScrollHost = host
+	outgoingWrapper = host.firstElementChild
 	host.addEventListener('scroll', clearPlaceholderOverlay, { passive: true })
 	watchFrames = 0
 	requestAnimationFrame(watchReveal)
