@@ -931,6 +931,8 @@
 			}
 
 			#diff {
+				/* Outgoing rows overlay the incoming file while its virtualizer mounts at the pane origin. */
+				position: relative;
 				/* The virtualizer preserves the visible line while buffers/row heights change. */
 				overflow-anchor: none;
 				flex: 1;
