@@ -3,16 +3,12 @@ import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { AdapterError } from '../../../application/errors.js'
+import { AdapterError, errorMessage } from '../../../application/errors.js'
 
 import type { WorkspacePort } from '../../../application/ports.js'
 
 // The node/filesystem implementation of the application's working-tree capability
 // object. Frozen: use cases see a readonly port, never this module's internals.
-
-function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : String(error)
-}
 
 export async function realpath(target: string): Promise<string | null> {
 	try {

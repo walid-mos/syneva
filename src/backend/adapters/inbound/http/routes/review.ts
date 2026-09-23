@@ -8,7 +8,6 @@ import {
 	applyReviewerSave,
 	sendReview,
 } from '../../../../application/send-review.js'
-import { commentSide, parseLineNumber } from '../../../../domain/comments.js'
 import {
 	HTTP_OK,
 	HTTP_UNPROCESSABLE,
@@ -18,43 +17,10 @@ import {
 } from '../http.js'
 import { INVALID_SAVE, parseReviewerSave } from '../reviewer-save.js'
 
-import type { BrowserResetResponse } from '../../../../../contracts/browser.js'
-import type { CommentRequest } from '../../../../application/add-comment.js'
-import type { RouteRequest } from '../router.js'
+import { parseCommentRequest } from './comment-body.js'
 
-// Transport shape validation for the /api/comment body. A comment needs a file and a body;
-// everything else has a documented default (additions, line 1, an agent-authored reply).
-// lineNumber 0 is the whole-file anchor (see backend/domain/comments.ts) - a file comment has no
-// diff side, so the side it may carry is normalized away. Returns null when the request lacks
-// what it cannot default - the route answers 422 INVALID_COMMENT. Lives with the inbound route;
-// the use case's CommentRequest input record stays in application.
-function parseCommentRequest(payload: unknown): CommentRequest | null {
-	if (typeof payload !== 'object' || payload === null) return null
-	const filePath =
-		'path' in payload && typeof payload.path === 'string'
-			? payload.path
-			: ''
-	const text =
-		'body' in payload && typeof payload.body === 'string'
-			? payload.body.trim()
-			: ''
-	if (!filePath || !text) return null
-	const line = 'lineNumber' in payload ? payload.lineNumber : undefined
-	const lineNumber = parseLineNumber(line)
-	if (lineNumber === null) return null
-	return {
-		path: filePath,
-		lineNumber,
-		side: commentSide(
-			'side' in payload && payload.side === 'deletions'
-				? 'deletions'
-				: 'additions',
-			lineNumber,
-		),
-		body: text,
-		role: 'role' in payload && payload.role === 'user' ? 'user' : 'agent',
-	}
-}
+import type { BrowserResetResponse } from '../../../../../contracts/browser.js'
+import type { RouteRequest } from '../router.js'
 
 // overallNote is an ephemeral, per-Send instruction threaded straight into the result -
 // parseReviewerSave never copies it onto `state`, so it is never persisted.

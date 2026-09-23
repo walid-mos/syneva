@@ -1,17 +1,13 @@
 import crypto from 'node:crypto'
 
-import {
-	commentAnchor,
-	commentSide,
-	isFileLevelLine,
-} from '../domain/comments.js'
-import { anchorTextFor } from '../domain/contents.js'
+import { isFileLevelLine, newComment } from '../domain/comments.js'
 
 import { readFileContents } from './contents.js'
 import { nowIso } from './time.js'
 
 import type { CommentInput } from '../domain/comments.js'
-import type { ReviewComment } from '../domain/review.js'
+import type { FileContents } from '../domain/contents.js'
+import type { ReviewComment, ReviewState } from '../domain/review.js'
 import type { GitPort, ReviewStorePort } from './ports.js'
 
 // Append a comment to the persisted review, capturing the anchor text of the line it points at so a
@@ -20,6 +16,19 @@ import type { GitPort, ReviewStorePort } from './ports.js'
 // The comment's collaborator ports: the review store (load + persist) and git (the anchor
 // file's on-demand contents).
 export type CommentIo = { store: ReviewStorePort; git: GitPort }
+
+// The one conditional contents read a new comment needs: line comments read their file's
+// contents to capture the anchor line (the state embeds none); whole-file comments read nothing.
+// Shared by the offline path (appendComment) and the live path (appendLiveComment).
+export async function commentContents(
+	state: ReviewState,
+	input: CommentInput,
+	git: GitPort,
+): Promise<FileContents | undefined> {
+	const file = state.files.find(candidate => candidate.path === input.path)
+	if (!file || isFileLevelLine(input.lineNumber)) return undefined
+	return await readFileContents(state, file, git)
+}
 
 export async function appendComment(
 	root: string,
@@ -34,26 +43,12 @@ export async function appendComment(
 		)
 	// Line comments need the file's contents to capture the anchor line (the state embeds none);
 	// a whole-file comment needs nothing read.
-	const file = saved.files.find(candidate => candidate.path === input.path)
-	const contents =
-		file && !isFileLevelLine(input.lineNumber)
-			? await readFileContents(saved, file, io.git)
-			: undefined
-	const now = nowIso()
-	const comment: ReviewComment = {
-		id: crypto.randomUUID(),
-		path: input.path,
-		side: commentSide(input.side, input.lineNumber),
-		lineNumber: input.lineNumber,
-		body: input.body,
-		createdAt: now,
-		updatedAt: now,
-		status: 'open',
-		intent: 'note',
-		role: input.role,
-		anchor: commentAnchor(input.lineNumber),
-		anchorText: anchorTextFor(contents, input.side, input.lineNumber),
-	}
+	const comment = newComment(
+		input,
+		await commentContents(saved, input, io.git),
+		crypto.randomUUID(),
+		nowIso(),
+	)
 	// Copy-on-write: a new root with only the comments branch replaced, persisted wholesale.
 	await io.store.persistReview({
 		...saved,

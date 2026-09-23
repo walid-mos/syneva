@@ -4,10 +4,12 @@ import path from 'node:path'
 import { decodeDeskLock } from '../../../domain/desk-lock.js'
 import { hash, sanitizeSession } from '../../../domain/identity.js'
 
-import type { DeskLockPort, SettingsPort } from '../../../application/ports.js'
+import type { SettingsPort } from '../../../application/ports.js'
 import type { DeskLock } from '../../../domain/desk-lock.js'
 
-const SYNEVA_DIR = '.syneva'
+// The dot-directory under the user's home that holds every desk-side artifact (reviews, settings,
+// the update-check cache). One constant: a relocation of ~/.syneva updates every consumer at once.
+export const SYNEVA_DIR = '.syneva'
 const SETTINGS_FILE = 'settings.json'
 const DESK_LOCK_FILE = 'desk.lock'
 const JSON_INDENT = 2
@@ -61,7 +63,7 @@ export async function readDeskLock(
 	}
 }
 
-function isDeskProcessAlive(pid: number): boolean {
+export function isDeskProcessAlive(pid: number): boolean {
 	try {
 		process.kill(pid, 0)
 		return true
@@ -141,17 +143,3 @@ export async function writeGlobalSettings(settings: unknown): Promise<void> {
 		'utf8',
 	)
 }
-
-// The filesystem adapter's implementation of the application's desk-lock capability.
-// Frozen like nodeGit/nodeReviewStore: consumers see a readonly port.
-export const nodeDeskLocks: DeskLockPort = Object.freeze({
-	read: readDeskLock,
-	findLive: findLiveDesks,
-	// Parameters annotated explicitly: Object.freeze drops the port's contextual typing,
-	// so the arrow would otherwise infer implicit anys.
-	remove: async (root: string, session: string) => {
-		await fs
-			.unlink(deskLockPath(await reviewDir(root, session)))
-			.catch(() => undefined)
-	},
-})

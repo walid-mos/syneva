@@ -6,7 +6,6 @@
 // this layer calls it. Timestamps and ids are NOT ported - application code reads
 // them directly (time.ts) and passes values into the pure domain functions.
 
-import type { DeskLock } from '../domain/desk-lock.js'
 import type { ReviewState } from '../domain/review.js'
 
 // The working-tree/platform filesystem surface the diff build, content and staging flows
@@ -96,16 +95,6 @@ export interface EditorPort {
 		file: string,
 		line: unknown,
 	) => Promise<EditorLaunch>
-}
-
-// The desk-lock store (~/.syneva/<repo hash>/<session>/desk.lock): the lock a live desk
-// writes and the agent subcommands read to find it. A lock whose pid is dead is swept on
-// the way out (see the filesystem adapter).
-export interface DeskLockPort {
-	readonly read: (root: string, session: string) => Promise<DeskLock | null>
-	readonly findLive: (root: string) => Promise<DeskLock[]>
-	// Best-effort removal of a session's lock file (dead-desk sweep).
-	readonly remove: (root: string, session: string) => Promise<void>
 }
 
 // The new-version check a desk start runs before binding (an offer may re-exec the CLI).

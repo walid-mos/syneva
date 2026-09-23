@@ -1,25 +1,13 @@
 import crypto from 'node:crypto'
 
-import {
-	commentAnchor,
-	commentSide,
-	isFileLevelLine,
-} from '../domain/comments.js'
-import { anchorTextFor } from '../domain/contents.js'
+import { newComment } from '../domain/comments.js'
 
-import { readFileContents } from './contents.js'
+import { commentContents } from './comments.js'
 import { nowIso } from './time.js'
 
+import type { CommentInput } from '../domain/comments.js'
 import type { ReviewComment, ReviewState } from '../domain/review.js'
 import type { GitPort } from './ports.js'
-
-export type CommentRequest = {
-	path: string
-	side: 'additions' | 'deletions'
-	lineNumber: number
-	body: string
-	role: 'user' | 'agent'
-}
 
 export type AppendedComment = {
 	// The next state root with the comment appended (copy-on-write: a new comments array,
@@ -35,32 +23,20 @@ export type AppendedComment = {
 // git/the working tree directly. A file whose contents resolve to nothing (deleted, index-only)
 // still gets the comment; it simply carries no anchor text. Whole-file comments skip the content
 // read - they have no line to anchor. The constructed record is immutable domain data (readonly
-// fields), built fresh for the domain collection - never a shared protocol object.
+// fields), built fresh for the domain collection - never a shared protocol object. The live path's
+// one IO difference from the offline path: a failed contents read degrades to "no anchor text"
+// instead of failing the desk round-trip.
 export async function appendLiveComment(
 	state: ReviewState,
-	request: CommentRequest,
+	request: CommentInput,
 	git: GitPort,
 ): Promise<AppendedComment> {
-	const now = nowIso()
-	const file = state.files.find(candidate => candidate.path === request.path)
-	const contents =
-		file && !isFileLevelLine(request.lineNumber)
-			? await readFileContents(state, file, git).catch(() => undefined)
-			: undefined
-	const comment: ReviewComment = {
-		id: crypto.randomUUID(),
-		path: request.path,
-		side: commentSide(request.side, request.lineNumber),
-		lineNumber: request.lineNumber,
-		body: request.body,
-		createdAt: now,
-		updatedAt: now,
-		status: 'open',
-		intent: 'note',
-		role: request.role,
-		anchor: commentAnchor(request.lineNumber),
-		anchorText: anchorTextFor(contents, request.side, request.lineNumber),
-	}
+	const comment = newComment(
+		request,
+		await commentContents(state, request, git).catch(() => undefined),
+		crypto.randomUUID(),
+		nowIso(),
+	)
 	return {
 		state: { ...state, comments: [...state.comments, comment] },
 		comment,

@@ -12,7 +12,8 @@ const DESK_ALIVE_TIMEOUT_MS = 1500
 const SHUTDOWN_TIMEOUT_MS = 1500
 
 // A desk lock URL ends in `/`; the API paths start with one, so base + path joins exactly.
-function endpoint(base: string, path: string): string {
+// Exported for the few call sites (comment/status/await) that build their URL from a lock URL.
+export function endpoint(base: string, path: string): string {
 	return `${base}${path.slice(1)}`
 }
 

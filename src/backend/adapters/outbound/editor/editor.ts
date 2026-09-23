@@ -1,5 +1,7 @@
 import path from 'node:path'
 
+import { platformOpenCommand } from '../../platform-open.js'
+
 // GUI editors + OS openers only. Terminal editors (vim/nvim/vi) are deliberately absent:
 // the desk spawns the command from a server process with no TTY, so they could never
 // attach - they'd hang until the exec timeout killed them.
@@ -71,13 +73,7 @@ export function resolveEditorCommand(
 ): EditorCommand {
 	const line = normalizeLine(values.line)
 	const trimmed = template.trim()
-	if (!trimmed) {
-		if (process.platform === 'darwin')
-			return { command: 'open', args: [values.file] }
-		if (process.platform === 'win32')
-			return { command: 'cmd', args: ['/c', 'start', '', values.file] }
-		return { command: 'xdg-open', args: [values.file] }
-	}
+	if (!trimmed) return platformOpenCommand(values.file)
 	if (trimmed.includes('$(') || SHELL_META.test(trimmed))
 		throw new Error('Editor command contains shell syntax.')
 	const [commandTemplate, ...argumentTemplates] =

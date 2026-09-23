@@ -1,10 +1,9 @@
 import { promises as fs } from 'node:fs'
 
 import { resolveContained } from '../../../../application/containment.js'
-import { BAD_PATH } from '../failure.js'
-import { HTTP_NOT_FOUND, HTTP_OK, fail } from '../http.js'
+import { BAD_PATH, cannotRead } from '../failure.js'
+import { HTTP_OK, fail } from '../http.js'
 
-import type { ApiFailure } from '../failure.js'
 import type { RouteRequest } from '../router.js'
 
 // Image mime types by extension - /api/blob serves only repo-referenced images from the rendered
@@ -50,15 +49,5 @@ export async function serveBlob({
 		res.end(bytes)
 	} catch {
 		fail(res, cannotRead(rel))
-	}
-}
-
-// A "cannot read" fallback, mirroring /api/file's failure shape.
-function cannotRead(rel: string): ApiFailure {
-	return {
-		status: HTTP_NOT_FOUND,
-		code: 'NOT_FOUND',
-		error: `Cannot read "${rel}".`,
-		fix: 'Check the path is a readable file in the repo.',
 	}
 }

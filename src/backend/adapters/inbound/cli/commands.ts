@@ -1,11 +1,13 @@
 import { unlinkSync } from 'node:fs'
 
+import { API_PATHS } from '../../../../contracts/routes.js'
 import { appendComment } from '../../../application/comments.js'
 import { parseLineNumber } from '../../../domain/comments.js'
 import { printJson, warn } from '../../outbound/console.js'
 import {
 	deskLockPath,
 	findLiveDesks,
+	isDeskProcessAlive,
 	readDeskLock,
 	reviewDir,
 } from '../../outbound/filesystem/desk.js'
@@ -20,6 +22,7 @@ import {
 	postShutdown,
 	readCommentId,
 	readReloadResult,
+	endpoint,
 } from './desk-client.js'
 
 import type { DeskLock } from '../../outbound/filesystem/desk.js'
@@ -55,7 +58,7 @@ export async function runComment(args: CliArgs): Promise<void> {
 	const lock = await readDeskLock(root, session)
 	if (lock) {
 		const response = await postJson({
-			url: `${lock.url}api/comment`,
+			url: endpoint(lock.url, API_PATHS.comment),
 			payload,
 		})
 		if (response.ok) {
@@ -108,7 +111,7 @@ export async function runStatus(args: CliArgs): Promise<void> {
 	const lock = await readDeskLock(root, session)
 	if (lock) {
 		const response = await postJson({
-			url: `${lock.url}api/status`,
+			url: endpoint(lock.url, API_PATHS.status),
 			payload: { body },
 		})
 		if (response.ok) {
@@ -160,19 +163,10 @@ async function sessionLocks(root: string, args: CliArgs): Promise<DeskLock[]> {
 async function stopDesk(root: string, lock: DeskLock): Promise<StopOutcome> {
 	const response = await postShutdown(lock.url)
 	if (response.ok) return { kind: 'stopped', session: lock.session }
-	if (isProcessAlive(lock.pid))
+	if (isDeskProcessAlive(lock.pid))
 		return { kind: 'unreachable', session: lock.session, pid: lock.pid }
 	unlinkSync(deskLockPath(await reviewDir(root, lock.session)))
 	return { kind: 'swept', session: lock.session }
-}
-
-function isProcessAlive(pid: number): boolean {
-	try {
-		process.kill(pid, 0)
-		return true
-	} catch {
-		return false
-	}
 }
 
 // `syneva await --session <id>` - block until the next desk event, then print it
@@ -214,7 +208,7 @@ export async function runAwait(args: CliArgs): Promise<void> {
 const NO_CONTENT = 204
 
 function awaitUrl(deskUrl: string, args: CliArgs): string {
-	const base = `${deskUrl}api/await-send`
+	const base = endpoint(deskUrl, API_PATHS.awaitSend)
 	const timeout = typeof args.timeout === 'string' ? Number(args.timeout) : 0
 	return timeout > 0 ? `${base}?timeout=${timeout}` : base
 }

@@ -4,10 +4,9 @@ import { resolveContained } from '../../../../application/containment.js'
 import { readFileContents } from '../../../../application/contents.js'
 import { errorMessage } from '../../../../application/errors.js'
 import { blobOid } from '../../../../domain/identity.js'
-import { BAD_PATH } from '../failure.js'
+import { BAD_PATH, cannotRead } from '../failure.js'
 import { HTTP_NOT_FOUND, HTTP_OK, json, fail } from '../http.js'
 
-import type { ApiFailure } from '../failure.js'
 import type { RouteRequest } from '../router.js'
 
 // GET /api/file - read an arbitrary repo file, for previewing/commenting on unchanged files. Same
@@ -82,14 +81,5 @@ export async function serveFileContents({
 			error: `Could not read contents for "${rel}": ${errorMessage(error)}`,
 			fix: 'The desk may be stale after a rebase - reload it (GET /api/state).',
 		})
-	}
-}
-
-function cannotRead(rel: string): ApiFailure {
-	return {
-		status: HTTP_NOT_FOUND,
-		code: 'NOT_FOUND',
-		error: `Cannot read "${rel}".`,
-		fix: 'Check the path is a readable text file in the repo.',
 	}
 }

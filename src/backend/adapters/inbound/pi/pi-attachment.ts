@@ -1,3 +1,5 @@
+import { errorMessage } from '../../../application/errors.js'
+
 import { correspondentIo } from './correspondent.js'
 import { connectDesk, receiveDeskEvent } from './desk-connection.js'
 import { startDeskListener } from './desk-listener.js'
@@ -281,7 +283,7 @@ export class PiDeskAttachment {
 	}
 
 	private reportFailure(error: unknown, ctx: AttachmentContext): void {
-		this.failure = error instanceof Error ? error.message : String(error)
+		this.failure = errorMessage(error)
 		ctx.ui.notify(
 			`Syneva disconnected: ${this.failure}. Reattach with syneva_agent.`,
 			'error',
