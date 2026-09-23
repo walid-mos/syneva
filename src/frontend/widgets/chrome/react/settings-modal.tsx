@@ -28,6 +28,31 @@ function ShortcutsPane(): ReactElement {
 	)
 }
 
+function SettingsTabs(): ReactElement {
+	const { S } = chromeCtx()
+	return (
+		<div className="set-tabs" role="tablist">
+			<button
+				className={S.settingsTab === 'settings' ? 'active' : ''}
+				aria-selected={S.settingsTab === 'settings'}
+				onClick={() => {
+					S.settingsTab = 'settings'
+				}}
+			>
+				Settings
+			</button>
+			<button
+				className={S.settingsTab === 'shortcuts' ? 'active' : ''}
+				onClick={() => {
+					S.settingsTab = 'shortcuts'
+				}}
+			>
+				Shortcuts
+			</button>
+		</div>
+	)
+}
+
 // The settings modal: preferences and the keyboard map behind two tabs. Every
 // control writes through the store and lands in applySettings() - the same
 // persist + appearance + funnel path as before.
@@ -48,27 +73,7 @@ export function SettingsModal(): ReactElement {
 				aria-modal="true"
 				aria-label="Settings"
 			>
-				<div className="set-tabs" role="tablist">
-					<button
-						className={S.settingsTab === 'settings' ? 'active' : ''}
-						aria-selected={S.settingsTab === 'settings'}
-						onClick={() => {
-							S.settingsTab = 'settings'
-						}}
-					>
-						Settings
-					</button>
-					<button
-						className={
-							S.settingsTab === 'shortcuts' ? 'active' : ''
-						}
-						onClick={() => {
-							S.settingsTab = 'shortcuts'
-						}}
-					>
-						Shortcuts
-					</button>
-				</div>
+				<SettingsTabs />
 				{S.settingsTab === 'settings' ? (
 					<SettingsPane />
 				) : (
