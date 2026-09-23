@@ -52,6 +52,12 @@ function escape(): void {
 		S.settingsOpen = false
 		return
 	}
+	// The review-notes panel: the topmost app overlay under the modals/composer - it can be
+	// open while a composer sits behind it, so the composer's Esc stays one press deeper.
+	if (S.notesOpen) {
+		S.notesOpen = false
+		return
+	}
 	// The whole-file composer closes without touching the line selection (it has none).
 	if (S.fileComposerOpen) {
 		closeFileComposer()
@@ -138,6 +144,16 @@ export const HOTKEYS_APP: Hotkey[] = [
 		test: key('w'),
 		run: () =>
 			(S.sidebarTab = S.sidebarTab === 'tree' ? 'walkthrough' : 'tree'),
+	},
+	{
+		combo: 'n',
+		desc: 'Review notes (comments & questions)',
+		group: 'View',
+		// Reachable from the Overview and file mode too (the notes span the whole review);
+		// only a live composer keeps it, since 'n' would be text there.
+		when: () => !inComposer(),
+		test: key('n'),
+		run: () => S.toggleNotes?.(),
 	},
 	{
 		combo: '⇧B',

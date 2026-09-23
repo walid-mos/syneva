@@ -1,12 +1,12 @@
 import {
 	currentFile,
+	currentFileOrNull,
 	isFileComment,
 	toDisplayLine,
 } from '@entities/review/changes'
 import { isUnanchored } from '@entities/review/changes'
-import { revealLine } from '@features/expand-context/expand'
-import { $ } from '@shared/lib/dom'
 
+import { jumpToThread } from './comment-jump'
 import { diffCtx } from './context'
 import { cursorJumpTo } from './cursor'
 import { D } from './runtime'
@@ -32,6 +32,7 @@ export type Blocker =
 	| { kind: 'reject'; decision: Decision }
 	| {
 			kind: 'thread'
+			path: string
 			side: Side
 			lineNumber: number
 			preview: string
@@ -70,6 +71,7 @@ export function fileBlockers(path: string): Blocker[] {
 		const preview = first.body.replace(/\s+/g, ' ').trim()
 		out.push({
 			kind: 'thread',
+			path: first.path,
 			side: first.side,
 			lineNumber: first.lineNumber,
 			preview:
@@ -117,43 +119,21 @@ function decisionDisplayPos(d: Decision): { side: Side; line: number } {
 }
 
 export function jumpToBlocker(b: Blocker): void {
-	if (b.kind === 'thread' && b.fileLevel) {
-		// The thread lives in the file comment section under the header, not on a row.
-		const el = $('diff').querySelector<HTMLElement>(
-			'.fc-section [data-file-thread]',
-		)
-		el?.scrollIntoView({
-			block: 'center',
-			behavior: 'smooth',
-		})
-		if (el) {
-			el.classList.remove('flash')
-			void el.offsetWidth // restart the animation
-			el.classList.add('flash')
-		}
-		return
-	}
-	if (b.kind === 'thread' && b.unanchored) {
-		// The thread lives in the strip above the diff, not on a row.
-		const el = $('diff').querySelector<HTMLElement>(
-			`.unanchored-strip [data-thread="${b.side}:${b.lineNumber}"]`,
-		)
-		const strip =
-			el ?? $('diff').querySelector<HTMLElement>('.unanchored-strip')
-		strip?.scrollIntoView({
-			block: 'center',
-			behavior: 'smooth',
-		})
-		if (el) {
-			el.classList.remove('flash')
-			void el.offsetWidth // restart the animation
-			el.classList.add('flash')
-		}
-		return
-	}
 	if (b.kind === 'thread') {
-		revealLine(b.side, b.lineNumber) // unfold first if the line sits in a collapsed run
-		cursorJumpTo(b.side, toDisplayLine(b.side, b.lineNumber, D.lineMap))
+		jumpToThread(
+			currentFileOrNull(
+				diffCtx().S.state?.files,
+				diffCtx().S.preview,
+				diffCtx().S.fileIndex,
+			),
+			{
+				path: b.path,
+				side: b.side,
+				lineNumber: b.lineNumber,
+				fileLevel: b.fileLevel,
+				unanchored: b.unanchored,
+			},
+		)
 		return
 	}
 	const pos = decisionDisplayPos(b.decision)

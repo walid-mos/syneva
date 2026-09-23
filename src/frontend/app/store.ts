@@ -58,6 +58,7 @@ export const S: Store = reactive<Store>({
 	diffScrolled: false,
 	foldExpanded: new Set<string>(),
 	loadedOversized: new Set<string>(),
+	notesOpen: false,
 })
 
 // The loaded review, for the operations that mutate or render it - all of which run after main.ts

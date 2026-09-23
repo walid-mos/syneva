@@ -5,6 +5,7 @@ import type {
 	PreviewFile,
 	ReviewState,
 } from '@entities/review/model'
+import type { ReviewNote } from '@entities/review/notes'
 import type { Settings } from '@entities/settings/model'
 import type { DiffStyle, Selection } from '@shared/diff-renderer/types'
 
@@ -89,6 +90,9 @@ export interface Store {
 	// a file renders its real diff for the rest of the session instead of the summary card. Per-
 	// session and never persisted - the oversized stamp is server-owned and re-derived on reload.
 	loadedOversized: Set<string>
+	// The review-notes panel (right side): every comment/question thread of the whole review,
+	// one click from any file. Per-session like the other chrome flags - never persisted.
+	notesOpen: boolean
 
 	treeRows?: () => TreeRow[]
 	selectFile?: (i: number) => void
@@ -145,6 +149,11 @@ export interface Store {
 	toggleFileComposer?: () => void
 	openFileCommentCount?: () => number
 	fileCommentAvailable?: () => boolean
+	// The notes panel: topbar/keyboard toggle, and jumping to a note - same-file notes land
+	// immediately, other-file notes funnel through S.selectFile/S.previewFile plus a pending
+	// jump the render consumes once the target file is on screen (see facade/notes.ts).
+	toggleNotes?: () => void
+	jumpToNote?: (note: ReviewNote) => void
 	// Keyboard navigation (keys.ts): file stepping in either mode, confirm-dialog answers, and the
 	// grouped binding list the help overlay renders.
 	nextFile?: () => void

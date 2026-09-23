@@ -4,6 +4,7 @@ import { DeskCovers } from '@widgets/chrome/react/desk-covers'
 import { ConfirmModal, SendModal } from '@widgets/chrome/react/dialog-modals'
 import { DiffArea } from '@widgets/chrome/react/diff-area'
 import { GuideBar } from '@widgets/chrome/react/guide-bar'
+import { NotesPanel } from '@widgets/chrome/react/notes-panel'
 import { SettingsModal } from '@widgets/chrome/react/settings-modal'
 import { Sidebar } from '@widgets/chrome/react/sidebar'
 import { TopBar } from '@widgets/chrome/react/top-bar'
@@ -23,6 +24,7 @@ export function App(): ReactElement {
 		'deskClosed',
 		'isRefreshRequired',
 		'treeDrawerOpen',
+		'notesOpen',
 	)
 	// useLayoutEffect: the single/file-mode body classes gate the CSS grid layout, so
 	// they must land before first paint or single-file desks flash the tree column.
@@ -36,7 +38,7 @@ export function App(): ReactElement {
 	const deskClosed = S.deskClosed && !S.isRefreshRequired
 	return (
 		<div
-			className={`app${S.isRefreshRequired ? ' refresh-required' : ''}${deskClosed ? ' desk-closed' : ''}`}
+			className={`app${S.isRefreshRequired ? ' refresh-required' : ''}${deskClosed ? ' desk-closed' : ''}${S.notesOpen ? ' notes-open' : ''}`}
 		>
 			<TopBar />
 			<DeskCovers />
@@ -55,6 +57,7 @@ export function App(): ReactElement {
 						<GuideBar />
 						<DiffArea />
 					</section>
+					{S.notesOpen && <NotesPanel />}
 				</main>
 			)}
 			<SettingsModal />
