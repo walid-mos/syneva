@@ -127,7 +127,7 @@ export const HOTKEYS_NOTES: Hotkey[] = [
 export const HOTKEYS_APP: Hotkey[] = [
 	{
 		combo: '⇧→',
-		desc: 'Next file (review order)',
+		desc: 'Next file (active view order)',
 		group: 'Navigate',
 		test: shift('ArrowRight'),
 		when: navigable,
@@ -135,7 +135,7 @@ export const HOTKEYS_APP: Hotkey[] = [
 	},
 	{
 		combo: '⇧←',
-		desc: 'Previous file (review order)',
+		desc: 'Previous file (active view order)',
 		group: 'Navigate',
 		test: shift('ArrowLeft'),
 		when: navigable,

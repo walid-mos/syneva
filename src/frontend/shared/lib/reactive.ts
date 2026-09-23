@@ -70,6 +70,15 @@ export function subscribeStoreField(
 	return () => subscribed.delete(listener)
 }
 
+// Notify subscribers that the state subtree changed without going through a proxy set.
+// Array iteration methods on a store proxy bind to the RAW target (identity rule above),
+// so elements handed to a for..of are raw and a nested write on them - the diff island's
+// resolve/reopen paths flipping comment.status - misses the proxy set handler and never
+// bumps. The mutation sites call this after writing so React chrome repaints.
+export function notifyStateMutation(): void {
+	bumpVersion('state')
+}
+
 type UnknownFn = (...args: unknown[]) => unknown
 
 const wrapperCache = new WeakMap<object, object>()

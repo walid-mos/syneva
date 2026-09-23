@@ -9,6 +9,7 @@ import { mergeRows } from '@shared/diff-renderer/cursor-rows'
 import { activeViewport } from '@shared/diff-renderer/viewport'
 import { diffShadowRoot } from '@shared/lib/diff-dom'
 import { $ } from '@shared/lib/dom'
+import { notifyStateMutation } from '@shared/lib/reactive'
 import { render } from '@shared/lib/render-scheduler'
 
 import { diffCtx } from './context'
@@ -295,6 +296,9 @@ export function cursorResolve(): void {
 	}
 	const isOpen = thread.some(c => c.status === 'open')
 	for (const c of thread) c.status = isOpen ? 'resolved' : 'open'
+	// The thread's elements are raw (bound-raw array filter - see notifyStateMutation), so
+	// the status writes never bump the store themselves.
+	notifyStateMutation()
 	void render()
 	diffCtx().persist()
 	diffCtx().toast(isOpen ? 'Resolved' : 'Reopened')

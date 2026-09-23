@@ -5,7 +5,6 @@ import {
 	flowIndex,
 } from '@entities/review/changes'
 import {
-	nextUnreviewedFileIndex,
 	guideProgress,
 } from '@entities/review/guide/guide'
 import { featureCtx } from '@features/context'
@@ -123,11 +122,10 @@ export async function approveCurrentFile(): Promise<void> {
 	featureCtx().toast(
 		`${label} - ${done} of ${scope.length} files · ${guideProgress(GI()).pct}%`,
 	)
-	// Seek the next unreviewed file, wrapping past the end so a reviewer who jumped ahead is
-	// carried back to the files they skipped instead of dead-ending here.
-	const next = nextUnreviewedFileIndex(GI(), featureCtx().S.fileIndex)
-	if (next === null) void render()
-	else featureCtx().S.selectFile?.(next)
+	// The advance is the facade's: the notes flow (panel open, armed on this path) first,
+	// else the next file in the ACTIVE pane's sorting - plain next, no unreviewed seek.
+	void render()
+	featureCtx().S.afterSignOff?.(path)
 }
 
 // Unstage is a git-index op the UI state already reflects - fire it without blocking so the

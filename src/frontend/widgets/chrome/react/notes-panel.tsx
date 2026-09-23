@@ -30,9 +30,9 @@ import type { KeyboardEvent, ReactElement, RefObject } from 'react'
 // the store (notesQuery/notesLens/notesCursor), never persisted.
 
 const LENSES: { value: NotesLens; label: string }[] = [
-	{ value: 'all', label: 'All' },
 	{ value: 'open', label: 'Open' },
 	{ value: 'resolved', label: 'Resolved' },
+	{ value: 'all', label: 'All' },
 ]
 
 type StoreView = ReturnType<typeof chromeCtx>['S']

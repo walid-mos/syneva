@@ -1,5 +1,6 @@
 import type { TreeRow } from '@entities/review/file/tree-rows'
 import type { WalkRow } from '@entities/review/guide/walkthrough'
+import type { ReviewNote } from '@entities/review/notes'
 import type { PreviewFile, ReviewState } from '@entities/review/model'
 import type { GuideFile } from '@entities/review/model'
 import type { Settings } from '@entities/settings/model'
@@ -34,6 +35,14 @@ export interface ChromeStoreView {
 	golineBuffer: string
 	composerBody: string
 	editingCommentId: string | null
+	// The review-notes panel's working state (per-session like the other chrome flags,
+	// never persisted): the filter query, the status lens, the keyboard cursor, the '/'
+	// focus pulse. See notes-panel.tsx and entities/review/notes.ts for the derivation.
+	notesOpen: boolean
+	notesQuery: string
+	notesLens: 'all' | 'open' | 'resolved'
+	notesCursor: number
+	notesSearchTick: number
 	settingsOpen: boolean
 	settingsTab: 'settings' | 'shortcuts'
 	confirmMsg: string
@@ -79,6 +88,13 @@ export interface ChromeStoreView {
 	guideAtStart?(): boolean
 	guideAtLast?(): boolean
 	walkthroughRows?(): WalkRow[]
+	// The notes panel: open/close, jump to a thread, and its working-state setters.
+	toggleNotes?(): void
+	jumpToNote?(note: ReviewNote): void
+	setNotesQuery?(query: string): void
+	setNotesLens?(lens: 'all' | 'open' | 'resolved'): void
+	notesCursorMove?(dir: 1 | -1): void
+	notesJumpCursor?(): void
 	saveComment?(): void
 	ask?(): void
 	requestChange?(): void

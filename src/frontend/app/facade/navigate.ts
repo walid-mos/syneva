@@ -1,12 +1,7 @@
 import { fetchPreviewFile } from '@entities/review/file/api'
 import { prefetchContents } from '@entities/review/file/contents'
 import { defaultFileView } from '@entities/review/file/file-summary'
-import {
-	hasGuide,
-	nextFileIndex,
-	nextWrapIndex,
-	prevWrapIndex,
-} from '@entities/review/guide/guide'
+import { hasGuide, navOrder } from '@entities/review/guide/guide'
 import { deferRender, render } from '@pages/desk/render'
 import { cursorReset } from '@widgets/diff-view/cursor'
 import { D } from '@widgets/diff-view/runtime'
@@ -32,6 +27,7 @@ const GI = (): GuideInputs => ({
 export function installNavigationBindings(): void {
 	installFileSelection()
 	installFileStepping()
+	installSignOffAdvance()
 }
 
 // The navigation generation: bumped by every selection that replaces the rendered file
@@ -60,9 +56,11 @@ function installFileSelection(): void {
 		// The sidebar highlight re-derives on the store bump this mutation causes -
 		// the React tree repaints it; nothing to patch in place.
 		deferRender()
-		// Quietly warm the next file in review order (guide order when guided, else sequential - the
-		// exact resolution keyboard nav uses) so the common next-file step never waits on the wire.
-		const next = nextFileIndex(GI(), i)
+		// Quietly warm the file the next-step will actually open (the active pane's sorting) so
+		// the common next-file step never waits on the wire.
+		const next = walkthroughActive()
+			? nextInWalkthrough(1)
+			: (nextInTree(1)?.fileIndex ?? null)
 		if (next !== null)
 			prefetchContents(state.files[next], S.loadedOversized)
 	}
@@ -87,46 +85,78 @@ async function openPreview(path: string): Promise<void> {
 	await render()
 }
 
+// The active pane's sorting: the walkthrough tab walks the guide order (plus the guide's
+// "Other" files, in file order); the tree tab walks the tree's own rows. Two sortings, one
+// review state - a sign-off in either view approves globally.
+const walkthroughActive = (): boolean =>
+	hasGuide(GI()) && S.sidebarTab === 'walkthrough'
+
+// Plain next/prev in the walkthrough order - the next file is the next file, period, with
+// no unreviewed seek. Cyclic at both ends.
+function nextInWalkthrough(dir: 1 | -1): number | null {
+	const order = navOrder(GI())
+	if (!order.length) return null
+	const pos = order.indexOf(S.fileIndex)
+	return order[(pos + dir + order.length) % order.length]
+}
+
+// Plain next/prev in the tree's file rows (previews included - an unchanged file has no
+// index and opens as one). Cyclic at both ends.
+function nextInTree(dir: 1 | -1): FileRow | null {
+	const rows = (S.treeRows?.() ?? []).filter(
+		(row): row is FileRow => row.kind !== 'dir',
+	)
+	if (!rows.length) return null
+	const shown = S.preview?.path ?? S.state?.files[S.fileIndex]?.path
+	const pos = rows.findIndex(row => row.path === shown)
+	return rows[(pos + dir + rows.length) % rows.length]
+}
+
 function installFileStepping(): void {
-	// Tree-order file stepping (⇧↑/⇧↓) - walk the file rows as shown in the tree (skip folders),
-	// selecting the prev/next one (preview for unchanged files).
+	// The step is the ACTIVE pane's sorting - tree pane steps tree order, walkthrough pane
+	// steps walkthrough order - never a seek. The Overview is the walkthrough's front page:
+	// Next enters the first file, Prev lands on the last one.
+	S.stepInView = dir => {
+		if (S.overviewOpen) {
+			if (dir === 1) {
+				S.startGuided?.()
+				return
+			}
+			const order = navOrder(GI())
+			const last = order.length ? order[order.length - 1] : null
+			if (last !== null) S.selectFile?.(last)
+			return
+		}
+		if (walkthroughActive()) {
+			const target = nextInWalkthrough(dir)
+			if (target !== null) S.selectFile?.(target)
+			return
+		}
+		const row = nextInTree(dir)
+		if (!row) return
+		if (typeof row.fileIndex === 'number') S.selectFile?.(row.fileIndex)
+		else S.previewFile?.(row.path)
+	}
+	// The keyboard keys and the guide-bar buttons share this one step; the explicit tree-order
+	// keys below stay the escape hatch from the walkthrough pane.
+	S.nextFile = () => S.stepInView?.(1)
+	S.prevFile = () => S.stepInView?.(-1)
+	// Tree-order file stepping (⌘⇧↑/⇧↓) - the tree's rows whatever pane is showing. Cyclic,
+	// like every other step; previews (unchanged files) open as previews.
 	S.treeStep = dir => {
-		const fileRows = (S.treeRows?.() ?? []).filter(
-			(row): row is FileRow => row.kind !== 'dir',
-		)
-		if (!fileRows.length) return
-		const shown = S.preview?.path ?? S.state?.files[S.fileIndex]?.path
-		let i = fileRows.findIndex(row => row.path === shown)
-		if (i < 0) i = dir === 1 ? -1 : fileRows.length
-		const target = fileRows.at(i + dir)
-		if (!target) return
-		if (typeof target.fileIndex === 'number')
-			S.selectFile?.(target.fileIndex)
-		else S.previewFile?.(target.path)
+		const row = nextInTree(dir)
+		if (!row) return
+		if (typeof row.fileIndex === 'number') S.selectFile?.(row.fileIndex)
+		else S.previewFile?.(row.path)
 	}
-	// Review-order file stepping (⇧←/⇧→) - guide order when guided (or on the Overview), else
-	// sequential through the diff's files.
-	S.nextFile = () => {
-		if (hasGuide(GI()) || S.overviewOpen) {
-			S.guideNext?.()
-			return
-		}
-		const n = S.fileIndex + 1
-		// Off the last file, wrap to the first unreviewed file (else the first file).
-		const target =
-			n < (S.state?.files.length ?? 0) ? n : nextWrapIndex(GI())
-		if (target !== null) S.selectFile?.(target)
-	}
-	S.prevFile = () => {
-		if (hasGuide(GI()) || S.overviewOpen) {
-			S.guidePrev?.()
-			return
-		}
-		const p = S.fileIndex - 1
-		// Off the first file, wrap to the last unreviewed file (else the last file). Without a guide
-		// there's no Overview to step back into, so the wrap applies straight from the first file.
-		const target = p >= 0 ? p : prevWrapIndex(GI())
-		if (target !== null) S.selectFile?.(target)
+}
+
+function installSignOffAdvance(): void {
+	// approveCurrentFile's advance: the armed notes flow wins (facade/notes owns it and says
+	// whether it jumped), else the next file in the ACTIVE pane's sorting.
+	S.afterSignOff = path => {
+		if (S.notesAfterSignOff?.(path)) return
+		S.stepInView?.(1)
 	}
 }
 

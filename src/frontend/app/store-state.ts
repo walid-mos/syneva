@@ -5,6 +5,7 @@ import type {
 	PreviewFile,
 	ReviewState,
 } from '@entities/review/model'
+import type { NoteThreadRef } from '@entities/review/notes'
 import type { ReviewNote } from '@entities/review/notes'
 import type { Settings } from '@entities/settings/model'
 import type { DiffStyle, Selection } from '@shared/diff-renderer/types'
@@ -102,6 +103,12 @@ export interface Store {
 	// A focus pulse: the '/' hotkey bumps it, the panel's effect focuses the filter box.
 	// A tick instead of a boolean so repeating '/' refocuses even after the field kept focus.
 	notesSearchTick: number
+	// The resolve-approve flow's armed state: a thread resolved on a not-yet-signed-off file
+	// while the panel is open waits for THAT file's sign-off, and the advance then goes to
+	// the panel's next unresolved thread instead of the next file. `pos` is the thread's
+	// index in the panel's flat visible rows at resolve time - the post-resolve scan starts
+	// there, which stays correct whether the lens keeps the resolved row or drops it.
+	notesAdvanceAfter: { ref: NoteThreadRef; pos: number } | null
 
 	treeRows?: () => TreeRow[]
 	selectFile?: (i: number) => void
@@ -172,10 +179,22 @@ export interface Store {
 	notesCursorMove?: (dir: 1 | -1) => void
 	notesJumpCursor?: () => void
 	notesFocusSearch?: () => void
+	// Resolve side: the resolve entry points report the thread (pre-status-flip). The facade
+	// either schedules the immediate advance (file already signed off) or arms the flow.
+	noteResolved?: (ref: NoteThreadRef) => void
+	// Sign-off side: approveCurrentFile's advance asks here first; true means it jumped to
+	// the armed flow's next note, false means nothing was armed for that path.
+	notesAfterSignOff?: (path: string) => boolean
 	// Keyboard navigation (keys.ts): file stepping in either mode, confirm-dialog answers, and the
 	// grouped binding list the help overlay renders.
 	nextFile?: () => void
 	prevFile?: () => void
+	// The one next/prev step, in the ACTIVE pane's sorting (tree order / walkthrough order;
+	// see navigate.ts) - the keyboard keys and the guide-bar buttons share it, and the
+	// sign-off advance falls back to it.
+	stepInView?: (dir: 1 | -1) => void
+	// approveCurrentFile's advance: the notes flow first, else stepInView(1).
+	afterSignOff?: (path: string) => void
 	treeStep?: (dir: 1 | -1) => void
 	confirmYes?: () => void
 	confirmNo?: () => void

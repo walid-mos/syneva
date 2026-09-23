@@ -177,3 +177,31 @@ export function notesPanelView(
 export function unresolvedNoteCount(notes: ReviewNote[]): number {
 	return notes.filter(note => note.status !== 'resolved').length
 }
+
+// The resolve-advance flow's thread reference: just the anchor identity the panel needs
+// to find a thread back in its list (the resolve entry points hand this up pre-flip).
+export type NoteThreadRef = Pick<
+	ReviewNote,
+	'path' | 'side' | 'lineNumber' | 'fileLevel'
+>
+
+export function sameThread(a: NoteThreadRef, b: NoteThreadRef): boolean {
+	return (
+		a.path === b.path &&
+		a.side === b.side &&
+		a.lineNumber === b.lineNumber &&
+		a.fileLevel === b.fileLevel
+	)
+}
+
+// The reference for a thread's comments - the anchor of the first message carries the
+// identity (the grouping in reviewNotes keys on exactly these fields).
+export function threadRefOf(comments: ReviewComment[]): NoteThreadRef {
+	const [first] = comments
+	return {
+		path: first.path,
+		side: first.side,
+		lineNumber: first.lineNumber,
+		fileLevel: isFileComment(first),
+	}
+}

@@ -64,6 +64,25 @@ export function NoteRow({
 	)
 }
 
+// Consecutive same-path notes become one file group; the cursor index keeps running ACROSS
+// groups - it is the section's slice of the panel's flat visible rows (questions then
+// comments; startIndex is where this section begins), so a restart per file would give
+// several rows the same index and scramble the cursor.
+function groupByFile(
+	notes: ReviewNote[],
+	startIndex: number,
+): { path: string; rows: { note: ReviewNote; index: number }[] }[] {
+	const groups: { path: string; rows: { note: ReviewNote; index: number }[] }[] = []
+	let next = startIndex
+	for (const note of notes) {
+		const entry = { note, index: next++ }
+		const last = groups[groups.length - 1]
+		if (last && last.path === note.path) last.rows.push(entry)
+		else groups.push({ path: note.path, rows: [entry] })
+	}
+	return groups
+}
+
 export function NoteSection({
 	label,
 	notes,
@@ -84,18 +103,8 @@ export function NoteSection({
 				<div className="notes-none">{empty}</div>
 			</div>
 		)
-	// Group by file, preserving the notes' review order (files arrive ordered). The cursor
-	// index keeps running ACROSS groups - it is the section's slice of the panel's flat
-	// visible rows (questions then comments; startIndex is where this section begins), so
-	// a restart per file would give several rows the same index and scramble the cursor.
-	const groups: { path: string; rows: { note: ReviewNote; index: number }[] }[] = []
-	let next = startIndex
-	for (const note of notes) {
-		const entry = { note, index: next++ }
-		const last = groups[groups.length - 1]
-		if (last && last.path === note.path) last.rows.push(entry)
-		else groups.push({ path: note.path, rows: [entry] })
-	}
+	// Group by file, preserving the notes' review order (files arrive ordered).
+	const groups = groupByFile(notes, startIndex)
 	return (
 		<div className="notes-section">
 			<div className="notes-label">
