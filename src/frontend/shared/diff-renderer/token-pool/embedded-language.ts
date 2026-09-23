@@ -11,17 +11,18 @@ export type EmbeddedLanguages = {
 	names: EmbeddedLanguage[]
 }
 
-const OPEN_TAG = /<(?<tag>script|style)\b(?<attributes>[^>]*)>/i
-const CLOSE_SCRIPT = /<\/script\s*>/i
-const CLOSE_STYLE = /<\/style\s*>/i
-const SCRIPT_TYPE = /\btype\s*=\s*(['"])(?<type>.*?)\1/i
+const EMBEDDED_TAG =
+	/<(?<closing>\/)?(?<tag>script|style)\b(?<attributes>[^>]*)>/gi
+const SCRIPT_TYPE =
+	/\btype\s*=\s*(?:"(?<double>[^"]*)"|'(?<single>[^']*)'|(?<bare>[^\s>]+))/i
 
 function languageForTag(
 	tag: string,
 	attributes: string,
 ): EmbeddedLanguage | undefined {
 	if (tag === 'style') return 'css'
-	const type = SCRIPT_TYPE.exec(attributes)?.groups?.type?.toLowerCase()
+	const match = SCRIPT_TYPE.exec(attributes)?.groups
+	const type = (match?.double ?? match?.single ?? match?.bare)?.toLowerCase()
 	if (
 		!type ||
 		type === 'module' ||
@@ -34,30 +35,38 @@ function languageForTag(
 	return undefined
 }
 
-function openingLanguage(
-	line: string,
+type OpenTag = { tag: string; language: EmbeddedLanguage | undefined }
+
+function advanceTag(
+	inside: OpenTag | undefined,
+	match: RegExpMatchArray,
 	names: Set<EmbeddedLanguage>,
-): EmbeddedLanguage | undefined {
-	const open = OPEN_TAG.exec(line)
-	const tag = open?.groups?.tag?.toLowerCase()
-	if (!open || !tag) return undefined
-	const close = tag === 'style' ? CLOSE_STYLE : CLOSE_SCRIPT
-	if (close.test(line.slice(open.index + open[0].length))) return undefined
-	const language = languageForTag(tag, open.groups?.attributes ?? '')
+): OpenTag | undefined {
+	const { closing, tag, attributes } = match.groups ?? {}
+	if (!tag) return inside
+	const normalizedTag = tag.toLowerCase()
+	if (closing) {
+		if (inside?.tag !== normalizedTag) return inside
+		return undefined
+	}
+	if (inside) return inside
+	const language = languageForTag(normalizedTag, attributes ?? '')
 	if (language) names.add(language)
-	return language
+	return { tag: normalizedTag, language }
 }
 
 // A window starts a fresh grammar state. Mark only whole lines inside embedded code: the HTML
-// grammar handles the tag lines, while a window entirely within the body needs its own grammar.
+// grammar handles tag lines, while a window entirely within the body needs its own grammar.
 function scan(lines: string[], names: Set<EmbeddedLanguage>): SideLanguages {
 	const languages: SideLanguages = []
-	let inside: EmbeddedLanguage | undefined
+	let inside: OpenTag | undefined
 	for (const line of lines) {
-		const closes = inside === 'css' ? CLOSE_STYLE : CLOSE_SCRIPT
-		if (inside && closes.test(line)) inside = undefined
-		languages.push(inside)
-		if (!inside) inside = openingLanguage(line, names)
+		let rowLanguage = inside?.language
+		for (const match of line.matchAll(EMBEDDED_TAG)) {
+			rowLanguage = undefined
+			inside = advanceTag(inside, match, names)
+		}
+		languages.push(rowLanguage)
 	}
 	return languages
 }
