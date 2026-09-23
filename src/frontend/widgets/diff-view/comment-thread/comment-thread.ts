@@ -167,33 +167,39 @@ function wireThreadActions(box: HTMLElement, thread: ThreadMeta): void {
 	}
 	box.querySelector<HTMLButtonElement>('.resolve-thread')?.addEventListener(
 		'click',
-		() => {
-			// The notes flow (panel open) hears the resolve before the flip - same contract as
-			// the keyboard resolve (cursor.ts), so the button path arms the advance too.
-			diffCtx().S.noteResolved?.({
-				path: thread.path,
-				side: thread.side,
-				lineNumber: thread.lineNumber,
-				fileLevel: Boolean(thread.fileLevel),
-			})
-			setThreadStatus(thread, 'resolved')
-			void render()
-			diffCtx().toast('Resolved')
-			diffCtx().persist()
-		},
+		() => resolveThread(thread),
 	)
 	for (const button of box.querySelectorAll<HTMLButtonElement>(
 		'.reopen-thread,.reopen-inline',
 	)) {
 		// A resolved thread renders the summary's inline Reopen AND the actions-bar Reopen -
 		// give both a listener (querySelector would bind only the first).
-		button.addEventListener('click', () => {
-			setThreadStatus(thread, 'open')
-			void render()
-			diffCtx().toast('Reopened')
-			diffCtx().persist()
-		})
+		button.addEventListener('click', () => reopenThread(thread))
 	}
+}
+
+// Shared thread-status flips: both the button and the keyboard resolve funnel through the
+// same notes-report -> flip -> render/toast/persist tail, so the two paths stay in lockstep.
+function resolveThread(thread: ThreadMeta): void {
+	// The notes flow (panel open) hears the resolve before the flip - same contract as
+	// the keyboard resolve (cursor.ts), so the button path arms the advance too.
+	diffCtx().S.noteResolved?.({
+		path: thread.path,
+		side: thread.side,
+		lineNumber: thread.lineNumber,
+		fileLevel: Boolean(thread.fileLevel),
+	})
+	setThreadStatus(thread, 'resolved')
+	void render()
+	diffCtx().toast('Resolved')
+	diffCtx().persist()
+}
+
+function reopenThread(thread: ThreadMeta): void {
+	setThreadStatus(thread, 'open')
+	void render()
+	diffCtx().toast('Reopened')
+	diffCtx().persist()
 }
 
 // The comment-box element for one thread (messages + reply/resolve/reopen + per-message
