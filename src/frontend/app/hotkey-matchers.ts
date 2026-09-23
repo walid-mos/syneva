@@ -45,6 +45,9 @@ export const inDiff = (): boolean =>
 	!inComposer() && !inModal() && !inOverview()
 export const navigable = (): boolean => !inComposer() && !inModal()
 export const isMd = (): boolean => inDiff() && !!S.isMarkdownFile?.()
+// The notes panel is up (and no composer/modal over it): while it is, its own keys own the
+// arrows and Enter - HOTKEYS_NOTES is ranked above the diff's segment for exactly that.
+export const inNotes = (): boolean => S.notesOpen && !inComposer() && !inModal()
 
 // Key matchers. `key` is the bare key; `enter` the bare Enter - the ⇧/⌘/⌘⇧ variants have their own.
 export const key =

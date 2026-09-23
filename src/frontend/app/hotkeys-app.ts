@@ -2,6 +2,7 @@ import {
 	cmdShift,
 	enter,
 	inComposer,
+	inNotes,
 	inOverview,
 	key,
 	navigable,
@@ -52,6 +53,12 @@ function escape(): void {
 		S.settingsOpen = false
 		return
 	}
+	// The notes panel's filter: Esc clears the query first, so closing the panel (which
+	// would discard the search with it) stays a deliberate second press.
+	if (S.notesOpen && S.notesQuery) {
+		S.setNotesQuery?.('')
+		return
+	}
 	// The review-notes panel: the topmost app overlay under the modals/composer - it can be
 	// open while a composer sits behind it, so the composer's Esc stays one press deeper.
 	if (S.notesOpen) {
@@ -78,6 +85,44 @@ function escape(): void {
 	// above it is gone, so Esc dismisses a composer/modal opened over the drawer first.
 	if (S.treeDrawerOpen) S.treeDrawerOpen = false
 }
+
+// The notes panel's own keys. Ranked above the diff's segment (keys.ts owns the order):
+// with the panel up, its cursor owns the arrows and Enter - the diff behind stays
+// mouse-reachable, and Esc yields the keys back the same way every open surface does.
+export const HOTKEYS_NOTES: Hotkey[] = [
+	{
+		combo: '↑',
+		desc: 'Previous note (panel)',
+		group: 'Navigate',
+		test: key('ArrowUp'),
+		when: inNotes,
+		run: () => S.notesCursorMove?.(-1),
+	},
+	{
+		combo: '↓',
+		desc: 'Next note (panel)',
+		group: 'Navigate',
+		test: key('ArrowDown'),
+		when: inNotes,
+		run: () => S.notesCursorMove?.(1),
+	},
+	{
+		combo: '↵',
+		desc: 'Jump to note (panel)',
+		group: 'Navigate',
+		test: enter,
+		when: inNotes,
+		run: () => S.notesJumpCursor?.(),
+	},
+	{
+		combo: '/',
+		desc: 'Filter notes (panel)',
+		group: 'View',
+		test: key('/'),
+		when: inNotes,
+		run: () => S.notesFocusSearch?.(),
+	},
+]
 
 export const HOTKEYS_APP: Hotkey[] = [
 	{

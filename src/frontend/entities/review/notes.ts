@@ -125,3 +125,55 @@ export function reviewNotes(state: ReviewState | null): ReviewNote[] {
 			return +new Date(a.updatedAt) - +new Date(b.updatedAt)
 		})
 }
+
+// ── The panel's view: filter query + status lens ─────────────────────────────
+// What the notes panel shows is one pure derivation, shared by the component and the
+// cursor logic in the facade - so the keyboard cursor can never disagree with the rows
+// actually on screen.
+
+export type NotesLens = 'all' | 'open' | 'resolved'
+
+export type NotesView = { query: string; lens: NotesLens }
+
+function matchesQuery(note: ReviewNote, query: string): boolean {
+	const haystack = [
+		note.path,
+		note.preview,
+		note.latest,
+		note.fileLevel ? 'file' : `line ${note.lineNumber}`,
+	]
+		.join(' ')
+		.toLowerCase()
+	return haystack.includes(query)
+}
+
+export function filterNotes(
+	notes: ReviewNote[],
+	view: NotesView,
+): ReviewNote[] {
+	const query = view.query.trim().toLowerCase()
+	return notes.filter(note => {
+		if (view.lens === 'open' && note.status === 'resolved') return false
+		if (view.lens === 'resolved' && note.status !== 'resolved') return false
+		return !query || matchesQuery(note, query)
+	})
+}
+
+// The panel's exact render order: questions first (the live conversation), then comments.
+// `flat` is that order as one list - the keyboard cursor's index space - so a facade cursor
+// move and the component's highlight always read the same row.
+export function notesPanelView(
+	state: ReviewState | null,
+	view: NotesView,
+): { questions: ReviewNote[]; comments: ReviewNote[]; flat: ReviewNote[] } {
+	const visible = filterNotes(reviewNotes(state), view)
+	const questions = visible.filter(note => note.kind === 'question')
+	const comments = visible.filter(note => note.kind === 'comment')
+	return { questions, comments, flat: [...questions, ...comments] }
+}
+
+// Threads still wanting the reviewer: everything short of resolved. A waiting question
+// and an open comment both count; an answered question keeps counting until resolved.
+export function unresolvedNoteCount(notes: ReviewNote[]): number {
+	return notes.filter(note => note.status !== 'resolved').length
+}

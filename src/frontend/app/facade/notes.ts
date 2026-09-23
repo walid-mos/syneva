@@ -1,4 +1,5 @@
 import { currentFileOrNull } from '@entities/review/changes'
+import { notesPanelView } from '@entities/review/notes'
 import {
 	jumpTargetFor,
 	jumpToThread,
@@ -7,7 +8,11 @@ import {
 
 import { requireState, S } from '../store'
 
-import type { ReviewNote } from '@entities/review/notes'
+import type { NotesView, ReviewNote } from '@entities/review/notes'
+
+// The panel's view inputs, read from the store at each derivation - the same shape the
+// component passes to notesPanelView, so both sides derive one visible list.
+const notesView = (): NotesView => ({ query: S.notesQuery, lens: S.notesLens })
 
 // The review-notes panel's actions: toggling it, and jumping to a note. The jump is the
 // feature's point - a question asked three files ago is one click from anywhere, instead
@@ -19,6 +24,30 @@ export function installNotesBindings(): void {
 		S.notesOpen = !S.notesOpen
 	}
 	S.jumpToNote = jumpToNote
+	// The panel's cursor state lives on the store; the visible rows come from
+	// notesPanelView - the same derivation the component renders, so the cursor and
+	// the screen can never drift apart.
+	S.setNotesQuery = query => {
+		// A new view is a new list: the cursor restarts at the top row.
+		S.notesQuery = query
+		S.notesCursor = 0
+	}
+	S.setNotesLens = lens => {
+		S.notesLens = lens
+		S.notesCursor = 0
+	}
+	S.notesCursorMove = dir => {
+		S.notesCursor = Math.max(0, S.notesCursor + dir)
+		const last = notesPanelView(S.state, notesView()).flat.length - 1
+		S.notesCursor = Math.min(S.notesCursor, Math.max(last, 0))
+	}
+	S.notesJumpCursor = () => {
+		const note = notesPanelView(S.state, notesView()).flat[S.notesCursor]
+		if (note) jumpToNote(note)
+	}
+	S.notesFocusSearch = () => {
+		S.notesSearchTick++
+	}
 }
 
 function jumpToNote(note: ReviewNote): void {

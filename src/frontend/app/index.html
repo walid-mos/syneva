@@ -3248,7 +3248,17 @@
 				margin-top: 10px;
 			}
 
+			/* Sticky: the file name holds while its group scrolls under it, so a long thread
+			   list always says which file it is on. Full-bleed via negative margins so the
+			   hairline reads across the pane's padding. */
 			.notes-file-name {
+				position: sticky;
+				top: 0;
+				z-index: 2;
+				margin: 0 -10px;
+				padding: 4px 10px 3px;
+				background: var(--panel);
+				border-bottom: 1px solid var(--line);
 				color: var(--ink);
 				font-family: var(--mono);
 				font-size: var(--text-xs);
@@ -3256,10 +3266,10 @@
 				white-space: nowrap;
 				overflow: hidden;
 				text-overflow: ellipsis;
-				padding: 2px 0;
 			}
 
 			.note {
+				position: relative;
 				display: block;
 				width: 100%;
 				text-align: left;
@@ -3287,6 +3297,31 @@
 
 			.note.resolved:hover {
 				opacity: 1;
+			}
+
+			/* Keyboard cursor: the row the panel's ↑/↓ sits on - Selected fill, one cyan rung
+			   on the border. Not a focus ring: the panel keeps its single tab path, the cursor
+			   is panel state. */
+			.note.cursor {
+				background: var(--panel3);
+				border-color: var(--cyan-line);
+				color: var(--ink);
+			}
+
+			.note.cursor .note-where {
+				color: var(--muted);
+			}
+
+			/* The file under review, marked in place: a short cyan rail - the tree's active
+			   language at row scale. "Where am I" without leaving the list. */
+			.note[data-current]::before {
+				content: '';
+				position: absolute;
+				left: -1px;
+				top: 7px;
+				bottom: 7px;
+				width: 2px;
+				background: var(--cyan);
 			}
 
 			.note-top {
@@ -3358,6 +3393,110 @@
 				padding-left: 8px;
 				border-left: 2px solid var(--cyan-line);
 				color: var(--muted);
+			}
+
+			/* Working state: the filter box sinks like every field (focus lifts the whole
+			   border, composer-card style), and the lens is the segmented register in its
+			   10px label voice. */
+			.notes-tools {
+				flex: 0 0 auto;
+				display: flex;
+				flex-direction: column;
+				gap: 6px;
+				padding: 8px 10px;
+				background: var(--surface);
+				border-bottom: 1px solid var(--line);
+			}
+
+			.notes-search {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				background: var(--bg);
+				border: 1px solid var(--line);
+				border-radius: var(--radius);
+				padding: 4px 8px;
+			}
+
+			.notes-search:focus-within {
+				border-color: var(--line-strong);
+			}
+
+			.notes-search input {
+				flex: 1 1 auto;
+				min-width: 0;
+				border: 0;
+				background: none;
+				color: var(--ink);
+				font: inherit;
+				font-size: var(--text-sm);
+				outline: none;
+				padding: 0;
+			}
+
+			.notes-search input::placeholder {
+				color: var(--ghost);
+			}
+
+			.notes-lens {
+				display: flex;
+				gap: 2px;
+			}
+
+			.notes-lens button {
+				border: 1px solid transparent;
+				border-radius: var(--radius);
+				background: none;
+				color: var(--muted);
+				font: inherit;
+				font-size: var(--text-2xs);
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				padding: 2px 8px;
+				cursor: pointer;
+			}
+
+			.notes-lens button:hover {
+				color: var(--ink);
+				background: var(--surface-raised);
+			}
+
+			.notes-lens button.active {
+				background: var(--panel3);
+				color: var(--ink-bright);
+			}
+
+			/* The header's open-thread pill: the topbar badge's cyan, moved in-panel. */
+			.notes-open-pill {
+				margin-left: auto;
+				padding: 1px 7px;
+				border-radius: var(--radius-pill);
+				background: var(--cyan-bg);
+				color: var(--cyan-fg);
+				font-size: var(--text-2xs);
+				font-weight: 700;
+				font-variant-numeric: tabular-nums;
+			}
+
+			.notes-open-pill + .notes-close {
+				margin-left: 0;
+			}
+
+			.notes-clear {
+				border: 0;
+				background: none;
+				padding: 0;
+				margin-top: 6px;
+				color: var(--cyan-fg);
+				font: inherit;
+				font-size: var(--text-sm);
+				cursor: pointer;
+				text-align: left;
+			}
+
+			.notes-clear:hover {
+				text-decoration: underline;
 			}
 
 			/* The topbar trigger: a labeled button with the open-thread count riding it. */

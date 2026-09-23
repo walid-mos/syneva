@@ -93,6 +93,15 @@ export interface Store {
 	// The review-notes panel (right side): every comment/question thread of the whole review,
 	// one click from any file. Per-session like the other chrome flags - never persisted.
 	notesOpen: boolean
+	// The panel's working state (per-session like notesOpen): the filter query, the status
+	// lens, and the keyboard cursor - an index into the panel's flat visible rows (questions
+	// then comments; see notesPanelView, the one derivation the cursor and the render share).
+	notesQuery: string
+	notesLens: 'all' | 'open' | 'resolved'
+	notesCursor: number
+	// A focus pulse: the '/' hotkey bumps it, the panel's effect focuses the filter box.
+	// A tick instead of a boolean so repeating '/' refocuses even after the field kept focus.
+	notesSearchTick: number
 
 	treeRows?: () => TreeRow[]
 	selectFile?: (i: number) => void
@@ -154,6 +163,15 @@ export interface Store {
 	// jump the render consumes once the target file is on screen (see facade/notes.ts).
 	toggleNotes?: () => void
 	jumpToNote?: (note: ReviewNote) => void
+	// The panel's cursor: move it (↑/↓), jump to the note under it (↵), focus the filter
+	// box ('/'). setNotesQuery/setNotesLens restart the cursor at the top - a new view is
+	// a new list. Cursor moves and jumps derive the visible rows through notesPanelView,
+	// never from the component's render.
+	setNotesQuery?: (query: string) => void
+	setNotesLens?: (lens: 'all' | 'open' | 'resolved') => void
+	notesCursorMove?: (dir: 1 | -1) => void
+	notesJumpCursor?: () => void
+	notesFocusSearch?: () => void
 	// Keyboard navigation (keys.ts): file stepping in either mode, confirm-dialog answers, and the
 	// grouped binding list the help overlay renders.
 	nextFile?: () => void

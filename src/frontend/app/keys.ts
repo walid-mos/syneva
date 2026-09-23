@@ -1,5 +1,5 @@
 import { cmd, enter } from '@app/hotkey-matchers'
-import { HOTKEYS_APP } from '@app/hotkeys-app'
+import { HOTKEYS_APP, HOTKEYS_NOTES } from '@app/hotkeys-app'
 import { HOTKEYS_DIFF } from '@app/hotkeys-diff'
 import { confirmYes } from '@widgets/dialogs/confirm'
 import { golineCancel } from '@widgets/diff-view/cursor-goline'
@@ -16,7 +16,8 @@ import type { Group, Hotkey } from '@app/hotkey-matchers'
 // The entries live in scope segments (hotkeys-diff.ts, hotkeys-app.ts) purely for size, and this
 // file owns their order - the dispatcher's first-match rule makes that order part of the contract:
 // the modal keys below come first because ⌘↵ must send while the Send modal is up even with a
-// composer still open behind it, and ↵ must confirm a dialog raised from the diff.
+// composer still open behind it, ↵ must confirm a dialog raised from the diff, and the notes
+// panel's segment comes next because an open panel owns the arrows and Enter over the diff's.
 const HOTKEYS_MODAL: Hotkey[] = [
 	// Confirm dialog (⇧R / ⇧S / ⇧A): Enter accepts (Esc cancels via the escape cascade). First so
 	// it wins over any plain-key binding while the dialog is up.
@@ -43,7 +44,12 @@ const HOTKEYS_MODAL: Hotkey[] = [
 	},
 ]
 
-const HOTKEYS: Hotkey[] = [...HOTKEYS_MODAL, ...HOTKEYS_DIFF, ...HOTKEYS_APP]
+const HOTKEYS: Hotkey[] = [
+	...HOTKEYS_MODAL,
+	...HOTKEYS_NOTES,
+	...HOTKEYS_DIFF,
+	...HOTKEYS_APP,
+]
 
 function isTyping(e: KeyboardEvent): boolean {
 	const { target } = e
