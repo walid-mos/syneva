@@ -1,3 +1,4 @@
+import { fileFinished } from '@entities/review/changes'
 import { fetchPreviewFile } from '@entities/review/file/api'
 import { prefetchContents } from '@entities/review/file/contents'
 import { defaultFileView } from '@entities/review/file/file-summary'
@@ -153,10 +154,30 @@ function installFileStepping(): void {
 
 function installSignOffAdvance(): void {
 	// approveCurrentFile's advance: the armed notes flow wins (facade/notes owns it and says
-	// whether it jumped), else the next file in the ACTIVE pane's sorting.
+	// whether it jumped), else the next UNSIGNED file in the ACTIVE pane's sorting. The scan
+	// walks the pane's own order cyclically and skips what is already signed off - approving
+	// must hand over the next work item, and a reviewed neighbor is not work. Plain next/prev
+	// (stepInView) keeps the pane's raw order; only the sign-off advance seeks. When nothing
+	// unsigned remains, the completion gate (promptFinish) already owns what happens next.
 	S.afterSignOff = path => {
 		if (S.notesAfterSignOff?.(path)) return
-		S.stepInView?.(1)
+		const { state } = S
+		if (!state) return
+		const order = walkthroughActive()
+			? navOrder(GI())
+			: (S.treeRows?.() ?? [])
+					.filter((row): row is FileRow => row.kind !== 'dir')
+					.map(row => row.fileIndex)
+					.filter((i): i is number => typeof i === 'number')
+		const pos = order.indexOf(S.fileIndex)
+		for (let step = 1; step <= order.length; step++) {
+			const idx = order[(pos + step) % order.length]
+			const file = state.files[idx]
+			if (file && !fileFinished(state, file.path)) {
+				S.selectFile?.(idx)
+				return
+			}
+		}
 	}
 }
 
