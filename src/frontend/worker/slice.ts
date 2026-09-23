@@ -134,7 +134,11 @@ class HunkWalk {
 			? this.#slot + segmentSlots
 			: Math.min(this.#slot + segmentSlots, this.#withinTo)
 		if (keepFrom < keepTo) {
-			this.#rebased ??= this.#rebasedStarts(keepFrom)
+			// A change run crossing a window edge is emitted whole. Its hunk must start at
+			// the run's real slot too, or the renderer skips its leading token rows.
+			this.#rebased ??= this.#rebasedStarts(
+				segment.type === 'change' ? this.#slot : keepFrom,
+			)
 			this.#keep(segment, keepFrom - this.#slot, keepTo - keepFrom)
 		}
 		this.#slot += segmentSlots
