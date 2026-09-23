@@ -744,20 +744,27 @@ export class TokenPool {
 		return job
 	}
 
-	// A synchronous main-thread base for small files: the mount in this same pass serves a full
-	// grid, and only the windows stream. The stash (the renderer's own plain request, which always
-	// precedes the highlight request) is reused when present. Size proxy for the sync plain
-	// render: the char total over both parsed sides (a length read per line - no scanning). One
-	// threshold with parseDiff's keeps the two decisions from disagreeing about what "small" means.
+	// The renderer's synchronous plain request already produced the full grid before asking for
+	// highlights. Adopt that grid regardless of file size: sending the same diff to a worker to
+	// rebuild it holds every token window behind an unnecessary round trip. Only create a new
+	// base inline for small files; large prefetch jobs without a stash still use the worker.
 	private inlineBase(
 		diff: FileDiffMetadata,
 		cacheKey: string,
 	): MergeGrid | undefined {
-		const chars =
-			diff.deletionLines.reduce((total, line) => total + line.length, 0) +
-			diff.additionLines.reduce((total, line) => total + line.length, 0)
-		if (chars > INLINE_MAX_CHARS) return undefined
 		const stashed = this.skeletons.get(cacheKey)
+		if (!stashed) {
+			const chars =
+				diff.deletionLines.reduce(
+					(total, line) => total + line.length,
+					0,
+				) +
+				diff.additionLines.reduce(
+					(total, line) => total + line.length,
+					0,
+				)
+			if (chars > INLINE_MAX_CHARS) return undefined
+		}
 		const plain = stashed ?? renderPlainResult(diff, this.renderOptions)
 		if (!plain) return undefined
 		this.skeletons.delete(cacheKey)

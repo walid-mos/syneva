@@ -91,6 +91,11 @@
 			"id": "architecture",
 			"label": "Architecture boundaries",
 			"note": "Hypothesis: moving the browser composition into FSD and the server into hexagonal layers preserves the established render path. The comparable Stacked 1280x900 pair measured first colour at 858-13549 ms and final colour at 1425-25203 ms; the slower sample landed under measured external host contention and is retained rather than hidden, so this pair cannot establish a clean performance comparison. The 960x720 run and the contended 1280x900 Split run are retained as diagnostics but excluded from the comparable pair. Pool boot stayed singular and every primary window completed."
+		},
+		{
+			"id": "first-visible",
+			"label": "Reuse plain base and preserve first viewport",
+			"note": "Hypothesis: the renderer's plain grid and viewport are already available before highlighting, but the pool redundantly regenerates large bases in a worker and forgets the pre-job viewport. Reuse the plain grid at any size and carry the viewport into the first window plan. On medium at 960x720 (pi-frontend-check, two fresh opens each), baseline first publish 841/1064 ms was an OFFSCREEN tail window; base-reuse-only first publish 741/647 ms remained offscreen; combined first publish 714/770 ms belonged to the visible band. Under host contention boot varied 89-407 ms. The first-publish stage alone does not prove visible color: compare window starting lines to pool:range. This removes redundant work and fixes first-visible ordering, but cannot deliver 20 ms cold color because grammar/worker boot and Shiki tokenization still take hundreds of ms."
 		}
 	],
 	"rejected": [
@@ -1394,6 +1399,150 @@
 			},
 			"workerBundleKb": 547,
 			"note": "pi-frontend-check cold open at 1280x900, Stacked layout, on a fresh medium desk while an unrelated Java process held more than one CPU core. The run is configuration-comparable but contention-dominated, so it is retained and excluded from the preservation verdict. The visible file completed 3/3 windows and the next-file prefetch completed 3/3 under one pool boot."
+		},
+		{
+			"id": "first-visible-baseline-medium-1",
+			"fixture": "medium",
+			"milestone": "architecture",
+			"date": "2026-09-23",
+			"stagesMs": {
+				"module": 42,
+				"plainPaint": 226,
+				"bootStart": 225,
+				"bootDone": 322,
+				"jobOpen": 330,
+				"firstWindowSent": 660,
+				"firstColor": 841,
+				"final": 1425
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 3,
+				"windowDone": 3
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check, 960x720, fresh open, split; first publish was offscreen line 384, not visible color. Existing main branch before first-visible changes."
+		},
+		{
+			"id": "first-visible-baseline-medium-2",
+			"fixture": "medium",
+			"milestone": "architecture",
+			"date": "2026-09-23",
+			"stagesMs": {
+				"module": 207,
+				"plainPaint": 448,
+				"bootStart": 447,
+				"bootDone": 544,
+				"jobOpen": 568,
+				"firstWindowSent": 891,
+				"firstColor": 1064,
+				"final": 1633
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 3,
+				"windowDone": 3
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check, 960x720, fresh open, split; first publish was offscreen line 384, not visible color. Host timing varied."
+		},
+		{
+			"id": "first-visible-base-only-medium-1",
+			"fixture": "medium",
+			"milestone": "first-visible",
+			"date": "2026-09-23",
+			"stagesMs": {
+				"module": 45,
+				"plainPaint": 302,
+				"bootStart": 301,
+				"bootDone": 390,
+				"jobOpen": 399,
+				"firstWindowSent": 399,
+				"firstColor": 741,
+				"final": 1139
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 3,
+				"windowDone": 3
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check, 960x720, fresh open, split; intermediate base-reuse-only variant, still publishes offscreen line 384 first. Superseded by retained viewport fix."
+		},
+		{
+			"id": "first-visible-base-only-medium-2",
+			"fixture": "medium",
+			"milestone": "first-visible",
+			"date": "2026-09-23",
+			"stagesMs": {
+				"module": 35,
+				"plainPaint": 207,
+				"bootStart": 207,
+				"bootDone": 299,
+				"jobOpen": 306,
+				"firstWindowSent": 306,
+				"firstColor": 647,
+				"final": 1034
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 3,
+				"windowDone": 3
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check, 960x720, fresh open, split; intermediate base-reuse-only variant, still publishes offscreen line 384 first. Superseded by retained viewport fix."
+		},
+		{
+			"id": "first-visible-medium-1",
+			"fixture": "medium",
+			"milestone": "first-visible",
+			"date": "2026-09-23",
+			"stagesMs": {
+				"module": 38,
+				"plainPaint": 247,
+				"bootStart": 214,
+				"bootDone": 346,
+				"jobOpen": 367,
+				"firstWindowSent": 368,
+				"firstColor": 714,
+				"final": 1301
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 8,
+				"windowDone": 8
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check, 960x720, fresh open, split; first published windows begin at lines 0-60, overlapping visible 0-75. First color is visible; not a 20 ms cold open."
+		},
+		{
+			"id": "first-visible-medium-2",
+			"fixture": "medium",
+			"milestone": "first-visible",
+			"date": "2026-09-23",
+			"stagesMs": {
+				"module": 39,
+				"plainPaint": 199,
+				"bootStart": 198,
+				"bootDone": 605,
+				"jobOpen": 625,
+				"firstWindowSent": 626,
+				"firstColor": 770,
+				"final": 1384
+			},
+			"pool": {
+				"boots": 1,
+				"workers": 5,
+				"windowSent": 8,
+				"windowDone": 8
+			},
+			"workerBundleKb": 547,
+			"note": "pi-frontend-check, 960x720, fresh open, split; first published windows begin at lines 0 and 10, overlapping visible 0-50. Boot took 407 ms under contention; first color is visible."
 		}
 	]
 }
