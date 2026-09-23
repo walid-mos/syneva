@@ -47,13 +47,14 @@ function clearPendingSwap(): void {
 // fires before them), so hold the outgoing rows until the incoming ones exist, checking once per
 // frame and giving up after a bounded wait so a file that renders no rows still appears.
 const SWAP_WATCH_FRAMES = 12
-function watchSwap(): void {
-	if (!pendingSwap) return
+let swapVersion = 0
+function watchSwap(version: number): void {
+	if (!pendingSwap || version !== swapVersion) return
 	const mounted = pendingSwap.reveal
 		?.querySelector(DIFFS_TAG_NAME)
 		?.shadowRoot?.querySelector('[data-line]')
 	if (mounted || ++watchFrames >= SWAP_WATCH_FRAMES) finishSwap()
-	else requestAnimationFrame(watchSwap)
+	else requestAnimationFrame(() => watchSwap(version))
 }
 let watchFrames = 0
 
@@ -83,7 +84,21 @@ export function clearReplacementViews(host: HTMLElement): void {
 function discardEntries(): void {
 	// Prevent unmount callbacks from applying the new file's decorations to the old DOM.
 	D.instance = null
-	clearPendingSwap()
+	++swapVersion
+	if (pendingSwap) {
+		// Another file arrived before the incoming rows mounted. Keep the last visible file
+		// instead of promoting the hidden, unfinished wrapper to the outgoing entry.
+		for (const entry of D.diffCache.values()) {
+			entry.inst.cleanUp()
+			entry.wrapper.remove()
+		}
+		D.diffCache.clear()
+		virtualizer?.cleanUp()
+		virtualizer = undefined
+		pendingSwap.reveal = undefined
+		clearReplacementViews($('diff'))
+		return
+	}
 	for (const entry of D.diffCache.values()) {
 		if (entry.wrapper.isConnected)
 			pendingSwap = { entry, nodes: [], virtualizer }
@@ -192,7 +207,7 @@ export function paintEntry(
 		if (container.shadowRoot?.querySelector('[data-line]')) finishSwap()
 		else {
 			watchFrames = 0
-			requestAnimationFrame(watchSwap)
+			requestAnimationFrame(() => watchSwap(swapVersion))
 		}
 	}
 }
