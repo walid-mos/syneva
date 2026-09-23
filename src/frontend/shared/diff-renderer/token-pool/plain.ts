@@ -124,6 +124,7 @@ function languageNames(diff: FileDiffMetadata): string[] {
 	)
 	return [
 		...new Set([
+			...(diff.lang && diff.lang !== 'text' ? [diff.lang] : []),
 			...derived.filter(name => name !== 'text'),
 			...(embeddedLanguages(diff)?.names ?? []),
 		]),
