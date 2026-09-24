@@ -31,6 +31,9 @@ export interface FeatureStoreView {
 	// Facade methods features invoke directly (composed by the app facade modules).
 	promptFinish?: () => void
 	selectFile?: (i: number) => void
+	// The sign-off advance (installed by app/facade/navigate): notes flow first, else the
+	// active pane's plain next.
+	afterSignOff?: (path: string) => void
 	ask?: () => void
 	requestChange?: () => void
 	saveComment?: () => void

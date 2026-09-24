@@ -3,12 +3,7 @@ import { isRenamedGroupExpanded } from '../file/renames'
 import { isReviewedGroupExpanded } from '../file/reviewed'
 
 import { isGuideBaseStale } from './guide-derive'
-import {
-	navFileOrder,
-	nextUnreviewed,
-	wrapNextTarget,
-	wrapPrevTarget,
-} from './seek'
+import { navFileOrder, wrapNextTarget, wrapPrevTarget } from './seek'
 import { lineStats, walkthroughGroups, walkRows } from './walkthrough'
 
 import type { FlowIndex } from '../change/flow-index'
@@ -172,16 +167,6 @@ export function anyUnreviewed(g: GuideInputs): boolean {
 	return navOrderWith(g, ix).some(i => !seekFinishedWith(g, ix)(i))
 }
 
-// The next unreviewed file after `cur`, wrapping past the end - approve-advance's seek.
-// null when no unreviewed file remains (the caller falls back to the review-complete prompt).
-export function nextUnreviewedFileIndex(
-	g: GuideInputs,
-	cur: number,
-): number | null {
-	const ix = flowIndexOf(g)
-	return nextUnreviewed(navOrderWith(g, ix), cur, seekFinishedWith(g, ix))
-}
-
 // Where plain "next" lands when it steps off the last file: first unreviewed, else first file.
 export function nextWrapIndex(g: GuideInputs): number | null {
 	const ix = flowIndexOf(g)
@@ -228,7 +213,13 @@ export function walkGroups(g: GuideInputs): WalkGroup[] {
 // re-run this whole x-for. applyActiveRow (tree.ts) patches the class imperatively for both
 // sidebars. The trailing "Renamed"/"Reviewed" groups' file rows appear only while expanded.
 export function walkthroughRows(g: GuideInputs): WalkRow[] {
-	return walkRows(walkGroups(g), null, {
+	// The row being viewed carries the active highlight: the walkthrough is one of the two
+	// sortings, so "where am I" reads off it the same way the tree's active row does.
+	const activePath =
+		g.state && typeof g.fileIndex === 'number'
+			? (g.state.files[g.fileIndex]?.path ?? null)
+			: null
+	return walkRows(walkGroups(g), activePath, {
 		renamed: isRenamedGroupExpanded(g.foldExpanded),
 		reviewed: isReviewedGroupExpanded(g.foldExpanded),
 	})

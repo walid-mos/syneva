@@ -4,6 +4,7 @@ import { installCommentBindings } from '@app/facade/comment-thread'
 import { installDialogBindings } from '@app/facade/dialogs'
 import { installGuideBindings } from '@app/facade/guide-bar'
 import { installNavigationBindings } from '@app/facade/navigate'
+import { installNotesBindings } from '@app/facade/notes'
 import { installProjectTreeBindings } from '@app/facade/project-tree'
 import { installFileActionBindings } from '@app/facade/review-header'
 import { installKeys } from '@app/keys'
@@ -75,6 +76,7 @@ installKeys()
 // first template evaluation already sees them.
 installProjectTreeBindings()
 installNavigationBindings()
+installNotesBindings()
 installGuideBindings()
 installFileActionBindings()
 installCommentBindings()

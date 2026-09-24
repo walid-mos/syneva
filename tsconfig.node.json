@@ -1,0 +1,14 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"declaration": false,
+		"rootDir": "."
+	},
+	// One noEmit pass for every NodeNext-checked file that never ships in dist:
+	// the harness extension module and the lint/format configs. The frontend is
+	// checked by tsconfig.ui.json in the bundler world.
+	"include": ["extension/**/*.ts", "oxlint.config.ts", "oxfmt.config.ts"],
+	// Keep the inherited frontend exclusion.
+	"exclude": ["src/frontend/**"]
+}

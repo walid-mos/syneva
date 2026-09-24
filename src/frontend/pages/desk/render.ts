@@ -13,6 +13,7 @@ import { $ } from '@shared/lib/dom'
 import { esc } from '@shared/lib/esc'
 import { perfMark } from '@shared/lib/perf'
 import { registerRenderFunnel } from '@shared/lib/render-scheduler'
+import { consumePendingJump } from '@widgets/diff-view/comment-jump'
 import { cursorReset } from '@widgets/diff-view/cursor'
 import { diffKey } from '@widgets/diff-view/diff-key'
 import { renderMarkdownFile } from '@widgets/diff-view/mdfile'
@@ -300,6 +301,16 @@ export async function render(): Promise<void> {
 	perfMark('render:start')
 	try {
 		await renderCenter(sequence)
+		// A cross-file jump stashed a target before the (scheduled, awaitable) file-switch
+		// render; the new file's view is on screen now, so land on it. One consumption per
+		// set - the executor no-ops when this render wasn't the target's file.
+		consumePendingJump(
+			currentFileOrNull(
+				deskCtx().S.state?.files,
+				deskCtx().S.preview,
+				deskCtx().S.fileIndex,
+			),
+		)
 	} finally {
 		// The diff DOM (and any inline composer inside it) was just rebuilt from scratch - re-focus
 		// the open composer and restore its caret from the store, so typing survives a render

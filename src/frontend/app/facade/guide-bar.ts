@@ -7,9 +7,6 @@ import {
 	guideStale,
 	hasGuide,
 	nextFileIndex,
-	nextWrapIndex,
-	prevFileIndex,
-	prevWrapIndex,
 	showGuideBar,
 	walkthroughRows,
 } from '@entities/review/guide/guide'
@@ -46,31 +43,11 @@ export function installGuideBindings(): void {
 		S.overviewOpen = false
 		S.selectFile?.(firstGuideIndex(GI()))
 	}
-	// Guided navigation: the Overview is the position before the first file. From it, Next enters
-	// the first file and Prev is a no-op; within files, Prev off the first drops to the Overview.
-	S.guideNext = () => {
-		if (S.overviewOpen) {
-			S.startGuided?.()
-			return
-		}
-		// Off the last file, wrap to the first unreviewed file (else cycle to the first) instead of
-		// dead-ending, so skipped files are surfaced.
-		const target = nextFileIndex(GI(), S.fileIndex) ?? nextWrapIndex(GI())
-		if (target !== null) S.selectFile?.(target)
-	}
-	S.guidePrev = () => {
-		// Stepping back from the Overview (the position before the first file) wraps to the end - the
-		// last unreviewed file, else the last file.
-		if (S.overviewOpen) {
-			const wrap = prevWrapIndex(GI())
-			if (wrap !== null) S.selectFile?.(wrap)
-			return
-		}
-		// Off the first file, drop to the Overview (unchanged); the wrap happens from there.
-		const p = prevFileIndex(GI(), S.fileIndex)
-		if (p === null) S.openOverview?.()
-		else S.selectFile?.(p)
-	}
+	// Guided navigation is the one step (see navigate.ts): the ACTIVE pane's sorting decides
+	// the order; the Overview is the position before the first file, so Next enters it and
+	// Prev lands on the last one.
+	S.guideNext = () => S.stepInView?.(1)
+	S.guidePrev = () => S.stepInView?.(-1)
 	// The nav buttons dim only when the review is fully signed off (nothing left to wrap to) - while
 	// unreviewed work remains, next/prev stay live because they now seek it.
 	S.guideAtStart = () => S.overviewOpen && !anyUnreviewed(GI())

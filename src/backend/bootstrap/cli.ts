@@ -136,8 +136,9 @@ async function runMain(): Promise<void> {
 	}
 }
 
-// Run only when executed as the bin (`syneva` / `node dist/backend/bootstrap/cli.js`), not when cli.test.ts
-// imports this module to reach deskAlive() - otherwise import alone would launch a desk. npm
+// Run only when executed as the bin (`syneva` / `node dist/backend/bootstrap/cli.js`), not when
+// imported as a module (a plain import of this file reaches deskAlive()) - otherwise import alone
+// would launch a desk. npm
 // installs the bin as a SYMLINK (.bin/syneva -> dist/backend/bootstrap/cli.js); Node resolves import.meta.url
 // through the symlink to the real path, but leaves process.argv[1] as the symlink path - so
 // argv[1] must be realpath'd before comparing, or the guard never fires under the published

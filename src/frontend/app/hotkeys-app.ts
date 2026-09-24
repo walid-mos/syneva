@@ -2,6 +2,7 @@ import {
 	cmdShift,
 	enter,
 	inComposer,
+	inNotes,
 	inOverview,
 	key,
 	navigable,
@@ -34,22 +35,46 @@ const GI = (): GuideInputs => ({
 // drawer, settings), and the Esc cascade that closes the topmost one. Split from the diff's own
 // map (hotkeys-diff.ts) only for size; keys.ts concatenates the segments and owns the dispatch
 // order.
+// The modal-layer overlays above the notes panel (confirm dialog, send modal, settings,
+// the Reset dropdown): Esc closes the topmost one, one press each. True when one closed.
+function closeTopOverlay(): boolean {
+	if (S.confirmMsg) {
+		S.confirmMsg = ''
+		return true
+	}
+	if (S.sendOpen) {
+		S.sendOpen = false
+		S.sendNote = ''
+		return true
+	}
+	if (S.settingsOpen) {
+		S.settingsOpen = false
+		return true
+	}
+	// The Reset split button's dropdown: the shallowest overlay - nothing behind it closes.
+	if (S.resetMenuOpen) {
+		S.setResetMenu?.(false)
+		return true
+	}
+	return false
+}
+
 function escape(): void {
 	if (golineActive()) {
 		golineCancel()
 		return
 	}
-	if (S.confirmMsg) {
-		S.confirmMsg = ''
+	if (closeTopOverlay()) return
+	// The notes panel's filter: Esc clears the query first, so closing the panel (which
+	// would discard the search with it) stays a deliberate second press.
+	if (S.notesOpen && S.notesQuery) {
+		S.setNotesQuery?.('')
 		return
 	}
-	if (S.sendOpen) {
-		S.sendOpen = false
-		S.sendNote = ''
-		return
-	}
-	if (S.settingsOpen) {
-		S.settingsOpen = false
+	// The review-notes panel: the topmost app overlay under the modals/composer - it can be
+	// open while a composer sits behind it, so the composer's Esc stays one press deeper.
+	if (S.notesOpen) {
+		S.notesOpen = false
 		return
 	}
 	// The whole-file composer closes without touching the line selection (it has none).
@@ -73,10 +98,48 @@ function escape(): void {
 	if (S.treeDrawerOpen) S.treeDrawerOpen = false
 }
 
+// The notes panel's own keys. Ranked above the diff's segment (keys.ts owns the order):
+// with the panel up, its cursor owns the arrows and Enter - the diff behind stays
+// mouse-reachable, and Esc yields the keys back the same way every open surface does.
+export const HOTKEYS_NOTES: Hotkey[] = [
+	{
+		combo: '↑',
+		desc: 'Previous note (panel)',
+		group: 'Navigate',
+		test: key('ArrowUp'),
+		when: inNotes,
+		run: () => S.notesCursorMove?.(-1),
+	},
+	{
+		combo: '↓',
+		desc: 'Next note (panel)',
+		group: 'Navigate',
+		test: key('ArrowDown'),
+		when: inNotes,
+		run: () => S.notesCursorMove?.(1),
+	},
+	{
+		combo: '↵',
+		desc: 'Jump to note (panel)',
+		group: 'Navigate',
+		test: enter,
+		when: inNotes,
+		run: () => S.notesJumpCursor?.(),
+	},
+	{
+		combo: '/',
+		desc: 'Filter notes (panel)',
+		group: 'View',
+		test: key('/'),
+		when: inNotes,
+		run: () => S.notesFocusSearch?.(),
+	},
+]
+
 export const HOTKEYS_APP: Hotkey[] = [
 	{
 		combo: '⇧→',
-		desc: 'Next file (review order)',
+		desc: 'Next file (active view order)',
 		group: 'Navigate',
 		test: shift('ArrowRight'),
 		when: navigable,
@@ -84,7 +147,7 @@ export const HOTKEYS_APP: Hotkey[] = [
 	},
 	{
 		combo: '⇧←',
-		desc: 'Previous file (review order)',
+		desc: 'Previous file (active view order)',
 		group: 'Navigate',
 		test: shift('ArrowLeft'),
 		when: navigable,
@@ -140,6 +203,16 @@ export const HOTKEYS_APP: Hotkey[] = [
 			(S.sidebarTab = S.sidebarTab === 'tree' ? 'walkthrough' : 'tree'),
 	},
 	{
+		combo: 'n',
+		desc: 'Review notes (comments & questions)',
+		group: 'View',
+		// Reachable from the Overview and file mode too (the notes span the whole review);
+		// only a live composer keeps it, since 'n' would be text there.
+		when: () => !inComposer(),
+		test: key('n'),
+		run: () => S.toggleNotes?.(),
+	},
+	{
 		combo: '⇧B',
 		desc: 'Files drawer (narrow screens)',
 		group: 'View',
@@ -150,14 +223,14 @@ export const HOTKEYS_APP: Hotkey[] = [
 	},
 	{
 		combo: '⇧R',
-		desc: 'Reset review',
+		desc: 'Reset review (keeps the notes)',
 		group: 'App',
 		test: shift('R'),
 		when: navigable,
 		run: () =>
 			askConfirm(
-				'Reset the whole review? This clears every decision and comment.',
-				() => void S.reset?.(),
+				'Reset the review? Every decision and sign-off clears; the notes stay.',
+				() => void S.reset?.('review'),
 			),
 	},
 	{

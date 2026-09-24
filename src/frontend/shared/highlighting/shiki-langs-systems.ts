@@ -1,6 +1,6 @@
 // Systems, data and prose grammars of the curated Shiki set (see shiki-langs.ts for the whole set,
 // why it is curated at all, and why every grammar is a lazy loader). Name + aliases are pinned to
-// each grammar's own metadata by shiki-langs.test.ts.
+// each grammar's own metadata.
 import type { CuratedLanguage } from '@shared/highlighting/shiki-langs'
 
 export const SYSTEM_LANGS: CuratedLanguage[] = [

@@ -12,7 +12,7 @@ export type ServerOptions = {
 	// trusts when bound non-loopback - SYNEVA_ALLOWED_HOSTS, for exotic names like a MagicDNS FQDN.
 	allowedHosts?: string[]
 	open?: boolean
-	// Test seam: lets server.test.ts assert the resolved editor invocation without
+	// Test seam: lets tests assert the resolved editor invocation without
 	// actually launching anything.
 	runEditorCommand?: (command: string, args: string[]) => Promise<void>
 	// Test seam: TTL for the ephemeral agent-activity line (default 90s).

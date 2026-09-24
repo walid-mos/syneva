@@ -20,7 +20,19 @@ import { INVALID_SAVE, parseReviewerSave } from '../reviewer-save.js'
 import { parseCommentRequest } from './comment-body.js'
 
 import type { BrowserResetResponse } from '../../../../../contracts/browser.js'
+import type { ResetScope } from '../../../../../contracts/review.js'
 import type { RouteRequest } from '../router.js'
+
+// The reset body's scope: absent/empty -> 'all' (the documented pre-scope behavior); a
+// recognized value passes; anything else parsed -> null, which the route rejects.
+function parseResetScope(body: unknown): ResetScope | null {
+	if (typeof body !== 'object' || body === null) return 'all'
+	if (!('scope' in body)) return 'all'
+	if (typeof body.scope !== 'string') return null
+	if (body.scope === 'review' || body.scope === 'approved') return body.scope
+	if (body.scope === 'all') return 'all'
+	return null
+}
 
 // overallNote is an ephemeral, per-Send instruction threaded straight into the result -
 // parseReviewerSave never copies it onto `state`, so it is never persisted.
@@ -109,12 +121,36 @@ export async function addComment({
 	})
 }
 
-export async function resetDesk({ ctx, res }: RouteRequest): Promise<void> {
+export async function resetDesk({
+	ctx,
+	req,
+	res,
+}: RouteRequest): Promise<void> {
 	await ctx.serialize(async (): Promise<void> => {
-		await unstageReviewedFiles(ctx.state, ctx.git)
+		// Bodyless POST = the documented 'all'. Malformed JSON means the same default; a parsed
+		// body with an unknown scope is rejected - the caller must name what it wants dropped.
+		let body: unknown
+		try {
+			body = await readJsonBody(req)
+		} catch {
+			body = undefined
+		}
+		const scope = parseResetScope(body)
+		if (scope === null)
+			return fail(res, {
+				status: HTTP_UNPROCESSABLE,
+				code: 'INVALID_RESET_SCOPE',
+				error: 'scope must be "review", "approved" or "all"',
+				fix: 'Send { "scope": "review" } - review keeps the notes, all clears them.',
+			})
+		// 'approved' restores only the signed-off files to the working diff; the other scopes
+		// drop every decision, so the whole review unstages.
+		const unstagePaths =
+			scope === 'approved' ? [...ctx.state.reviewedFiles] : undefined
+		await unstageReviewedFiles(ctx.state, ctx.git, unstagePaths)
 		const saved = await ctx.persist({
 			...ctx.state,
-			...resetReviewPatch(ctx.state),
+			...resetReviewPatch(ctx.state, scope),
 		})
 		ctx.commit(saved.state)
 		const response: BrowserResetResponse = {

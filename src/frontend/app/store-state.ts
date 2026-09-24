@@ -1,3 +1,4 @@
+import type { ResetScope } from '@contracts/review'
 import type { TreeRow } from '@entities/review/file/tree-rows'
 import type { WalkRow } from '@entities/review/guide/walkthrough'
 import type {
@@ -5,6 +6,11 @@ import type {
 	PreviewFile,
 	ReviewState,
 } from '@entities/review/model'
+import type {
+	NoteThreadRef,
+	NotesLens,
+	ReviewNote,
+} from '@entities/review/notes'
 import type { Settings } from '@entities/settings/model'
 import type { DiffStyle, Selection } from '@shared/diff-renderer/types'
 
@@ -89,6 +95,24 @@ export interface Store {
 	// a file renders its real diff for the rest of the session instead of the summary card. Per-
 	// session and never persisted - the oversized stamp is server-owned and re-derived on reload.
 	loadedOversized: Set<string>
+	// The review-notes panel (right side): every comment/question thread of the whole review,
+	// one click from any file. Per-session like the other chrome flags - never persisted.
+	notesOpen: boolean
+	// The panel's working state (per-session like notesOpen): the filter query, the status
+	// lens, and the keyboard cursor - an index into the panel's flat visible rows (questions
+	// then comments; see notesPanelView, the one derivation the cursor and the render share).
+	notesQuery: string
+	notesLens: NotesLens
+	notesCursor: number
+	// A focus pulse: the '/' hotkey bumps it, the panel's effect focuses the filter box.
+	// A tick instead of a boolean so repeating '/' refocuses even after the field kept focus.
+	notesSearchTick: number
+	// The resolve-approve flow's armed state: a thread resolved on a not-yet-signed-off file
+	// while the panel is open waits for THAT file's sign-off, and the advance then goes to
+	// the panel's next unresolved thread instead of the next file. `pos` is the thread's
+	// index in the panel's flat visible rows at resolve time - the post-resolve scan starts
+	// there, which stays correct whether the lens keeps the resolved row or drops it.
+	notesAdvanceAfter: { ref: NoteThreadRef; pos: number } | null
 
 	treeRows?: () => TreeRow[]
 	selectFile?: (i: number) => void
@@ -133,7 +157,11 @@ export interface Store {
 	saveComment?: () => void
 	ask?: () => void
 	requestChange?: () => void
-	reset?: () => Promise<void>
+	reset?: (scope: ResetScope) => Promise<void>
+	// The Reset split button's dropdown (approved-only / all). Store-owned so the React chrome
+	// and the Esc cascade agree on it; per-session, never persisted.
+	resetMenuOpen?: boolean
+	setResetMenu?: (open: boolean) => void
 	send?: (overallNote?: string) => Promise<void>
 	// The browser Close: confirm, flush the coalescing saver, stop the desk via /api/shutdown,
 	// then show the closed cover (window.close() after it usually can't script-close an
@@ -145,10 +173,36 @@ export interface Store {
 	toggleFileComposer?: () => void
 	openFileCommentCount?: () => number
 	fileCommentAvailable?: () => boolean
+	// The notes panel: topbar/keyboard toggle, and jumping to a note - same-file notes land
+	// immediately, other-file notes funnel through S.selectFile/S.previewFile plus a pending
+	// jump the render consumes once the target file is on screen (see facade/notes.ts).
+	toggleNotes?: () => void
+	jumpToNote?: (note: ReviewNote) => void
+	// The panel's cursor: move it (↑/↓), jump to the note under it (↵), focus the filter
+	// box ('/'). setNotesQuery/setNotesLens restart the cursor at the top - a new view is
+	// a new list. Cursor moves and jumps derive the visible rows through notesPanelView,
+	// never from the component's render.
+	setNotesQuery?: (query: string) => void
+	setNotesLens?: (lens: NotesLens) => void
+	notesCursorMove?: (dir: 1 | -1) => void
+	notesJumpCursor?: () => void
+	notesFocusSearch?: () => void
+	// Resolve side: the resolve entry points report the thread (pre-status-flip). The facade
+	// either schedules the immediate advance (file already signed off) or arms the flow.
+	noteResolved?: (ref: NoteThreadRef) => void
+	// Sign-off side: approveCurrentFile's advance asks here first; true means it jumped to
+	// the armed flow's next note, false means nothing was armed for that path.
+	notesAfterSignOff?: (path: string) => boolean
 	// Keyboard navigation (keys.ts): file stepping in either mode, confirm-dialog answers, and the
 	// grouped binding list the help overlay renders.
 	nextFile?: () => void
 	prevFile?: () => void
+	// The one next/prev step, in the ACTIVE pane's sorting (tree order / walkthrough order;
+	// see navigate.ts) - the keyboard keys and the guide-bar buttons share it, and the
+	// sign-off advance falls back to it.
+	stepInView?: (dir: 1 | -1) => void
+	// approveCurrentFile's advance: the notes flow first, else stepInView(1).
+	afterSignOff?: (path: string) => void
 	treeStep?: (dir: 1 | -1) => void
 	confirmYes?: () => void
 	confirmNo?: () => void

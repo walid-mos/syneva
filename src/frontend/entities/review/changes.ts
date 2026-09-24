@@ -88,7 +88,9 @@ export function currentComments(
 const FILE_LEVEL_LINE = 0
 
 // Is this comment addressed to the file as a whole (a file-header thread) rather than a diff line?
-export function isFileComment(c: ReviewComment): boolean {
+// Takes a structural subset so non-comment shapes carrying the same anchor (e.g. jump targets)
+// classify the same way.
+export function isFileComment(c: Pick<ReviewComment, 'lineNumber'>): boolean {
 	return c.lineNumber === FILE_LEVEL_LINE
 }
 

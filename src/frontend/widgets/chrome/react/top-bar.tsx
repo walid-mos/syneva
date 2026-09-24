@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { guideProgress } from '@entities/review/guide/guide'
+import { reviewNotes } from '@entities/review/notes'
 import { useStoreFields } from '@shared/lib/use-store-version'
 import { Icon } from '@shared/ui/icon'
 
 import { chromeCtx } from '../context'
 
 import { BrandBlock } from './brand-logo'
+import { ResetButton } from './reset-button'
 
 import type { GuideInputs } from '@entities/review/guide/guide'
 import type { ReactElement } from 'react'
@@ -180,12 +182,34 @@ function AgentStatus(): ReactElement {
 	)
 }
 
-// The desk-level actions: settings, reset, send, close. Each is a store method
+// The notes-panel trigger: a plain labeled button (the desk has no icon-only
+// habit in this corner) with the open-thread count riding it when there is one.
+// Own subscription: the count re-derives off `state` without dragging the other
+// desk buttons into every poll.
+function NotesButton(): ReactElement {
+	const { S } = chromeCtx()
+	useStoreFields('state', 'notesOpen')
+	const open = reviewNotes(S.state).filter(n => n.status === 'open').length
+	return (
+		<button
+			className={`btn top-notes${S.notesOpen ? ' active' : ''}`}
+			data-tip="Review notes - all comments & questions (n)"
+			aria-pressed={S.notesOpen}
+			onClick={() => S.toggleNotes?.()}
+		>
+			<span>Notes</span>
+			{open > 0 && <span className="notes-count">{open}</span>}
+		</button>
+	)
+}
+
+// The desk-level actions: notes, settings, reset, send, close. Each is a store method
 // call - the confirm gates live behind the facade methods.
 function DeskButtons(): ReactElement {
 	const { S } = chromeCtx()
 	return (
 		<>
+			<NotesButton />
 			<button
 				className="btn icon top-settings"
 				data-tip="Settings (⇧,)"
@@ -194,13 +218,7 @@ function DeskButtons(): ReactElement {
 			>
 				<Icon id="gly-settings" />
 			</button>
-			<button
-				className="btn danger"
-				data-tip="Reset review (⇧R)"
-				onClick={() => void S.reset?.()}
-			>
-				Reset Review
-			</button>
+			<ResetButton />
 			<button
 				className="btn primary"
 				disabled={S.awaitingAgent}

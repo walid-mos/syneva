@@ -18,7 +18,7 @@ export type ReplayCall = {
 // is the same resolution whenever every change of that hunk is decided the same way - the common
 // case, "Approve ⇧A" included. Grouping consecutive decisions of one hunk (decidedPositions keeps
 // the order it computed them in) collapses those into one call and leaves mixed hunks on the
-// per-change path. replay-decisions.test.ts pins both the grouping and the library equivalence.
+// per-change path. The grouping preserves replay equivalence with the per-change path.
 export function planReplayCalls(
 	diff: FileDiffMetadata,
 	decided: DecidedPosition[],

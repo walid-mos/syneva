@@ -2,8 +2,8 @@ import type { ReviewFile } from '../model'
 import type { GuideFile } from '../model'
 import type { FileReviewState } from '../model'
 
-// Pure data for the Walkthrough sidebar tab - no store import (these are parameterized like
-// linemap.ts so they stay testable under node:test).
+// Pure data for the Walkthrough sidebar tab - no store import (parameterized like
+// linemap.ts, kept pure).
 
 export type LineStat = { added: number; removed: number }
 type FileLike = Pick<

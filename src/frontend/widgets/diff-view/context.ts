@@ -1,4 +1,5 @@
 import type { PreviewFile, ReviewState } from '@entities/review/model'
+import type { NoteThreadRef } from '@entities/review/notes'
 import type { Settings } from '@entities/settings/model'
 import type { DiffStyle, Selection } from '@shared/diff-renderer/types'
 import type { DiffHolder } from './runtime'
@@ -43,6 +44,9 @@ export interface DiffStoreView {
 	setStyle?: (style: DiffStyle) => void
 	openInEditor?: () => Promise<void>
 	toggleFileComposer?: () => void
+	// The notes flow's resolve hook (facade/notes): the resolve entry points report the
+	// thread pre-flip so the panel can arm or fire its advance (see notes-panel flow).
+	noteResolved?: (ref: NoteThreadRef) => void
 }
 
 export interface DiffServices {
