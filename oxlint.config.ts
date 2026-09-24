@@ -95,14 +95,6 @@ export default defineConfig({
 			rules: { 'eslint/no-await-in-loop': 'off' },
 		},
 		{
-			// The integration test polls the desk state until the skipped-owner answer
-			// appears: live polling, not parallelizable promise collection.
-			files: [
-				'src/backend/adapters/inbound/pi/pi-attachment.integration.test.ts',
-			],
-			rules: { 'eslint/no-await-in-loop': 'off' },
-		},
-		{
 			// Layer boundaries, enforced on the literal relative specifier (every
 			// intra-repo import is relative; the depth variants cover src/backend's
 			// subtree and the deepest src/frontend folders):
@@ -136,11 +128,10 @@ export default defineConfig({
 		{
 			// Domain is pure. One rule set (later overrides replace earlier rules for the
 			// same files, so the two restrictions live together): no contracts (shared
-			// shapes are re-declared in review.ts), no adapter/application imports, no UI
-			// - and, outside tests, no process/filesystem/network builtins. node:crypto
-			// stays allowed for pure hashing.
+			// shapes are re-declared in review.ts), no adapter/application imports, no UI,
+			// and no process/filesystem/network builtins. node:crypto stays allowed for
+			// pure hashing.
 			files: ['src/backend/domain/*.ts', 'src/backend/domain/**/*.ts'],
-			excludeFiles: ['**/*.test.ts'],
 			rules: {
 				'eslint/no-restricted-imports': [
 					'error',
@@ -188,41 +179,6 @@ export default defineConfig({
 							{
 								group: ['process', 'node:process'],
 								message: 'domain is pure - no process access.',
-							},
-						],
-					},
-				],
-			},
-		},
-		{
-			// Domain tests may drive real git/fixture IO, so only the module boundary
-			// (not the builtin restriction above) applies to them.
-			files: [
-				'src/backend/domain/*.test.ts',
-				'src/backend/domain/**/*.test.ts',
-			],
-			rules: {
-				'eslint/no-restricted-imports': [
-					'error',
-					{
-						patterns: [
-							{
-								group: [
-									'../contracts/**',
-									'../../contracts/**',
-									'../../../contracts/**',
-									'../adapters/**',
-									'../../adapters/**',
-									'../../../adapters/**',
-									'../application/**',
-									'../../application/**',
-									'../../../application/**',
-									'../frontend/**',
-									'../../frontend/**',
-									'../../../frontend/**',
-								],
-								message:
-									'domain is pure - no contracts (shared shapes are re-declared in review.ts), no adapters/application, no UI.',
 							},
 						],
 					},

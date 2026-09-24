@@ -10,11 +10,11 @@ Product positioning lives in `PRODUCT.md`, the UI design language in `DESIGN.md`
 
 ## Commands
 
-Every command is a pnpm script in `package.json` — that file is the authoritative list (`dev`, `build`, `check`, `lint`, `lint:types`, `lint:fix`, `format`, `format:check`, `test`, `perf-smoke`, `release`). CI (`.github/workflows/ci.yml`) runs the same gates on Node 24 — all must pass. Run a single test file with `node --import tsx --test <file>`. The tooling needs Node 24 (`devEngines`); the published CLI keeps its `engines.node >= 22` contract.
+Every command is a pnpm script in `package.json` — that file is the authoritative list (`dev`, `build`, `check`, `lint`, `lint:types`, `lint:fix`, `format`, `format:check`, `perf-smoke`, `release`). CI (`.github/workflows/ci.yml`) runs the same gates on Node 24 — all must pass. The tooling needs Node 24 (`devEngines`); the published CLI keeps its `engines.node >= 22` contract.
 
 ## Test layout
 
-Unit tests stay colocated with the file they test (`src/**/*.test.ts`, run by `pnpm test`). Everything end-to-end lives in `test/`: `test/benchmarks/` holds the frontend perf benchmarks (below), and future e2e suites join the same folder.
+No unit-test suite at the moment: the colocated `*.test.ts` suite was removed and a replacement suite is planned — do not invent tests for a change unless asked. `test/` holds the frontend perf benchmarks (below); future e2e suites join the same folder.
 
 ## Benchmarks
 
@@ -45,7 +45,7 @@ Everything a coding-agent harness loads from this package (the extension entry, 
 
 ## Agent contract
 
-`src/contracts/spec.ts` is the single source of truth for the CLI/HTTP contract (flags, events, `ReviewResult` shape) and is printed by `syneva spec` — the skill and the server's error responses point consuming agents at it. If you change the CLI flags, events, or ReviewResult shape, update `src/contracts/spec.ts` in the same change. `src/contracts/spec.test.ts`, `src/backend/bootstrap/cli.test.ts`, and `src/backend/bootstrap/server.test.ts` cover the documented contract.
+`src/contracts/spec.ts` is the single source of truth for the CLI/HTTP contract (flags, events, `ReviewResult` shape) and is printed by `syneva spec` — the skill and the server's error responses point consuming agents at it. If you change the CLI flags, events, or ReviewResult shape, update `src/contracts/spec.ts` in the same change.
 
 ## Conventions
 

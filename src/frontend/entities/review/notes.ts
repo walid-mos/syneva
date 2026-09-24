@@ -29,8 +29,6 @@ export type ReviewNote = {
 	preview: string
 	// Newest message (the agent's answer, on an answered question thread).
 	latest: string
-	// Messages in the thread.
-	count: number
 	updatedAt: string
 	comments: ReviewComment[]
 }
@@ -84,7 +82,6 @@ function toNote(group: ReviewComment[]): ReviewNote {
 		status: threadStatus(group, kind),
 		preview: oneline(first.body),
 		latest: oneline(last.body),
-		count: group.length,
 		updatedAt: last.updatedAt,
 		comments: group,
 	}
@@ -192,16 +189,4 @@ export function sameThread(a: NoteThreadRef, b: NoteThreadRef): boolean {
 		a.lineNumber === b.lineNumber &&
 		a.fileLevel === b.fileLevel
 	)
-}
-
-// The reference for a thread's comments - the anchor of the first message carries the
-// identity (the grouping in reviewNotes keys on exactly these fields).
-export function threadRefOf(comments: ReviewComment[]): NoteThreadRef {
-	const [first] = comments
-	return {
-		path: first.path,
-		side: first.side,
-		lineNumber: first.lineNumber,
-		fileLevel: isFileComment(first),
-	}
 }

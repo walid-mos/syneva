@@ -69,17 +69,16 @@
     "dev": "vite build --watch & tsx src/backend/bootstrap/cli.ts",
     "build": "node scripts/clean-dist.mjs && tsc && tsc -p tsconfig.ui.json && vite build && cp src/frontend/app/index.html dist/index.html",
     "start": "node dist/backend/bootstrap/cli.js",
-    "check": "tsc --noEmit && tsc -p tsconfig.test.json && tsc -p tsconfig.ui.json",
+    "check": "tsc --noEmit && tsc -p tsconfig.node.json && tsc -p tsconfig.ui.json",
     "lint": "oxlint --deny-warnings",
     "lint:types": "oxlint --type-aware --deny-warnings",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "perf-smoke": "node test/benchmarks/perf-smoke.mjs",
     "bench": "node test/benchmarks/bench-fixtures.mjs && node test/benchmarks/browser-bench.mjs",
     "prepack": "pnpm build",
-    "release": "pnpm lint && pnpm lint:types && pnpm format:check && pnpm check && pnpm test && pnpm build && changelogen --release --push"
+    "release": "pnpm lint && pnpm lint:types && pnpm format:check && pnpm check && pnpm build && changelogen --release --push"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",

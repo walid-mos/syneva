@@ -20,8 +20,7 @@ import type {
 // effects: a cache hit inside a different effect would register no dependencies at all.
 //
 // The lookups below MUST mirror the single-call predicates, which stay the source of truth for
-// one-off call sites: fileFinished/fileObjections/fileReviewState (changes.ts). flow-index.test.ts
-// pins the parity.
+// one-off call sites: fileFinished/fileObjections/fileReviewState (changes.ts).
 
 export type FlowIndex = {
 	// s.changes / s.comments grouped by path (absent path → no entry; callers default to []).
