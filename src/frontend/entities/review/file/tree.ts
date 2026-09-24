@@ -209,7 +209,7 @@ export function treeRows(inputs: TreeInputs): TreeRow[] {
 	const { state } = inputs // the caller gates on a loaded review - see project-tree bindings
 	// One O(changes+comments+files) pass for everything each row needs - per-row predicate calls
 	// rescanned the global arrays and froze big desks (see flow-index.ts). Built fresh per
-	// evaluation so Alpine's dependency tracking stays intact.
+	// evaluation so the reactive store's field-level version tracking stays intact.
 	const ix = flowIndex(state, { distill: inputs.hideReviewed })
 	const changedPaths = state.files.map(f => f.path)
 	const changedIndex = new Map(state.files.map((f, i) => [f.path, i]))

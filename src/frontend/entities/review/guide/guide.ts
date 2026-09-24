@@ -139,7 +139,7 @@ function navOrderWith(g: GuideInputs, ix: FlowIndex): number[] {
 }
 
 // One flow-index pass per derivation, built from the explicit inputs (never cached across
-// effects - Alpine's dependency tracking requires the fresh build).
+// effects - the store's dependency tracking requires the fresh build).
 function flowIndexOf(g: GuideInputs): FlowIndex {
 	return flowIndex(g.state, { distill: g.hideReviewed })
 }

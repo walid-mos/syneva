@@ -7,8 +7,8 @@ import { render } from '@shared/lib/render-scheduler'
 import type { Side } from '@shared/diff-renderer/types'
 
 // ── Inline composers ─────────────────────────────────────────────────────────
-// The composer is imperative DOM built into the diff (like the thread), NOT the old
-// floating Alpine popover: a new comment is a `composer` annotation at the selected line,
+// The composer is imperative DOM built into the diff (like the thread): a new comment is a
+// `composer` annotation at the selected line,
 // a reply is a card at the bottom of its thread, an edit swaps a message body in place.
 // Exactly one is open at a time. Its text lives in featureCtx().S.composerBody (synced on input) so it
 // survives render()'s rebuild of the diff DOM; caret + focus are restored after each render
@@ -155,7 +155,7 @@ export function toggleFileComposer(): void {
 }
 
 // Close whatever composer is open and rebuild the diff so its DOM goes away (the inline
-// composer is imperative - nothing hides it reactively like the old Alpine popover did).
+// composer is imperative DOM - closing it means rebuilding the diff, not toggling a flag).
 // `isDeferred` postpones the rebuild until the in-flight click has fully settled: the
 // outside-click close fires on pointerdown (capture), but the browser only dispatches
 // `click` after pointerup - ~50-150ms later for a human press - and any render in between

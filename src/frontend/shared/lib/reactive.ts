@@ -1,5 +1,5 @@
-// The reactive store kernel that replaces Alpine's reactivity: a deep proxy with
-// the same mutation surface (`S.field = …`, nested writes, Set/Map/Array methods)
+// The reactive store kernel: a deep proxy with
+// the mutation surface (`S.field = …`, nested writes, Set/Map/Array methods)
 // and a two-level version counter. React subscribes either to the global version
 // or - the normal case - to the top-level store fields a component reads
 // (see ./use-store-version.ts); everything below React keeps reading and mutating

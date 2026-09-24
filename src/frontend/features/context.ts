@@ -40,7 +40,7 @@ export interface FeatureStoreView {
 }
 
 export interface FeatureServices {
-	// The reactive store view (the Alpine proxy itself) - feature actions read and mutate it.
+	// The reactive store view (the store proxy itself) - feature actions read and mutate it.
 	S: FeatureStoreView
 	requireState: () => ReviewState
 	persist: () => void

@@ -9,7 +9,7 @@ import {
 
 import type { TreeRow } from '@entities/review/file/tree-rows'
 
-// The file-tree bindings the Alpine chrome calls as $store.g.*: the row list, folder open/close,
+// The file-tree bindings the chrome consumes from the store: the row list, folder open/close,
 // collapse-all / expand-all, the test-group carets and the two fold groups.
 
 function installTreeRows(): void {

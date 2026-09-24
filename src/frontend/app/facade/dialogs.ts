@@ -86,7 +86,7 @@ function openSendModal(message: string): void {
 	S.sendMsg = message
 	S.sendNote = ''
 	S.sendOpen = true
-	setTimeout(() => $('sendNote').focus(), 0) // after Alpine shows it (mirrors the composer)
+	setTimeout(() => $('sendNote').focus(), 0) // focus lands after the modal is in the DOM
 }
 
 export function installDialogBindings(): void {

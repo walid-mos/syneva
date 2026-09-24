@@ -9,13 +9,13 @@ import type {
 // The tree, walkthrough, progress bar, nav seeks, and the completion gate all classify EVERY
 // file per evaluation - and the per-path predicates they leaned on (fileReviewState /
 // fileFinished) each rescan the GLOBAL changes/comments/decisions/files arrays. At 1,275 files × 3,542 change blocks that is millions of reads per
-// pass, every read through Alpine's dependency-tracking proxy: a single file switch froze the
+// pass, every read through the reactive store's tracking proxy: a single file switch froze the
 // main thread for ~20s on a real monorepo desk. This module groups everything by path in ONE
 // pass, so a bulk caller does O(files + changes + comments + decisions) work per evaluation.
 //
 // Reactivity is preserved by construction: the builder reads the same reactive properties the
 // per-path predicates read (path/status of every change, etc.), just once each - so an
-// Alpine effect that builds the index tracks the same dependencies and re-runs on the same
+// store subscription that builds the index tracks the same dependencies and re-runs on the same
 // mutations. That is also why the index must be built PER EVALUATION and never cached across
 // effects: a cache hit inside a different effect would register no dependencies at all.
 //

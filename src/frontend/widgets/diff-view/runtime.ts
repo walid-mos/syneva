@@ -3,7 +3,7 @@ import type { FileDiff, FileDiffMetadata } from '@pierre/diffs'
 import type { LineMap } from '@shared/diff-renderer/linemap'
 
 // Imperative-island state kept OUT of the reactive store: the @pierre/diffs instance holds the
-// rendered diff, and does internal element/identity checks that an Alpine reactive Proxy breaks
+// rendered diff, and does internal element/identity checks that a reactive store proxy breaks
 // (e.g. ResizeManager ownership). Plain object.
 export type DiffHolder = {
 	// FileDiff is generic over its annotation metadata - ours is AnnotationMeta.

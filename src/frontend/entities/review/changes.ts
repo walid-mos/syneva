@@ -172,7 +172,7 @@ export function ensureChangesFromFileDiff(
 		state.changes.filter(c => c.path === path).map(c => [c.id, c]),
 	)
 	const derived = deriveChanges(diff, path, state.decisions, previous)
-	// The caller's live state (the Alpine proxy) is this function's mutation target by
+	// The caller's live reactive store is this function's mutation target by
 	// contract - the assignment IS the API, not a side effect on a borrowed parameter.
 	// oxlint-disable-next-line eslint/no-param-reassign
 	state.changes = state.changes.filter(c => c.path !== path).concat(derived)

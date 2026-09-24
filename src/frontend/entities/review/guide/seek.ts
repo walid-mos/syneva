@@ -1,7 +1,7 @@
 // Pure file-seek logic for wrap-around navigation. These operate on an explicit `order`
 // (file indices in nav order - guide order when a guide is attached, else the file array)
 // and a `finished` predicate ("this file is signed off in the current state"), so they're
-// unit-testable without the Alpine store. guide.ts holds the thin store-reading wrappers.
+// unit-testable without the store. guide.ts holds the thin store-reading wrappers.
 
 // The nav order the wrap/approve-advance seeks walk: guide order first (when guided), then any
 // diff file the guide didn't list, in file-array order. Files out of the flow (pure renames,

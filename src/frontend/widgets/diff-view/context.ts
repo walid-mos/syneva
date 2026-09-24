@@ -7,8 +7,8 @@ import type { DiffHolder } from './runtime'
 // The view context the imperative diff island renders against. Widgets reach the app-owned
 // reactive store only through this seam (bound once by app composition, mirroring the
 // render-scheduler pattern) - no widget module imports @app. The bound object must be the
-// Alpine reactive proxy itself, so mutations stay observable; D stays the plain holder
-// (an Alpine Proxy breaks @pierre's element-identity checks).
+// reactive store proxy itself, so mutations stay observable; D stays the plain holder
+// (a reactive proxy breaks @pierre's element-identity checks).
 export interface DiffStoreView {
 	state: ReviewState | null
 	settings: Settings
