@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 
+import { currentFileOrNull } from '@entities/review/changes'
 import {
 	notesPanelView,
 	reviewNotes,
@@ -41,7 +42,9 @@ type StoreView = ReturnType<typeof chromeCtx>['S']
 // the tree's active row; none on the Overview) - the panel marks its rows with a rail.
 function activePath(S: StoreView): string | null {
 	if (S.overviewOpen) return null
-	return S.preview?.path ?? S.state?.files.at(S.fileIndex)?.path ?? null
+	return (
+		currentFileOrNull(S.state?.files, S.preview, S.fileIndex)?.path ?? null
+	)
 }
 
 // Arrow/Enter handling while typing in the filter: the global map's typing gate keeps

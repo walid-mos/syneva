@@ -6,7 +6,7 @@ import {
 } from '@entities/review/changes'
 import { isUnanchored } from '@entities/review/changes'
 
-import { jumpToThread } from './comment-jump'
+import { jumpTargetFor, jumpToThread } from './comment-jump'
 import { diffCtx } from './context'
 import { cursorJumpTo } from './cursor'
 import { D } from './runtime'
@@ -126,13 +126,7 @@ export function jumpToBlocker(b: Blocker): void {
 				diffCtx().S.preview,
 				diffCtx().S.fileIndex,
 			),
-			{
-				path: b.path,
-				side: b.side,
-				lineNumber: b.lineNumber,
-				fileLevel: b.fileLevel,
-				unanchored: b.unanchored,
-			},
+			jumpTargetFor(b),
 		)
 		return
 	}

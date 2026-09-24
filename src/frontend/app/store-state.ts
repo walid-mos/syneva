@@ -6,8 +6,11 @@ import type {
 	PreviewFile,
 	ReviewState,
 } from '@entities/review/model'
-import type { NoteThreadRef } from '@entities/review/notes'
-import type { ReviewNote } from '@entities/review/notes'
+import type {
+	NoteThreadRef,
+	NotesLens,
+	ReviewNote,
+} from '@entities/review/notes'
 import type { Settings } from '@entities/settings/model'
 import type { DiffStyle, Selection } from '@shared/diff-renderer/types'
 
@@ -99,7 +102,7 @@ export interface Store {
 	// lens, and the keyboard cursor - an index into the panel's flat visible rows (questions
 	// then comments; see notesPanelView, the one derivation the cursor and the render share).
 	notesQuery: string
-	notesLens: 'all' | 'open' | 'resolved'
+	notesLens: NotesLens
 	notesCursor: number
 	// A focus pulse: the '/' hotkey bumps it, the panel's effect focuses the filter box.
 	// A tick instead of a boolean so repeating '/' refocuses even after the field kept focus.
@@ -180,7 +183,7 @@ export interface Store {
 	// a new list. Cursor moves and jumps derive the visible rows through notesPanelView,
 	// never from the component's render.
 	setNotesQuery?: (query: string) => void
-	setNotesLens?: (lens: 'all' | 'open' | 'resolved') => void
+	setNotesLens?: (lens: NotesLens) => void
 	notesCursorMove?: (dir: 1 | -1) => void
 	notesJumpCursor?: () => void
 	notesFocusSearch?: () => void

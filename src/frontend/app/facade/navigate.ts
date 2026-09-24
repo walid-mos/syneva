@@ -1,8 +1,9 @@
-import { fileFinished } from '@entities/review/changes'
+import { currentFileOrNull, fileFinished } from '@entities/review/changes'
 import { fetchPreviewFile } from '@entities/review/file/api'
 import { prefetchContents } from '@entities/review/file/contents'
 import { defaultFileView } from '@entities/review/file/file-summary'
 import { hasGuide, navOrder } from '@entities/review/guide/guide'
+import { nextUnreviewed } from '@entities/review/guide/seek'
 import { deferRender, render } from '@pages/desk/render'
 import { cursorReset } from '@widgets/diff-view/cursor'
 import { D } from '@widgets/diff-view/runtime'
@@ -108,12 +109,24 @@ function nextInTree(dir: 1 | -1): FileRow | null {
 		(row): row is FileRow => row.kind !== 'dir',
 	)
 	if (!rows.length) return null
-	const shown = S.preview?.path ?? S.state?.files[S.fileIndex]?.path
+	const shown = currentFileOrNull(
+		S.state?.files,
+		S.preview,
+		S.fileIndex,
+	)?.path
 	const pos = rows.findIndex(row => row.path === shown)
 	return rows[(pos + dir + rows.length) % rows.length]
 }
 
 function installFileStepping(): void {
+	// One dispatch for "open the file this tree row points at": stepInView's tree fallthrough
+	// and the explicit tree-order keys share it, so the two can never drift apart.
+	const openTreeRow = (dir: 1 | -1): void => {
+		const row = nextInTree(dir)
+		if (!row) return
+		if (typeof row.fileIndex === 'number') S.selectFile?.(row.fileIndex)
+		else S.previewFile?.(row.path)
+	}
 	// The step is the ACTIVE pane's sorting - tree pane steps tree order, walkthrough pane
 	// steps walkthrough order - never a seek. The Overview is the walkthrough's front page:
 	// Next enters the first file, Prev lands on the last one.
@@ -133,10 +146,7 @@ function installFileStepping(): void {
 			if (target !== null) S.selectFile?.(target)
 			return
 		}
-		const row = nextInTree(dir)
-		if (!row) return
-		if (typeof row.fileIndex === 'number') S.selectFile?.(row.fileIndex)
-		else S.previewFile?.(row.path)
+		openTreeRow(dir)
 	}
 	// The keyboard keys and the guide-bar buttons share this one step; the explicit tree-order
 	// keys below stay the escape hatch from the walkthrough pane.
@@ -144,12 +154,7 @@ function installFileStepping(): void {
 	S.prevFile = () => S.stepInView?.(-1)
 	// Tree-order file stepping (⌘⇧↑/⇧↓) - the tree's rows whatever pane is showing. Cyclic,
 	// like every other step; previews (unchanged files) open as previews.
-	S.treeStep = dir => {
-		const row = nextInTree(dir)
-		if (!row) return
-		if (typeof row.fileIndex === 'number') S.selectFile?.(row.fileIndex)
-		else S.previewFile?.(row.path)
-	}
+	S.treeStep = openTreeRow
 }
 
 function installSignOffAdvance(): void {
@@ -169,15 +174,11 @@ function installSignOffAdvance(): void {
 					.filter((row): row is FileRow => row.kind !== 'dir')
 					.map(row => row.fileIndex)
 					.filter((i): i is number => typeof i === 'number')
-		const pos = order.indexOf(S.fileIndex)
-		for (let step = 1; step <= order.length; step++) {
-			const idx = order[(pos + step) % order.length]
-			const file = state.files[idx]
-			if (file && !fileFinished(state, file.path)) {
-				S.selectFile?.(idx)
-				return
-			}
-		}
+		const next = nextUnreviewed(order, S.fileIndex, i => {
+			const f = state.files[i]
+			return !f || fileFinished(state, f.path)
+		})
+		if (next !== null) S.selectFile?.(next)
 	}
 }
 

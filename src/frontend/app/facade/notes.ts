@@ -8,10 +8,7 @@ import {
 
 import { requireState, S } from '../store'
 
-import type {
-	NotesView,
-	ReviewNote,
-} from '@entities/review/notes'
+import type { NotesView, ReviewNote } from '@entities/review/notes'
 
 // The panel's view inputs, read from the store at each derivation - the same shape the
 // component passes to notesPanelView, so both sides derive one visible list.
@@ -47,7 +44,11 @@ function installResolveAdvance(): void {
 		if (!S.notesOpen) return
 		const { flat } = notesPanelView(S.state, notesView())
 		const pos = flat.findIndex(n => sameThread(n, ref))
-		const path = S.preview?.path ?? S.state?.files[S.fileIndex]?.path
+		const path = currentFileOrNull(
+			S.state?.files,
+			S.preview,
+			S.fileIndex,
+		)?.path
 		if (path && fileFinished(S.state, path)) {
 			queueMicrotask(() => void advanceFrom(pos))
 			return
