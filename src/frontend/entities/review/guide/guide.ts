@@ -3,11 +3,7 @@ import { isRenamedGroupExpanded } from '../file/renames'
 import { isReviewedGroupExpanded } from '../file/reviewed'
 
 import { isGuideBaseStale } from './guide-derive'
-import {
-	navFileOrder,
-	wrapNextTarget,
-	wrapPrevTarget,
-} from './seek'
+import { navFileOrder, wrapNextTarget, wrapPrevTarget } from './seek'
 import { lineStats, walkthroughGroups, walkRows } from './walkthrough'
 
 import type { FlowIndex } from '../change/flow-index'
@@ -295,4 +291,3 @@ export function guideStale(g: GuideInputs): boolean {
 	if (!state?.guide) return false
 	return isGuideBaseStale(state.baseDiffHash, state.guide.baseDiffHash)
 }
-

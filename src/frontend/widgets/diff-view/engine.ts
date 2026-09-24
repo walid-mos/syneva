@@ -48,11 +48,15 @@ export function registerDiffEngine(registered: DiffEngine): void {
 }
 
 function needEngine(): DiffEngine {
-	if (!engine) throw new Error('diff engine used before diff-instance registered it')
+	if (!engine)
+		throw new Error('diff engine used before diff-instance registered it')
 	return engine
 }
 
-export function mountDiffEngine(viewport: HTMLElement, ruler: HTMLElement): void {
+export function mountDiffEngine(
+	viewport: HTMLElement,
+	ruler: HTMLElement,
+): void {
 	needEngine().mount(viewport, ruler)
 }
 

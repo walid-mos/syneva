@@ -4,9 +4,7 @@ import {
 	fileObjections,
 	flowIndex,
 } from '@entities/review/changes'
-import {
-	guideProgress,
-} from '@entities/review/guide/guide'
+import { guideProgress } from '@entities/review/guide/guide'
 import { featureCtx } from '@features/context'
 import { render, deferRender } from '@shared/lib/render-scheduler'
 

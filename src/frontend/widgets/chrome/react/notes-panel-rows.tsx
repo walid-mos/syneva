@@ -72,7 +72,10 @@ function groupByFile(
 	notes: ReviewNote[],
 	startIndex: number,
 ): { path: string; rows: { note: ReviewNote; index: number }[] }[] {
-	const groups: { path: string; rows: { note: ReviewNote; index: number }[] }[] = []
+	const groups: {
+		path: string
+		rows: { note: ReviewNote; index: number }[]
+	}[] = []
 	let next = startIndex
 	for (const note of notes) {
 		const entry = { note, index: next++ }

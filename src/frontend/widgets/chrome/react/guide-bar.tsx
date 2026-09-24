@@ -51,12 +51,7 @@ function NavButton({
 
 export function GuideBar(): ReactElement {
 	const { S } = chromeCtx()
-	useStoreFields(
-		'state',
-		'settings',
-		'overviewOpen',
-		'fileComposerOpen',
-	)
+	useStoreFields('state', 'settings', 'overviewOpen', 'fileComposerOpen')
 	if (!(S.showGuideBar?.() ?? false)) return <></>
 	const stale = S.guideStale?.() ?? false
 	return (

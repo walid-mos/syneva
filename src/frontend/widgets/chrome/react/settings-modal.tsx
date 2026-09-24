@@ -42,7 +42,12 @@ export function SettingsModal(): ReactElement {
 				if (event.target === event.currentTarget) S.closeSettings?.()
 			}}
 		>
-			<div className="modal settings" role="dialog" aria-modal="true" aria-label="Settings">
+			<div
+				className="modal settings"
+				role="dialog"
+				aria-modal="true"
+				aria-label="Settings"
+			>
 				<div className="set-tabs" role="tablist">
 					<button
 						className={S.settingsTab === 'settings' ? 'active' : ''}

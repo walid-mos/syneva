@@ -730,11 +730,7 @@ export class TokenPool {
 			publishFrame: undefined,
 			isWarm,
 			viewport,
-			preparation: this.openingPreparation(
-				windows,
-				viewport,
-				bandChunks,
-			),
+			preparation: this.openingPreparation(windows, viewport, bandChunks),
 		}
 		this.jobs.set(cacheKey, job)
 		this.prewarmLanguages(diff)
