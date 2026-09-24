@@ -47,13 +47,14 @@ function clearPendingSwap(): void {
 // fires before them), so hold the outgoing rows until the incoming ones exist, checking once per
 // frame and giving up after a bounded wait so a file that renders no rows still appears.
 const SWAP_WATCH_FRAMES = 12
-function watchSwap(): void {
-	if (!pendingSwap) return
+let swapVersion = 0
+function watchSwap(version: number): void {
+	if (!pendingSwap || version !== swapVersion) return
 	const mounted = pendingSwap.reveal
 		?.querySelector(DIFFS_TAG_NAME)
 		?.shadowRoot?.querySelector('[data-line]')
 	if (mounted || ++watchFrames >= SWAP_WATCH_FRAMES) finishSwap()
-	else requestAnimationFrame(watchSwap)
+	else requestAnimationFrame(() => watchSwap(version))
 }
 let watchFrames = 0
 
@@ -83,7 +84,21 @@ export function clearReplacementViews(host: HTMLElement): void {
 function discardEntries(): void {
 	// Prevent unmount callbacks from applying the new file's decorations to the old DOM.
 	D.instance = null
-	clearPendingSwap()
+	++swapVersion
+	if (pendingSwap) {
+		// Another file arrived before the incoming rows mounted. Keep the last visible file
+		// instead of promoting the hidden, unfinished wrapper to the outgoing entry.
+		for (const entry of D.diffCache.values()) {
+			entry.inst.cleanUp()
+			entry.wrapper.remove()
+		}
+		D.diffCache.clear()
+		virtualizer?.cleanUp()
+		virtualizer = undefined
+		pendingSwap.reveal = undefined
+		clearReplacementViews($('diff'))
+		return
+	}
 	for (const entry of D.diffCache.values()) {
 		if (entry.wrapper.isConnected)
 			pendingSwap = { entry, nodes: [], virtualizer }
@@ -92,8 +107,13 @@ function discardEntries(): void {
 	D.diffCache.clear()
 	clearReplacementViews($('diff'))
 	if (pendingSwap) {
-		// Everything in the pane right now is the outgoing file; the new wrapper is appended after.
+		// Keep the old rows visible, but out of flow: the incoming virtualizer must measure
+		// its wrapper at the pane origin, not below an entire outgoing file.
 		pendingSwap.nodes = [...$('diff').children]
+		if (pendingSwap.entry) {
+			pendingSwap.entry.wrapper.style.position = 'absolute'
+			pendingSwap.entry.wrapper.style.inset = '0 0 auto 0'
+		}
 		virtualizer = undefined
 	} else {
 		virtualizer?.cleanUp()
@@ -121,10 +141,9 @@ export function acquireEntry(
 	const wrapper = document.createElement('div')
 	wrapper.className = 'diff-wrap'
 	const pane = $('diff')
-	// Appended (the library measures the wrapper) but invisible until paintEntry reveals it in the
-	// same task as the row build, so no frame ever shows an empty pane. The pane keeps the outgoing
-	// rows, and with them the reviewer's scroll position, for the whole build; the caller sets the
-	// incoming file's scroll right after the paint (renderDiffInstance).
+	// The incoming wrapper takes the normal-flow origin while the outgoing rows overlay it;
+	// hidden until paintEntry sees shadow rows. The caller resets scroll for the new file after
+	// painting (renderDiffInstance).
 	//
 	// Hidden only while an outgoing entry still holds the pane. With nothing to hold - a cold boot, the
 	// first entry of a session - hiding it left the pane blank until some later pass finished a swap,
@@ -132,7 +151,8 @@ export function acquireEntry(
 	// never revealed, so opening a desk showed an empty pane.
 	const holdsPane = !!pendingSwap
 	wrapper.style.visibility = holdsPane ? 'hidden' : ''
-	pane.append(wrapper)
+	if (holdsPane) pane.prepend(wrapper)
+	else pane.append(wrapper)
 	// The swap that ends this entry's invisibility is armed with the wrapper it must reveal.
 	if (pendingSwap) pendingSwap.reveal = wrapper
 	const inst = createWindowedDiff(wrapper, options)
@@ -181,8 +201,13 @@ export function paintEntry(
 		fileContainer: container,
 		containerWrapper: wrapper,
 	})
-	// Rows may already be committed (warm grid): swap in this same task, otherwise per frame until
-	// they exist (watchSwap).
-	finishSwap()
-	if (pendingSwap) requestAnimationFrame(watchSwap)
+	// Rows may already be committed (warm grid). Otherwise keep the outgoing rows until
+	// the incoming shadow rows arrive; revealing an empty wrapper flashes the pane white.
+	if (pendingSwap) {
+		if (container.shadowRoot?.querySelector('[data-line]')) finishSwap()
+		else {
+			watchFrames = 0
+			requestAnimationFrame(() => watchSwap(swapVersion))
+		}
+	}
 }

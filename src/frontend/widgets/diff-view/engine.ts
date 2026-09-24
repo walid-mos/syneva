@@ -19,6 +19,7 @@ type ReviewFile = ReviewState['files'][number]
 export type DiffModel = {
 	file: ReviewFile
 	view: DiffView
+	isCurrent: () => boolean
 }
 
 export interface DiffEngine {

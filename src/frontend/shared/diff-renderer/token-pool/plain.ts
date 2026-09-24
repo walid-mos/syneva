@@ -17,6 +17,8 @@ import {
 } from '@pierre/diffs'
 import { perfSpan } from '@shared/lib/perf'
 
+import { embeddedLanguages } from './embedded-language'
+
 import type {
 	DiffsHighlighter,
 	FileDiffMetadata,
@@ -120,7 +122,13 @@ function languageNames(diff: FileDiffMetadata): string[] {
 	const derived = [diff.prevName ?? diff.name, diff.name].map(name =>
 		getFiletypeFromFileName(name),
 	)
-	return [...new Set(derived.filter(name => name !== 'text'))]
+	return [
+		...new Set([
+			...(diff.lang && diff.lang !== 'text' ? [diff.lang] : []),
+			...derived.filter(name => name !== 'text'),
+			...(embeddedLanguages(diff)?.names ?? []),
+		]),
+	]
 }
 
 // The plain-text gate kept from @pierre's own pool (isDiffPlainText isn't exported from the

@@ -1,5 +1,9 @@
 import { renderDiffWithHighlighter } from '@pierre/diffs'
 import { parseFileDiff } from '@shared/diff-renderer/parse-input'
+import {
+	embeddedLanguages,
+	windowLanguage,
+} from '@shared/diff-renderer/token-pool/embedded-language'
 // Syneva's own tokenization worker entry. @pierre's worker script tokenizes a whole diff per
 // task (~2 ms per line-unit; a 16k-line file costs tens of seconds in one structured clone);
 // this one splits a diff into windows (a task carries a slot range plus its hunk slice),
@@ -21,6 +25,7 @@ import type {
 	ResolvedLanguage,
 	WorkerRenderingOptions,
 } from '@pierre/diffs/worker'
+import type { EmbeddedLanguages } from '@shared/diff-renderer/token-pool/embedded-language'
 import type {
 	WorkerFailure,
 	WorkerParseDiff,
@@ -50,6 +55,7 @@ let renderOptions: WorkerRenderingOptions | undefined
 
 const OPEN_DIFF_CAP = 6
 const openDiffs = new Map<string, FileDiffMetadata>()
+const embeddedByKey = new Map<string, EmbeddedLanguages | undefined>()
 
 scope.addEventListener('message', event => {
 	// Async because adoption awaits the first highlighter creation; worker messages still run
@@ -180,9 +186,13 @@ function rememberDiff(cacheKey: string, diff: FileDiffMetadata): void {
 		// FIFO past the cap: evict the oldest key; four workers under LPT keep few jobs live
 		// and each parsed clone is megabytes.
 		const oldest = openDiffs.keys().next().value
-		if (oldest) openDiffs.delete(oldest)
+		if (oldest) {
+			openDiffs.delete(oldest)
+			embeddedByKey.delete(oldest)
+		}
 	}
 	openDiffs.set(cacheKey, diff)
+	embeddedByKey.set(cacheKey, embeddedLanguages(diff))
 }
 
 function post(message: WorkerSuccess): void {
@@ -233,6 +243,17 @@ function tenths(ms: number): number {
 	return Math.round(ms * TENTHS_PER_MS) / TENTHS_PER_MS
 }
 
+function buildTokenSlice(
+	diff: FileDiffMetadata,
+	window: WindowSpec,
+	embedded: EmbeddedLanguages | undefined,
+): ReturnType<typeof buildSlice> {
+	const sliced = buildSlice(diff, window)
+	const language = windowLanguage(embedded, sliced.positions)
+	if (language) sliced.slice.lang = language
+	return sliced
+}
+
 async function forWindow(
 	request: Extract<WorkerRequest, { type: 'token-window' }>,
 ): Promise<void> {
@@ -248,7 +269,11 @@ async function forWindow(
 			`token-window: no open diff for cacheKey "${request.cacheKey}"`,
 		)
 	const startSlice = performance.now()
-	const sliced = buildSlice(diff, request.window)
+	const sliced = buildTokenSlice(
+		diff,
+		request.window,
+		embeddedByKey.get(request.cacheKey),
+	)
 	const sliceMs = performance.now() - startSlice
 	// Cast: @pierre types the parameter against the full shiki barrel; the lean shiki/core
 	// instance exposes the same runtime surface this call touches.
